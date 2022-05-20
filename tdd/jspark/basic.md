@@ -1,4 +1,4 @@
-## 객체지향 생활 체조 원칙 9가지 익히기!
+## 객체지향 생활 체조 원칙 9가지 이해하기!
 
 최근에 코드 리뷰를 <code>객체지향 생활 체조 원칙</code>를 기반으로 한다는 얘기를 처음 접했다.
 
@@ -214,9 +214,81 @@ public class Store {
 
 ## 5. 한 줄에 점을 하나만 찍는다.
 
+여기서 점은 필드에 접근하기 위한 점을 의미한다. php의 경우 ->로 이해하면 된다.
 
+#### 기존 코드
 
-## 7. 3개 이상의 인스턴스 변수를 가진 클래스를 쓰지 않는다.
+```java
+if(user.getMoney().getValue()  > 100_000) {
+    throw new IllegalArgumentException("소지금은 100_000원을 초과할 수 없습니다.");
+}
+```
+
+위에서 사용하는 코드는 User, Money 두 가지의 의존성이 필요하다.
+
+디미터 법칙에서는 객체 그래프를 따라 멀리 떨어진 객체에게 메시지를 보내는 설계를 피하라고 말한다. 이런 설계는 객체 간의 결합도를 높이게 되고, 다양한 객체에 대해 결합도가 생기고, 깊게 관여하여 캡슐화가 깨지게 된다.
+
+#### 수정 코드
+
+```java
+if(user.hasMoney(100_000) > 100_000) {
+    throw new IllegalArgumentException("소지금은 100_000원을 초과할 수 없습니다.");
+}
+```
+
+그래서 위와 같이 점을 하나만 사용하도록 제어할 수 있다.
+
+UserService에서는 Money의 메서드를 호출하는 것이 아니라 user에게 상태를 물어볼 수 있다.
+
+## 6. 줄여쓰지 않는다(축약 금지)
+
+클린 코드에서는 의도가 분명하게 이름을 지으라고 말한다.
+
+이러한 설계는 가독성을 향상시킨다.
+
+#### 기존 코드
+
+```java
+public boolean isAvailable() {
+    return this.status == Status.LOCK;
+}
+```
+
+#### 수정 코드
+
+```java
+public void validUnlock() {
+    if(this.status == Status.LOCK) {
+        throw new IllegalArgumentException("잠금 상태에서는 수행할 수 없습니다.");
+    }
+}
+```
+
+객체지향 세계에서는 클래스명이나 필드명, 메서드명을 축약할 필요가 없다. 축약하려는 이유는 애초에 여러 개의 책임을 가지고 있기 때문이다.
+
+이름이 길면 신호로 받아들이고 책임을 분리할 수 있다.
+
+## 7. 모든 엔티티를 작게 유지한다.
+
+50줄이 넘는 클래스와, 파일이 10개 이상인 패키지를 지양하자는 원칙이다.
+
+보통 50줄이 넘는 클래스는 여러 가지의 책임이 있고, 코드의 이해와 재사용을 어렵게 만든다.
+
+패키지의 파일 수도 줄여야 하나의 목적을 달성하기 위한 연관된 클래스의 집합임이 드러나게 된다.
+
+#### 의문 사항
+
+패키지의 파일이 10개 이하여야 한다고 한다. 사실 이부분을 지켜지지 않는 패키지가 내가 개발하는 프로젝트에도 몇개 있다.
+
+헥사고날 아키텍처의 영속성 어댑터에서는 관련 JPA 엔터티나 Mapper, Adapter 등이 한 패키지에 있어야 한다.
+- 접근 제한자를 package-private으로 사용하기 때문
+- 실제로는 관리가 꽤 어려웠다.
+
+클래스의 접근 제한자는 public, package-private(default)밖에 없다.
+- 그래서 팀바팀이겠지만 public으로 두고 패키지를 분리하는 것이 더 합리적일 수 있따.
+- Mapper, JPA Entity 정도만 public으로 사용하고 Adapter 등은 패키지에 맞게 분리하는 방법도 좋을 것 같다.
+
+## 8. 3개 이상의 인스턴스 변수를 가진 클래스를 쓰지 않는다.
 
 인스턴스 변수가 많아질수록 클래스의 응집도는 낮아진다.
 
@@ -280,15 +352,45 @@ public class Brake {};
 
 ## 9. 게터/세터/프로퍼티를 쓰지 않는다.
 
+이부분은 Object, DDD 등에서 모두 강하게 강조하는 부분이다. (Tell, don't ask) 원칙에 따르면 묻지 말고 객체에게 행위를 시켜라고 한다.
 
+#### 기존 코드
 
+```java
+ShippingInfo shippingInfo = order.getShippingInfo();
 
-## 더 알아보고 싶으면 (강연)
+if(state != OrderState.PATMENT_WATTING && state != OderState.WATTING) {
+    throw new IllegalArguementException();
+}
+shippingInfo.setAddress(newAddress);
+```
 
-자바지기 박재성님께서 진행하신 TDD 강연에서도 객체지향 생활 체조 원칙을 소개하고 있습니다.
+여기서 ShippingInfo는 수동적인 데이터 상자일 뿐이다. 중요한 도메인이 의도를 표현하지 못하고 도메인 로직은 각 Service나 Presentation에서 중복으로 작성될 것이다.
+
+#### 수정 코드
+```java
+public Order {
+    private ShippingInfo shippingInfo;
+    
+    public void changeshippingInfo(ShippingInfo newShippingInfo) {
+        verifyNotYetShipped();
+        setShippingInfo(newShippingInfo);
+    }
+    
+    private void setShippingInfo(ShippingInfo newShippingInfo) {
+        this.shippingInfo = newShippingInfo;
+    }
+}
+```
+
+getter와 setter를 닫으면 메서드의 의도를 노출하기가 쉬워진다. 단지 Order 클래스가 ShippingInfo 클래스에게 변경을 요청하면 된다.
+
+## 강연 내용
+
+자바지기 박재성님께서 진행하신 TDD 강연에서도 객체지향 생활 체조 원칙을 소개하고 있다.
 - https://www.youtube.com/watch?v=bIeqAlmNRrA
 
-관심이 있으시면 참고하시면 좋을 듯합니다.
+관심이 있으시면 참고하시면 좋을 것 같다.
 
 ## 참고
 - https://williamdurand.fr/2013/06/03/object-calisthenics
