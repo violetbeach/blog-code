@@ -143,8 +143,47 @@ Spock의 feature 메소드는 setup, when, then, expect, cleanup, where 6단계�
 
 즉, where는 feature 메소드를 파라미터화해서 실행합니다.
 
+기존의 테스트를 Spock으로 작성하면 아래와 같이 간결하게 작성이 가능합니다.
+```groovy
+def "실버 등급의 회원에게는 10%의 할인율이 적용된다. [금액: #price, 결과: #result]" () {
+    given:
+    def 실버_등급 = MemberTier.SILVER
+
+    expect:
+    실버_등급.calcPrice(price) == result
+
+    where:
+    price  | result
+    500L   | 450L
+    1000   | 900L
+    -500L  | -450L
+    -1000L | -900L
+}
+```
+
+JUnit에서 쉽지 않던 예외 검증도 Spock을 사용하면 간결하게 처리할 수 있습니다.
+```groovy
+def "음수가 입력되면 IllegalArgumentException 발생한다" () {
+    given:
+    def 실버_등급 = MemberTier.SILVER
+
+    when:
+    실버_등급.calcPrice(-1)
+
+    then:
+    def e = thrown(IllegalArgumentException)
+    e.message == "음수는 허용되지 않습니다."
+}
+```
+Spock의 thrown 메서드는 예외 검증 뿐만 아니라, 예외를 반환해주기 때문에 메시지를 검증하기에도 편리합니다.
+
+## 마무리
+Spock으로 JUnit을 대체해서 테스트를 진행해봤습니다.
+
+감사합니다.
+
 ___
 
 ## 참고
-- https://jojoldu.tistory.com/228?category=1036934 (강추)
-
+- https://jojoldu.tistory.com/228?category=1036934
+- https://d2.naver.com/helloworld/568425
