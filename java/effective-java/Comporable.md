@@ -62,10 +62,21 @@ compareTo 메서드에서 관계 연산자 `<`, `>`를 사용하는 방식은 �
 
 Java 7부터 Wrapper 클래스에 추가된 정적 메서드 compare를 이용하면 쉽게 가능하다.
 
-## Comparable
+## Comparator
+Comparator를 사용하는 방법도 있다. Comparator는 메서드가 하나 뿐인 함수형 인터페이스를 구현하기 때문에 람다 함수로 대체가 가능하다.
 ```java
-
+Collection.sort(points, (a, b) -> {
+    int result = Integer.compare(a.x, b.x);
+    if (result == 0) {
+        result = Integer.compare(a.y, b.y);
+        if(result == 0) {
+            result = Integer.compare(a.z, b.z);
+        }
+    }
+    return result;
+});
 ```
+
 
 ## 추가 고려 사항
 
