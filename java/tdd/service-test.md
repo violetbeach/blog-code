@@ -86,9 +86,48 @@ class AccountServiceTest {
 
 이때 각 테스트마다 필요한 데이터나 초기화 로직이 다를 수 있다.
 
-해당 부분 구현을 위해서 Class 단위로 Setup & Teardown을 정의한다면, 특정 테스트를 실행할 때만 필요한 데이터 초기화 과정이 다른 테스트에도 영향을 줄 것이다.
+해당 부분 구현을 위해서 Class 단위로 Setup & Teardown을 정의할 수 있다.
+```java
+@SpringBootTest
+class AccountServiceTest {
 
-각 테스트 메서드 내부에서 Setup & Teardown을 진행한다면 코드가 의미없이 반복되어서 테스트 메서드가 매우 지저분해지는 결과를 낳는다.
+    @Autowired
+    AccountService accountService;
+    
+    @Autowired
+    AccountRepository accountRepository;
+    
+    Account account;
+    
+    SignupRequest signupRequest;
+    
+    @BeforeEach
+    void setup() {
+        account = generateAccount("loginId11"); // ID 찾기 메서드를 위한 데이터 생성
+        signupRequest = new SignupRequest("loginId", "password", "nickname"); // 회원 가입을 위한 데이터 생성
+    }
+
+    @Test
+    void signUp_success() {
+        // 생략
+    }
+
+    @Test
+    void signUp_fail_duplicateLoginId() {
+        // 생략
+    }
+    
+    @Test
+    void findLoginId_success() {
+        // 생략
+    }
+    
+}
+```
+
+해당 방법은, 특정 테스트를 실행할 때만 필요한 데이터 초기화 과정이 다른 테스트에도 영향을 줄 것이다.
+
+그렇다고 각 테스트 메서드 내부에서 Setup & Teardown을 진행한다면 코드가 의미없이 반복되면서 테스트 메서드가 매우 지저분해지는 결과를 낳는다.
 
 ## 변경한 테스트 코드
 위의 문제점들을 해결하기 위해 Nested 클래스를 사용할 수 있다. 예시를 살펴보자.
@@ -145,7 +184,7 @@ class AccountServiceTest {
 ```
 이제 각 테스트할 메서드에 계층(Nested Class)을 둠으로써 원하는 테스트 메서드를 쉽게 찾을 수 있다.
 
-더불어서 아래와 같이 Setup & Teardown을 각 테스트할 메서드에 적용할 수 있으니 더 깔끔하게 테스트를 작성할 수 있다.
+더불어서 아래와 같이 Setup & Teardown을 각 테스트할 메서드에 적용할 수 있으니, 각 메서드 마다 필요한 데이터를 깔끔하게 생성할 수 있다.
 ```java
 @SpringBootTest
 @DisplayName("AccountService의")
@@ -188,4 +227,3 @@ class AccountServiceTest {
 아래는 Nested 클래스를 사용했을 때의 테스트 결과이다.
 
 ![img.png](img.png)
-
