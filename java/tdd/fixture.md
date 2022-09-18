@@ -86,5 +86,9 @@ public enum PostFixture {
                 author, title, content, type, PostStatus.valueOf(status));
     }
 }
-
 ```
+이후에 해당 데이터의 생성을 할 때는 아래와 같이 사용하면 된다.
+
+`postRepository.save(NOTICE.getPost(member));`
+
+엔터티 뿐만 아니라 자주 사용하는 DTO 등에도 해당 방법을 적용해서 다양한 바운더리 컨텍스트의 테스트를 깔끔하게 작성할 수 있다. 
