@@ -22,6 +22,10 @@ HTTP 2.0에서는 Multiplexed라는 기술을 도입하는데 1개의 세션으�
 HOL 블로킹은 가장 앞선 요청에 대한 응답이 지연되면 이후 응답도 모두 지연되는 현상입니다. (서버는 TCP에서 요청을 받은 순서대로 응답을 해야합니다.)
 - HTTP 2.0에서는 요청을 Stream으로 받아서 처리하므로 HOL 블로킹이 발생하지 않습니다.
 
+![img_1.png](img_1.png)
+
+추가로 우리는 위와 같이 요청 수를 줄이기 위해 아이콘을 모아둔 Image Sprite를 만들어서 CSS에서 각 아이콘의 좌표값을 지정해서 사용했다. 이러한 노력을 더 이상 하지 않아도 된다.
+
 ## Stream Priorityzation
 
 위에서 언급했듯 HTTP 2.0은 요청을 Stream 형식으로 처리하게 됩니다.
@@ -36,6 +40,30 @@ Image를 먼저 응답 받아도, 렌더링할 HTML 문서가 처리가 안되�
 
 ## Server Push
 
+HTML 문서가 있고, 해당 문서에서 사용하는 CSS와 Images가 있다고 가정합시다.
+
+기존(HTTP 1.1)에서는 HTML 문서를 요청한 후, 해당 문서에서 필요한 CSS와 Images를 요청했었습니다.
+
+![img_2.png](img_2.png)
+
+HTTP 2.0부터는 HTML 문서를 요청하면, 클라이언트가 추가로 요청을 하지 않아도 서버가 필요한 리소스를 알아서 보내줍니다.
+
+## Header Compression
+
+기존(HTTP 1.1)에서는 이전에 보냈던 요청과 중복되는 Header도 똑같이 전송하느라 자원을 낭비했습니다.
+
+HTTP 2.0부터는 허프만 코딩을 사용한 HPACK 압축 방식으로 이를 개선했습니다.
+
+![img_3.png](img_3.png)
+
+클라이언트와 서버는 각각 Header Table을 관리하고, 이전 요청과 동일한 필드는 table의 index만 보냅니다.
+
+변경되는 값은 Huffman Encoding 후 보냄으로써 Header의 크기를 경량화 하였습니다.
+
+
+## 참고
+- https://ssungkang.tistory.com/entry/%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC-HTTP-11-VS-HTTP-20
+- https://developers.google.com/web/fundamentals/performance/http2/?hl=ko
 
 
 
