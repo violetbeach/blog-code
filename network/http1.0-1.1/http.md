@@ -10,7 +10,7 @@ HTTP의 변환점 중 가장 큰 부분이 HTTP 1.0 -> HTTP 1.1과 HTTP 1.1 -> H
 
 HTTP 1.0과 HTTP 1.1의 가장 큰 차이점은 지속성이다. 그렇다. 바로 `Connection: Keep-alive` 속성이다.
 
-![img.png](img.png)
+![img.png](Documents/blog-code/network/http1.0-1.1/img.png)
 
 HTTP 1.0에서 요청하고 수신할 때마다 새로운 TCP 세션을 맺어야 한다.
 
@@ -24,7 +24,7 @@ HTTP 1.0에서 요청하고 수신할 때마다 새로운 TCP 세션을 맺어�
 
 HTTP 1.0과 HTTP 1.1의 큰 차이 중 하나가 파이프라이닝 기능의 유무이다.
 
-![img_1.png](img_1.png)
+![img_1.png](Documents/blog-code/network/http1.0-1.1/img_1.png)
 
 HTTP 1.0 환경에서는 요청에 대한 응답이 와야 다음 응답을 보낼 수 있다.
 
