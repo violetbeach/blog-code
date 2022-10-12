@@ -12,7 +12,6 @@
 
 ![img.png](img.png)
 
-
 캐시와 관련된 부분은 아래 2가지입니다.
 
 - cache-control: 콘텐츠에 대한 캐싱 정책을 정의할 수 있음
@@ -36,31 +35,22 @@ max-stale - 만료된 캐시를 재사용할 수 있는 시간을 정한다.
 must-revalidate -  만료된 캐시만 서버에 유효한지 확인을 받도록 한다.
 max-age - 캐시의 유효시간(초 단위)
 
+추가로 해당 솔루션의 리소스는 **정적**이므로 ETag와 같은 헤더는 고려하지 않아도 됩니다.
 
-추가로 아래의 속성이 있지만 위 내용에서는 고려할 필요가 없는 것이라 생략합니다.
-
-Age
-Expires
-ETag
-If-None-Match
-If-Modified-Since
-
-
-public vs private
+### public vs private
 
 사용자마다 요청 end-point가 다르므로, 굳이 공유 캐시에 저장하지 않고 브라우저 캐시에 저장하면 되기에 private을 사용합니다.
-(사용자 마다 요청을 가지고, 추가로 메일당 1개가 발급 되는데 해당 요청을 모두 중개서버에서 캐싱하면, 정말 필요한 정적 데이터(html, css, javascript, ...)가 캐싱 미스로 처리될 수 있을 것 같습니다.)
 
+(사용자 마다 요청을 가지고, 추가로 메일을 조회할 때마다 해당 태그 내용 1개를 요청할텐데 해당 요청을 모두 중개서버에서 캐싱하면, 정말 필요한 정적 데이터(html, css, javascript, ...)가 캐싱 미스로 처리될 수 있기 때문)
 
-max-age: 토스 프론트엔드 챕터는 Cache-Control의 s-max-age 값으로 최대치인 31536000(max-age와 s-max-age를 분리하기 위함)을 사용한다고 합니다.
+### max-age
+토스 프론트엔드 챕터는 Cache-Control의 s-max-age 값으로 최대치인 31536000(max-age와 s-max-age를 분리하기 위함)을 사용한다고 합니다.
+- https://toss.tech/article/smart-web-service-cache
 
-https://toss.tech/article/smart-web-service-cache
-그래서 사실상 max-age도  영구적으로 유지해도 상관은 없지만, 메일 당 요청이 1개가 있는데 각 요청을 전부 브라우저 캐시에 저장하면 악영향을 끼칠 수 있습니다.
-그래서 max-age는 7일을 사용합니다.  (604,800)
-max-age를 설정했다고 해서 해당 캐시가 만료되었을 때 버려지는 것이 아닙니다. 즉, 캐시는 어차피 브라우저에 남게 되므로 max-age는 영구로 설정하는 것이 좋을 듯합니다.
+사실상 max-age도 영구적으로 유지해도 상관은 없습니다.
+  - 캐시에 너무 많은 내용이 쌓일 수 있는 게 걱정이라서 '30일 정도가 적당하지 않을까?' 생각이 들었는데, 어차피 캐시가 만료되었다고 해서 사용하지 못할 뿐이지, 브라우저 캐시에서 삭제되는 것은 아니기에 max-age인 31536000을 사용했습니다.
 
-
-정리하면 Cache-Control: private, max-age=31536000이 됩니다.
+해당 내용들을 정리하면 `Cache-Control: private, max-age=31536000`이 됩니다.
 
 
 
