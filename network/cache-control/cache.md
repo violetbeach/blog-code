@@ -44,58 +44,53 @@ max-age - 캐시의 유효시간(초 단위)
 (사용자 마다 요청을 가지고, 추가로 메일을 조회할 때마다 해당 태그 내용 1개를 요청할텐데 해당 요청을 모두 중개서버에서 캐싱하면, 정말 필요한 정적 데이터(html, css, javascript, ...)가 캐싱 미스로 처리될 수 있기 때문)
 
 ### max-age
-토스 프론트엔드 챕터는 Cache-Control의 s-max-age 값으로 최대치인 31536000(max-age와 s-max-age를 분리하기 위함)을 사용한다고 합니다.
-- https://toss.tech/article/smart-web-service-cache
 
-사실상 max-age도 영구적으로 유지해도 상관은 없습니다.
+max-age도 영구적으로 유지해도 상관은 없습니다.
   - 캐시에 너무 많은 내용이 쌓일 수 있는 게 걱정이라서 '30일 정도가 적당하지 않을까?' 생각이 들었는데, 어차피 캐시가 만료되었다고 해서 사용하지 못할 뿐이지, 브라우저 캐시에서 삭제되는 것은 아니기에 max-age인 31536000을 사용했습니다.
+
+<참고>
+토스 프론트엔드 챕터는 Cache-Control의 s-max-age 값으로 최대치인 31536000를 사용한다고 합니다.
+- https://toss.tech/article/smart-web-service-cache
 
 해당 내용들을 정리하면 `Cache-Control: private, max-age=31536000`이 됩니다.
 
+## Pragma
 
-
-Pragma
 해당 값은 HTTP 1.0 통신을 위한 헤더입니다.
-
-
 
 pragma는 사용할 수 있는 속성이 no-cache, public, private 밖에 없습니다.
 
+사실 해당 서비스의 웹서버(Apache)에서 HTTP 1.0을 허용 여부를 disable로 처리했지만, SideEffect를 고려하여 Cache-Control과 동일하게 private 으로 설정합니다.
 
+## 수정 후 헤더
 
-사실 Apache에서 HTTP 1.0을 허용 여부를 disable한 것으로 보이지만, SideEffect를 고려하여 Cache-Control과 동일하게 private 으로 설정합니다.
-
-
-
-수정 후 헤더
 ![img_1.png](img_1.png)
 
-결과
-Network 분석
+## 결과
+
+### 1. Network 분석
+
 수정 결과 캐시가 잘되어서 메모리 캐시를 조회한 것을 볼 수 있습니다.
+
 ![img_2.png](img_2.png)
 
-
-아래는 전체 요청 Spec 입니다.
 ![img_3.png](img_3.png)
 
+### 2. Access Log 확인
 
-Access Log 확인
-다음은 access.log로 확인 결과입니다.
+다음은 access_log를 확인해보겠습니다.
+
 ![img_4.png](img_4.png)
 
+위 상태에서 새로 고침을 반복했으나 최초 조회 1회 말고는 서버에 접근을 안하고 있었습니다.
 
-새로 고침을 반복했으나, 최초 1회 말고는 서버에 접근을 안하고 있었습니다.
 ![img_5.png](img_5.png)
 
 
-강력 새로고침후에는 액세스 로그가 찍히는 것을 확인할 수 있었습니다.
+강력 새로고침 후에는 액세스 로그가 찍히는 것을 확인할 수 있었습니다.
 
-주의 사항
-
+## 주의 사항
 
 캐시는 한번 저장되면 만료될 때까지 계속 브라우저에 남아 있게 됩니다.
-
-
 
 즉, 서버 측에서 어떠한 작업을 하더라도 브라우저의 캐시를 지우기는 어렵습니다.
