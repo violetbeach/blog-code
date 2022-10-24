@@ -1,0 +1,32 @@
+spring:
+    datasource:
+        url: jdbc:h2:tcp://localhost/~/datajpa
+        username: sa
+        password:
+        driver-class-name: org.h2.Driver
+
+    jpa:
+        hibernate:
+            ddl-auto: create
+        properties:
+            hibernate:
+                #show_sql: true
+                #format_sql: true
+
+                #jdbc:
+                   # batch_size: 100
+                #order_inserts: true
+                #order_updates: true
+                #default_batch_fetch_size: 100
+            format_sql: true
+        database: h2
+        database-platform: org.hibernate.dialect.H2Dialect
+
+
+logging.level:
+    org:
+        hibernate:
+            type:
+                descriptor:
+                    #sql: trace
+            #SQL: debug
