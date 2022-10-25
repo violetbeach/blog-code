@@ -25,21 +25,16 @@ public class MemberService {
     private final LazyConnectionDataSourceProxy dataSource;
 
 
+    @Transactional(readOnly = true)
     public Member create(CreateMemberRequest request) {
         printConnectionStatus();
 
-        Member member = createEntity(request.getUsername());
+        Member member = new Member(request.getUsername());
+        memberRepository.save(member);
 
         resourceService.upload(request.getUserImage());
 
         printConnectionStatus();
-        return member;
-    }
-
-    @Transactional
-    public Member createEntity(String username) {
-        Member member = new Member(username);
-        memberRepository.save(member);
         return member;
     }
 

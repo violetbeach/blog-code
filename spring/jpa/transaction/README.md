@@ -177,6 +177,23 @@ public Member createEntity(String username) {
 
 단, 이 경우에도 트랜잭션을 분리함으로써 스토리지에 Upload할 때 예외가 발생할 경우 엔터티는 직접 롤백시켜줘야 한다.
 
+**한 클래스 내에서 트랜잭션 분리**
+
+@Transactional을 사용하지 않고, 스프링에서 지원하는 TransactionTemplate을 사용하면 트랜잭션을 분리할 수 있다.
+
+```java
+void createMember() {
+    transactionTemplate.execute(new TransactionCallbackWithoutResult() {
+        @Override
+        protected void doInTransactionWithoutResult(TransactionStatus status) {
+            Member member = new Member("username");
+            memberRepository.save(member);
+        }
+    });
+}
+```
+
+
 **조회**
 
 삽입이나 수정이 아닌 조회를 하는 경우에는 조금 수월하다.
@@ -199,7 +216,7 @@ LazyConnectionDataSourceProxy를 사용하면 이를 조금 완화할 수 있다
 그래도 부족하다면 트랜잭션을 분리하거나 제거하는 방법도 있다.
 - 트랜잭션을 끊으면 데이터 정합성을 유지하기 어렵다.
   - Event나 Message를 활용한 보상 트랜잭션(eg. Saga 패턴)을 사용하면 해결이 가능하다.
-  - Cron이나 Scheduler 등으로 데이터 정합성을 주기적으로 맞춰주는 것도 고려해볼 수 있다.
+  - Storage 저장 -> 엔터티 Save 순서라면 Cron이나 Scheduler 등으로 데이터를 주기적으로 정리해주는 것도 고려해볼 수 있다.
   - .. 다른 방법이 있으면 알려주세요 ㅎㅎ!
 
 
