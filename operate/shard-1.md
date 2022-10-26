@@ -104,18 +104,40 @@ MySQL의 flags (bigint) 필드만 가지고는 비트 연산 쿼리에서 인덱
 
 MySQL이 제공하는 비트 비교 연산을 제공하는 메모리 기반의 캐시는 현재 없다. 심지어 다양한 자료구조를 제공하는 Redis에도 해당 기능은 없다. 하지만 Naver에서 확장 개발한 Memcached cluster인 Arcus를 사용하면 관련 기능을 쓸 수 있게 된다.
 
-## In-memory
+## 다양한 솔루션
 
 추가로 지속적으로 늘어나는 사용자를 MySQL 샤딩으로만 감당하기에 버거운 경지에 이르면 어떻게 될까..?!
 
-네이버 d2를 참고한 결과 MySQL을 대체할 데이터베이스로 Redis를 많이 선택하는 것 같다.
+네이버 동영상 플랫폼 팀에서는 위에서 잠깐 언급한 Arcus라는 캐시를 도입해서 RDB의 결과를 저장하고 있는 형태를 사용한다.
 
-아래의 레퍼런스 처럼 Redis와 Zookeeper 등을 조합해서 Redis cluster를 구성하기도 하고
+![img.png](img.png)
+
+즉, Object Storage와 RDB의 결과를 캐싱함으로써 처리 속도를 개선할 수 있다.
+
+또는 MySQL을 대체할 데이터베이스로 Redis를 선택할 수도 있다.
+
+Redis가 주목 받는 이유는 빠른 처리 속도와 검증된 소프트웨어 안정성에 있다. 모든 데이터를 메모리에 상주시켜 처리하고 이벤트 기반의 네트워크 비동기 입출력 처리를 해서,
+한 Redis 서버는 초당 수만 건 이상의 요청을 처리할 수 있다.
+
+네이버에서는 아래의 레퍼런스 처럼 Redis와 Zookeeper 등을 조합해서 Redis cluster를 구성하기도 하다가
 
 > 참고: https://d2.naver.com/helloworld/294797
  
-nBase-ARC라는 네이버에서 자체적으로 개발한 Redis-Cluster 플랫폼을 사용하는 것 같다. (꼭 한번 보시길 권해드린다!)
+nBase-ARC라는 자체적으로 개발한 Redis-Cluster 플랫폼을 사용하는 것 같다. (꼭 한번 보시길 권해드린다!)
 - https://d2.naver.com/helloworld/614607
+
+이외에도 Memcached, Cassandra 등도 많이 선택하는 것 같다.
+
+Facebook이나 Twitter는 아직도 MySQL을 거대한 규모로 샤딩(sharding)해서 사용하기에 여전히 괜찮은 솔루션인 것 같다.
+- Facebook은 8000대 이상의 MySQL과 4000대 이상의 Memcached로 구성되어 있었다.
+    - 1개의 마스터당 5개 미만의 슬레이브만 존재하고 이러한 마스터가 많이 있고 Zookeeper가 이를 중재하고 있었다고 한다.
+- 이후에도 데이터 영구 저장을 위해 MySQL을 계속 사용하지만 (5.7 -> 8.0) Memcached 만으로 소셜네트워크를 표현하기 어려워서, TAO(페이스북에서 자체적으로 개발한 Graph DB)를 사용해서 DB 액세스를 중재하고 그래프 기반의 캐싱을 사용한다.
+
+## 마무리
+
+샤딩에 대해서 알고 싶어서 (간략하게) 여러 자료들을 찾아 봤다..!
+
+가장 좋은 것은 해당 회사에서 사용하는 기술을 접하고, 다른 기술과 비교해가면서 성장하면 좋은 개발자가 될 수 있을 것 같다.
 
 ## 참고
 - https://d2.naver.com/news/3435170
@@ -126,3 +148,4 @@ nBase-ARC라는 네이버에서 자체적으로 개발한 Redis-Cluster 플랫�
 - https://tech.kakao.com/2016/07/01/adt-mysql-shard-rebalancing/
 - https://d2.naver.com/helloworld/915127
 - https://engineering.linecorp.com/ko/blog/line-manga-server-side/
+- https://medium.com/yugabyte/facebooks-user-db-is-it-sql-or-nosql-6ec01b2e7f65
