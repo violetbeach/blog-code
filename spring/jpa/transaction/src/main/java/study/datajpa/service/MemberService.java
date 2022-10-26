@@ -3,18 +3,12 @@ package study.datajpa.service;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.multipart.MultipartFile;
 import study.datajpa.entity.CreateMemberRequest;
 import study.datajpa.entity.Member;
 import study.datajpa.repository.MemberRepository;
-
-import javax.sql.DataSource;
 
 @Service
 @RequiredArgsConstructor
