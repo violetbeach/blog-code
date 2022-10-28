@@ -84,7 +84,7 @@ Nbase는 무중단으로 샤드 데이터베이스를 추가(Scale Out)하면서
 
 Nbase-T는 RDBMS를 기반으로 하고 마이그레이션 및 실시간 데이터 동기화가 용이하다.
 
-> 참고: https://deview.kr/data/deview/session/attach/1500_T2_%E1%84%8B%E1%85%B5%E1%84%86%E1%85%A7%E1%86%BC%E1%84%92%E1%85%A7%E1%86%AB_%E1%84%82%E1%85%A6%E1%84%8B%E1%85%B5%E1%84%87%E1%85%A5%20%E1%84%91%E1%85%A6%E1%84%8B%E1%85%B5%20%E1%84%87%E1%85%A2%E1%84%89%E1%85%A9%E1%86%BC%20EDA%20%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%92%E1%85%AA%E1%86%AB%E1%84%80%E1%85%B5.pdf
+> 참고:  https://deview.kr/data/deview/session/attach/네이버_페이_배송_EDA_전환기.pdf
 
 ## MySQL의 한계
 
