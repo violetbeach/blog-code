@@ -1,4 +1,4 @@
-## Real MySQL - MySQL 기본 구조 (쿼리 실행 과정, 메모리 할당 구조, InnoDB 구조)
+## Real MySQL - MySQL 기본 구조 (+ 쿼리 실행 과정, 메모리 할당 구조, ...)
 
 **MySQL 서버 구조**
 
@@ -18,32 +18,33 @@ MySQL은 아래의 구조를 가집니다.
 - Pre-processor(전처리기) - 파서에서 만들어진 파서 트리를 기반으로 쿼리 문장에 구조적인 문제점이 있는지 확인 합니다. 각 토큰을 테이블 이름이나 칼럼 이름 또는 내장 함수와 같은 개체를 매핑해 해당 객체의 존재 여부와 객체의 접근 권한을 등을 확인하는 과정을 이 단계에서 수행합니다.
 - Optimizer(옵티마이저) -  사용자가 요청한 쿼리를 가장 낮은 코스트(cost)로 가장 빠르게 처리할지 결정하는 역할을 담당합니다.
 - Execution engine(실행 엔진) - 옵티마이저의 명령을 받아서 핸들러에게 전달 합니다. 만들어진 계획대로 각 핸들러에게 요청해서 받은 결과를 또 다른 핸들러 요청의 입력으로 연결하는 역할을 수행합니다.
-- Storage engine(저장 엔진) - MySQL 실행 엔진의 요청에 따라 데이터를 디스크로 저장하고 디스크로부터 읽어 오는 역할을 담당합니다.
 - Query cache(쿼리 캐시) - 큰 비용으로 실행된 쿼리의 결과를 캐시에 저장하고 동일한 쿼리 요청이 왔을 때 캐싱된 결과를 내려준다.
+- Handler API(핸들러 API) - MySQL 엔진에서 쿼리 실행기에서 데이터를 쓰거나 읽기 위해 스토리지 엔진과 데이터를 주고받는 역할을 하는 API이다.
+- Storage engine(저장 엔진) - MySQL 실행 엔진의 요청에 따라 데이터를 디스크로 저장하고 디스크로부터 읽어 오는 역할을 담당합니다.
 
 MySQL에서는 이러한 과정을 거쳐 쿼리가 실행되게 됩니다.
 
-해당 과정은 MySQL Engine과 StorageEngine의 정리할 수 있습니다.
+해당 과정은 MySQL Engine과 StorageEngine의 영역으로 나눌  수 있습니다.
 
-[MySQL Engine (두뇌)]
+[MySQL Engine (두뇌 역할)]
 
-1. MySQL은 MySQL 엔진에 있는 커넥션 핸들러 API가 앱서버의 요청을 받고, MySQL엔진 내부에 전달합니다.
+1. MySQL 엔진 내부에 있는 커넥션 핸들러가 앱서버의 요청을 받는다.
+2. Query Cache는 해당 쿼리의 결과가 캐싱되어 있다면 캐싱된 결과를 반환한다.
+3. Query Parser가 SQL문을 트리 형태의 구조로 만듭니다. (+ 문법 오류 검출)
+4. Pre-processor에서 트리 형태의 SQL문의 특정 칼럼이나 테이블의 존재여부, 권한 등을 확인합니다.
+5. Optimizer가 해당 SQL문을 가장 저렴한 비용으로 빠르게 처리할 수 있도록 변경합니다.
+6. 핸들러 API가 Storage Engine에 처리를 요청함.
 
-2. Query Parser가 SQL문을 트리 형태의 구조로 만듭니다. (+ 문법 오류 검출)
+[Storage Engine (손, 발 역할)]
 
-3. preprocessor에서 트리 형태의 SQL문의 특정 칼럼이나 테이블의 존재여부, 권한 등을 확인합니다.
+7. Storage Engine(MyISAM, InnoDB 등)은 해당 쿼리문을 처리한다. (데이터 삽입, 조회 등)
+8. 실행 결과는 핸들러 API를 통해 MySQL 엔진에 반환한다.
 
-4. Optimizer이 해당 SQL문을 가장 저렴한 비용으로 빠르게 처리할 수 있도록 변경합니다.
 
-5. 실행 엔진이 Storage Engine에 처리를 요청함.
-
-[Storage Engine (손, 발)]
-
-6. Storage Engine(MyISAM, InnoDB 등)이 직접 쿼리문 내용을 수행함. (조회 결과 반환, 데이터 삽입 등)
-
+### Multi-thread
 MySQL은 해당 과정을 프로세스 기반이 아니라 스레드 기반으로 작동합니다. 그래서 여러 개의 요청을 동시에 수행할 수 있습니다.
 
-### **MySQL의 메모리 할당 구조**
+## MySQL의 메모리 할당 구조
 
 MySQL Server는 글로벌 메모리 영역과 로컬 메모리 영역이 있습니다. 각 영역의 메모리를 적절하게 설정해야 MySQL Server가 메모리 락 걸리는 현상을 방지할 수 있습니다.
 
@@ -73,7 +74,7 @@ SQL 튜닝이나 인덱스 설계를 잘 갖춰서 로컬 메모리 영역을 �
 
 **Architecture**
 
-[##_Image|kage@SK8K0/btrsytt3oow/KIA5V9JMYEa87yWEhgZre1/img.png|CDM|1.3|{"originWidth":700,"originHeight":538,"style":"alignLeft"}_##]
+![img_2.png](img_2.png)
 
 -   모든 테이블은 PK를 기준으로 클러스터링되어 저장됨 (PK가 보조인덱스보다 비중 높음)
 -   외래키를 지원 - FK도 Storage Engine Layer에서 지원
