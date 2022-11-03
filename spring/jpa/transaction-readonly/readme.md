@@ -16,7 +16,7 @@
 
 -> Transaction ID 설정에 대한 오버헤드를 줄일 수 있다.
 
-## Replication 적용
+## Replication 적용 가능
 
 DB 서버가 Master, Slave로 분리되어 있다면, 아래와 같이 트랜잭션의 readOnly 옵션에 따라 Slave DB 서버를 호출하게 처리할 수 있다.
 
