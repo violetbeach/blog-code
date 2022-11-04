@@ -52,14 +52,39 @@ Nginx의 경우에는 마지막 수정 시간과 content 길이를 md5 해싱해
 
 ## 배포 전략
 
-단, 그런데 만약 재검증 절차 없이 브라우저에 정적 컨텐츠가 캐싱된다면, 이후 컨텐츠가 수정되었을 때 사용자에게 불편한 UX를 줄 수 있다.
+단, 그런데 만약 재검증 절차 설정없이 공유 캐시나 브라우저에 정적 컨텐츠가 캐싱된다면, 이후 컨텐츠가 수정되었을 때 사용자에게 불편한 UX를 줄 수 있다.
 
-그래서 배포가 되었을 때 사용자가 즉각적으로 새로운 컨텐츠를 받을 수 있게 처리해야 한다면?
+그래서 배포가 되었을 때 별도의 처리 없이도 사용자가 즉각적으로 새로운 컨텐츠를 받을 수 있게 처리해야 한다면?
 
 정적 컨텐츠에 아래(`v=202211041203`)와 같은 쿼리 스트링을 사용하면 이러한 캐시를 우회할 수 있다.
--  <link rel="stylesheet" type="text/css" href="/common/css/common.css?v=202211041203">
+- `<link rel="stylesheet" type="text/css" href="/common/css/common.css?v=202211041203">`
 
+즉, 배포했을 때 쿼리스트링 내용만 바꿔도 다른 자원으로 인식해서 기존의 캐싱된 자원을 활용하지 않을 수 있다.
 
+그럼 매 배포마다 어떻게 해당 쿼리스트링을 바꿔줘야 할까?!
+
+이는 어렵지 않게 해결이 가능하다.
+
+```
+<jsp:useBean id="today" class="java.util.Date" />
+<fmt:formatDate value="${today}" pattern="yyyyMMdd" var="nowDate"/>
+<link rel="stylesheet" type="text/css" href="<c:url value="/css/ik_intro.css"><c:param name="dt" value="${nowDate}"/></c:url>"/>
+```
+JSP의 경우 JSTL로 쿼리스트링을 동적으로 넣어주면 처리가 가능하다.
+
+JavaScript의 경우에도 랜덤한 값을 사용해서 아래처럼 처리할 수 있다.
+```javascript
+var rand = Math.floor((Math.random() * 10000));
+document.write('<img src="./images/domdomi.jpg?"'+rand+'" />');
+```
+
+WebPack을 사용한 프로젝트의 경우 webpack.config.js에서 아래 설정을 넣어주면 더 쉽게 반영할 수 있다.
+```javascript
+output: {
+	path: path.join(__dirname, '/src/'),
+	filename: '[name].[chunkhash:8].js',
+},
+```
 
 ## 참고
 - https://toss.tech/article/smart-web-service-cache
