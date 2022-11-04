@@ -42,8 +42,9 @@ JUnit 창시자 중 한 명이자, TDD 창시자인 켄트 백(Kent Beck)은 이
 
 
 
+
 ## 참고
-- https://yearnlune.github.io/java/java-private-method-test/#
+- https://yearnlune.github.io/java/java-private-method-test/
 - https://www.devkuma.com/docs/junit/private-method-test/
 - https://okky.kr/articles/860464
 - https://mangkyu.tistory.com/235
