@@ -67,8 +67,55 @@ Immutable을 사용하면 내가 작성한 메서드를 호출한 이후에는 �
 
 많은 분들이 놓치는 Immutable의 이점이 바로 GC의 성능을 높여준다는 것이다.
 
-Java에서는 final 키워드를 사용해서 불변 객체를 생성할 수 있는데, 해당 객체가 참조하는 객체를 먼저 생성하고 해당 객체를 가지는 컨테이너(ImmutableHolder를 생성한다.)
+Immutable은 자칫 잘못 생각하면 **객체를 훨씬 더 많이 생성하니까 그만큼 비용이 큰 것 아니야?** 라고 생각할 수 있다. 하지만 이는 잘못된 생각이다.
+
+아래는 Oracle에서 제시한 의견이다.
+> Programmers are often reluctant to employ immutable objects, because they worry about the cost of creating a new object as opposed to updating an object in place. The impact of object creation is often overestimated, and can be offset by some of the efficiencies associated with immutable objects. These include decreased overhead due to garbage collection, and the elimination of code needed to protect mutable objects from corruption.
+
+이는 **객체 생성에 대한 비용은 과대평가되고 있으며, 이는 불변 객체를 이용한 효율로 충분히 상쇄할 수 있다.** 정도로 해석할 수 있다.
+
+GC는 새롭게 생성된 객체는 금방 죽는다는 [Waek Generational Hypothesis](https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/generations.html) 가설에 맞춰 설계되었다. GC는 생명주기가 짧은 객체를 처리하는 것에 큰 부담을 느끼지 않는다.
+
+아래의 예시를 보자.
+
+Java에서는 final 키워드를 사용해서 불변 객체를 생성할 수 있는데, 예를 들어 불변 객체를 필드로 가지는 ImmutableContainer 객체가 있다고 가정하자. 이때 해당 객체가 참조하는 객체를 먼저 생성하고 해당 객체를 가지는 ImmutableContainer를 생성한다.
+
+즉, ImmutableContainer가 JVM의 Heap에 올라가는 과정을 정리하면 아래와 같다.
+1. 해당 컨테이너가 참조하는 불변 객체를 생성
+2. ImmutableContainer 객체 생성
+3. ImmutableContainer 객체가 1에서 생성한 불변 객체 참조
+
+즉, ImmutableContainer가 살아있다는 것은 하위의 불변 객체들도 살아있다는 것을 의미한다.
+
+이러한 점은 GC가 수행될 때, 컨테이너 객체의 불변 객체들은 Skip할 수 있도록 도와준다.
+
+왜냐하면 해당 컨테이너 객체(ImmutableHolder)가 살아있다는 것은 하위의 불변 객체들도 참조되고 있음을 의미하기 때문이다.
+```java
+public class ImmutableContainer {
+    private final Object value;
+    public ImmutableContainer(Object o) { value = o; }
+    public Object getValue() { return value; }
+}
+
+@Test
+public void createHolder() {
+    // 1. Object 타입의 value 객체 생성
+    final String value = "MangKyu";
+    
+    // 2. Immutable 생성 및 값 참조
+    final ImmutableContainer holder = new ImmutableContainer(value);
+    
+}
+```
+
+즉, 불변 객체를 활용하면 가비지 컬렉터(GC)가 스캔해야 되는 객체의 수가 줄어들게 되어 스캔해야 하는 메모리 영역과 빈도수 역시 줄어들고 GC가 수행되어도 Stop-The-World 시간도 줄어들게 된다.
+
+그래서 MutableHolder보다는 ImmutableHolder를 사용하는 것이 좋다.
+
+> https://docs.oracle.com/javase/tutorial/essential/concurrency/immutable.html
 
 
 ## 참고
 - https://mangkyu.tistory.com/131
+- https://devoong2.tistory.com/entry/Java-%EB%B6%88%EB%B3%80-%EA%B0%9D%EC%B2%B4Immutable-Object-%EC%97%90-%EB%8C%80%ED%95%B4-%EC%95%8C%EC%95%84%EB%B3%B4%EC%9E%90
+- https://min103ju.github.io/effective%20java/immutable/
