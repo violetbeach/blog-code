@@ -70,6 +70,17 @@ private final Map<String, Object> cache = new HashMap<>();
 - 추가로 Atomic Critical Section에 대한 동기화를 제공한다.
 - 그래서 각 Transaction이 Read/Write를 동기화하면서 원치 않는 결과를 얻는 것을 방지한다.
 
+## Write Back
+
+로그와 같이 단순한 데이터를 DB에 Write 해야하는 경우 매번 Write를 수행하면 상당히 부담스럽게 된다.
+
+Write는 일반적으로 Read보다 느리고 비용이 많이 발생한다.
+
+이때 Redis를 사용해서 Write Back 방식으로 문제를 해결할 수 있다.
+
+![img_4.png](img_4.png)
+
+
 ## 사용 현황
 
 현재 아래의 3가지를 기능을 모두 사용하는 개발 팀이 많다. 
@@ -89,9 +100,9 @@ Local cache와 Redis cache의 차이를 비교해보자.
 - 네트워크 I/O 비용이 발생한다. -> 외부 캐시 저장소에 접근하여 데이터를 가져오기 때문
 - 데이터 일관성을 유지할 수 있다.
 
-즉, Local Cache와 Global(Redis) Cache의 특징을 고려했을 때 어떤 기술을 선택할지에 대한 기준은 **데이터의 일관성이 깨질 수 있는가?** 혹은 **데이터 일관성이 깨져도 비즈니스에 영향을 주지 않는가?**가 된다. 물론 둘 다 사용할 수도 있다.
-
 ![img_2.png](img_2.png)
+
+즉, Local Cache와 Global(Redis) Cache의 특징을 고려했을 때 어떤 기술을 선택할지에 대한 기준은 **데이터의 일관성이 깨질 수 있는가?** 혹은 **데이터 일관성이 깨져도 비즈니스에 영향을 주지 않는가?**가 된다. 물론 둘 다 사용할 수도 있다.
 
 ## Redis pub/sub
 
@@ -124,7 +135,7 @@ Redis는 단순한 get/set이라면 초당 10만 TPS 이상이 가능할 정도�
 
 ![img.png](img.png)
 
-만 processCommand가 O(N)이 수행되는 Keys, Flush, Get all과 같은 명령이라면 뒤의 요청들이 병목이 발생할 수 있다.
+즉, 만약 processCommand가 O(N)이 수행되는 Keys, Flush, Get all과 같은 명령이라면 뒤의 요청들이 병목이 발생할 수 있다.
 
 추가로 In-memory DB 특성 메모리 파편화, 가상 메모리 등의 이해가 필요하다.
 
@@ -132,3 +143,4 @@ Redis는 단순한 get/set이라면 초당 10만 TPS 이상이 가능할 정도�
 - https://redis.io/docs/manual/client-side-caching/#what-to-cache
 - https://www.youtube.com/watch?v=Gimv7hroM8A
 - https://souljit2.tistory.com/72
+- https://www.happykoo.net/@happykoo/posts/40
