@@ -49,6 +49,9 @@ In-memory를 사용할 때의 특징을 간략 하게만 소개하면 아래와 
 - 적당히 크다.
 - 휘발성이다.
 
+SpringBoot 앱 서버에서 Redis를 Cache로 사용하는 방법에 대해서는 아래의 글을 참고하면 될 것 같다.
+- https://www.wool-dev.com/backend-engineering/spring/springboot-redis-cache
+
 ## Java
 
 그렇다면 In-memory DB가 꼭 필요할까?
@@ -67,6 +70,54 @@ private final Map<String, Object> cache = new HashMap<>();
 - 추가로 Atomic Critical Section에 대한 동기화를 제공한다.
 - 그래서 각 Transaction이 Read/Write를 동기화하면서 원치 않는 결과를 얻는 것을 방지한다.
 
+## 사용 현황
+
+현재 아래의 3가지를 기능을 모두 사용하는 개발 팀이 많다. 
+- Local cache
+- Redis cache
+- Redis pub/sub을 통해 변경된 내용에 대해 모든 사용자에게 전파
+
+Local cache와 Redis cache의 차이를 비교해보자.
+
+**Local Cache**
+- 데이터 조회 오버헤드가 없다.
+- 처리 속도가 빠르다.
+- 서버마다 캐시를 따로 저장한다.
+- 서버간 동기화가 어렵고, 동기화 비용이 발생한다.
+
+**Redis(Global) Cache**
+- 네트워크 I/O 비용이 발생한다. -> 외부 캐시 저장소에 접근하여 데이터를 가져오기 때문
+- 데이터 일관성을 유지할 수 있다.
+
+즉, Local Cache와 Global(Redis) Cache의 특징을 고려했을 때 어떤 기술을 선택할지에 대한 기준은 **데이터의 일관성이 깨질 수 있는가?** 혹은 **데이터 일관성이 깨져도 비즈니스에 영향을 주지 않는가?**가 된다. 물론 둘 다 사용할 수도 있다.
+
+![img_2.png](img_2.png)
+
+## Redis pub/sub
+
+Redis의 pub/sub 기능은 주로 채팅 기능이나 푸시 알림 등에 사용된다.
+
+Redis pub/sub은 해당 채널에 구독 신청을 한 모든 Subscriber에게 메시지를 전달한다.
+
+단, Kafka와 다르게 Redis Channel은 메시지를 "던지는" 시스템이기 때문에 메시지를 보관하지도 않는다. 그래서 subscribe 대상이 하나도 없는 상황에서 메시지를 publish한다면 해당 메시지는 사라지게 된다.
+
+Redis pub/sub을 사용하면 변경된 내용을 배포한 뒤 모든 서버(subscriber)에 캐시하는 시스템을 구현할 수 있다.
+
+## Replication
+
+Redis는 휘발성을 가지고 있는 메모리 상의 데이터이다. 그래서 항상 데이터가 유실될 문제를 고려하고 있어야 한다.
+
+그래서 Redis는 데이터 복제(Replication) 기능을 지원한다.
+
+![img_1.png](img_1.png)
+
+이때 만약 메모리가 가득 차있다면 복사본이 메모리에 제대로 생성되지 않고 앱이 죽기 때문에 메모리를 반드시 여유있게 사용해야 한다.
+
+## Cluster
+
+추가로 Redis의 메모리는 제한되어 있기 때문에 주기적으로 Scale out, Back up을 해야 한다. 관련 내용은 Redis Cluster를 찾아보면 된다. 
+
+
 ## 주의할 점
 
 Redis는 단순한 get/set이라면 초당 10만 TPS 이상이 가능할 정도로 빠르다. 하지만, 앞에서 언급했듯 Redis는 Single Thread 서버이므로 명령의 시간 복잡도를 고려해야 한다.
@@ -77,11 +128,7 @@ Redis는 단순한 get/set이라면 초당 10만 TPS 이상이 가능할 정도�
 
 추가로 In-memory DB 특성 메모리 파편화, 가상 메모리 등의 이해가 필요하다.
 
-## 사용
-Local cache
-Redis cache
-Redis pub/sub을 통해 변경된 내용에 대해 모든 사용자에게 전파
-
 ## 참고
 - https://redis.io/docs/manual/client-side-caching/#what-to-cache
 - https://www.youtube.com/watch?v=Gimv7hroM8A
+- https://souljit2.tistory.com/72
