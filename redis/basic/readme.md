@@ -80,6 +80,7 @@ Write는 일반적으로 Read보다 느리고 비용이 많이 발생한다.
 
 ![img_4.png](img_4.png)
 
+Write Back은 Insert할 데이터를 Cache에 모으고 일정한 주기 또는 일정한 크기가 되면 한번에 Insert할 때 유용하다.
 
 ## 사용 현황
 
@@ -126,8 +127,36 @@ Redis는 휘발성을 가지고 있는 메모리 상의 데이터이다. 그래�
 
 ## Cluster
 
-추가로 Redis의 메모리는 제한되어 있기 때문에 주기적으로 Scale out, Back up을 해야 한다. 관련 내용은 Redis Cluster를 찾아보면 된다. 
+추가로 Redis의 메모리는 제한되어 있기 때문에 주기적으로 Scale out, Back up을 해야 한다.
 
+![img_5.png](img_5.png)
+
+Redis의 운영모드는 세 가지가 있다.
+- Standalone - 하나의 레디스 서버만 운영하는 모드
+- Sentinel - Master 노드가 강제 종료되면 Slave 하나가 승격하는 모드
+- Cluster - 데이터를 분산해서 처리하는 모드
+
+이중 Cluster 모드는 Range, Modular, Hash, Indexed 등의 기법으로 데이터가 저장될 노드를 결정한다. 
+
+추가로 노드 하나에 장애가 발생하거나 서버가 증가되면 기존 노드에 적재된 데이터들이 리밸런싱된다.
+
+스프링부트에서는 아래의 설정으로 간단하게 Redis cluster를 구성할 수 있다.
+
+```yaml
+spring:
+  redis:
+    cluster:
+      nodes:
+        - 10.123.1.88:6400
+        - 10.123.1.88:6401
+        - 10.123.1.88:6402
+```
+
+나는 Redis가 NoSQL이므로 Redis Cluster가 그렇게 **안전**한 것과는 거리가 있을 것으로 생각했다.
+
+그런데 Naver D2에서 본 내용이나 기술 공유 등을 통해 레디스가 정말 튼튼하다고 믿게 되었다.
+- Naver에서는 nBase-ARC라는 Redis Cluster를 자체로 제작하여 메인 DB로써 활용하기까지 한다.
+- 아래 링크에는 nBase-ARC의 내부 구현이 잘 정리되어 있다! 정말 너무 재밌다.(https://d2.naver.com/helloworld/614607)
 
 ## 주의할 점
 
