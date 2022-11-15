@@ -1,4 +1,8 @@
-## Spring - Servlet과 Spring의 Dispatcher servlet의 차이!
+## Spring - Servlet과 Spring의 차이!
+
+사실 Servlet과 Spring은 정확한 비교 대상은 아닙니다.
+
+그래서 **Servlet과 Spring으로 Servlet을 다루는 것** 정도로 이해해주시면 감사하겠습니다.
 
 ## Servlet
 
@@ -86,8 +90,14 @@ Spring MVC는 이러한 공통 로직 처리를 위해 Front Controller 패턴�
 
 이때 모든 요청을 받는 전면 Controller를 Dispatcher Servlet이라고 부른다. 즉, Spring은 서블릿을 하나만 두고 해당 Servlet이 모든 요청을 처리할 수 있도록 한다.
 
+단, 이때 Dispatcher Servlet의 역할이 너무 많기 때문에 아래와 같이 View, ViewResolver, HandlerMapping 등에게 특정 책임을 위임한다.
 
+![img_5.png](img_5.png)
 
+참고로 HandlerMapping, ViewResolver 등은 모두 인터페이스들이고 구현체가 많이 존재한다. 해당 구현체들은 디스패처 서블릿이 스프링 컨테이너로부터 주입 받아서 사용하게 된다. 
+
+스프링 없이 Servlet만으로 구현했으면 View, ViewResolver, HandlerMapping 등도 다 직접 처리를 했어야 하는 부분들이다.
+- 스프링을 사용함으로써 우리는 Controller 부분만 신경쓸 수 있게 되었다.
 
 ## 참고
 - https://www.youtube.com/watch?v=calGCwG_B4Y
