@@ -49,6 +49,17 @@ Spring WebFlux는 기존 Spring MVC와 패러다임이 많이 다르다.
 
 프론트 서버팀에서 **많은 동시 요청**과 **많은 트래픽**을 가지고 있고, **좋은 사용자 경험**을 제공해야 했기에 Mvc에서 WebFlux로 변경을 하게 되었다.
 
+## MSA
+
+다른 특징은 프론트 서버는 MSA의 최전방에 있다.
+
+![img_3.png](img_3.png)
+
+추가로 MSA를 얘기할 때 CQRS(Command and Query Responsibility Segregation) 패턴을 얘기를 같이 하게 된다.
+- 관련해서는 이전 포스팅을 참고하자. https://jaehoney.tistory.com/255
+
+
+
 
 
 
