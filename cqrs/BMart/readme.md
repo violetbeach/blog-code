@@ -113,6 +113,52 @@ B마트에서 가장 복잡한 조회 모델은 카탈로그 모델이라고 한
 - 실행 Method 지정
 - 데이터 변경자 이름
 
+그래서 감지 대상 엔터티는 아래의 인터페이스를 구현한다.
+
+![img_11.png](img_11.png)
+
+## 변경 감지 방법
+
+이벤트를 발행하려면 변경 감지를 해야 한다. 방법은 총 4가지가 있었다.
+1. JPA EntityListeners 
+2. Hibernate EventListener 
+3. Hibernate Interceptor
+4. Spring AOP
+
+해당 방법들은 1에서 4로 내려갈 수록 추상화 레벨이 낮아진다.
+
+### JPA EntityListener
+
+- @Entity 혹은 @MappedSuperclass 객체 메서드에 애노테이션 지정으로 사용이 가능하다.
+- Callback 지정 함수 선언이 간단하다. (@PrePersiste, @PostPersist, @PreUpdate 등 7가지)
+- 단, 해당 엔터티만 인자로 반환할 수 있기 때문 어떤 값에서 어떤 값으로 변경되는 지를 알기는 어렵다.
+
+### Hibernate EventListener
+- Hibernate에서는 SessionFactoryImpl 클래스로 세션팩토리가 구현된다. 해당 팩토리에는 EventLIstenerRegistry가 있어서 이를 사용할 수 있다.
+- 26가지 디테일한 상황에 콜백이 가능하다.
+- 상세한 정보를 전달할 수 있다. (이전 상태, 현재 상태, 변경된 프로퍼티 등)
+- 단, 모든 엔터티에 공통으로 적용이 가능하지만 각 엔터티에 별도로 적용하기
+
+### Hibernate Interceptor
+- Session 혹은 SessionFactory에 Interceptor를 등록할 수 있다.
+- EventListener에 비해 적은 콜백 종류
+- 저장될 데이터 조작 가능
+
+### Spring AOP
+- Method에 설정 가능
+- Method 실행 전/후, 반환 후, 예외 상황, 애노테이션이 붙은 경우 등에 대해 Pointcut으로 동작
+- 부득이한 경우에만 사용한다.
+
+B마트 팀에서는 변경 감지를 위해 아래와 같이 2번(Hibernate EventListener)를 기본으로 이용하고,
+
+![img_13.png](img_13.png)
+
+DeleteInBatch와 같이 EntityManager를 타지 않고 단순 쿼리가 실행되는 경우에만 아래와 같이 Spring AOP 방법을 적용했다.
+
+![img_12.png](img_12.png)
+
+
+
 ## 참고
 - https://www.youtube.com/watch?v=fg5xbs59Lro
 
