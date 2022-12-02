@@ -162,6 +162,15 @@ DeleteInBatch와 같이 EntityManager를 타지 않고 단순 쿼리가 실행�
 
 ![img_12.png](img_12.png)
 
+## 이벤트 구독
+
+이벤트 구독자가 해당 이벤트가 생성될 떄마다 조회 모델을 갱신하게 되면 DB에 대한 요청 수가 크게 상승해서 비효율적인 결과를 초래한다.
+
+그래서 아래의 그림과 같이 버퍼(Redis)에 이벤트를 저장하고, Scheduler를 활용해서 10초에 한번씩 모든 이벤트를 가져와서 조회 모델을 Bulk로 생성하고 저장한다.
+
+![img_14.png](img_14.png)
+
+
 ## 참고
 - https://www.youtube.com/watch?v=fg5xbs59Lro
 
