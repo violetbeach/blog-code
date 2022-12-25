@@ -1,4 +1,4 @@
-## MongoDB란 무엇인가?!
+## MongoDB란 무엇인가?! (기본 이해하기!)
 
 MongoDB는 기존에 사용하던 RDB의 확장성과 신속성 문제로 개발한 Database이다.
 
@@ -94,3 +94,59 @@ MongoDB는 아래 3개의 기본 Database를 제공한다. (루트 권한 여부
 
 MongoDB의 배포 형태는 크게 3가지가 있다.
 - Standalone
+- Replica Set
+- Sharded Cluster
+
+하나씩 살펴보자.
+
+### Standalone
+
+가장 일반적인 방법으로 1개의 Client가 1개의 Server에 Read/Write를 모두 하는 형태이다.
+
+해당 DB가 죽으면 사용자들이 이용을 못하게 된다.
+
+### Replica Set
+
+위와 같은 문제 때문에 MongoDB에서는 Replica Set 방식의 배포를 제공한다.
+
+Primary Database와 동일한 서버를 여러 대 띄워서 동일한 데이터를 Secondary Database에 복제한다.
+
+![img_1.png](img_1.png)
+
+여기서는 메인 DB가 죽어도 다른 DB가 무사하기에 운영을 끊지 않고 할 수 있다.
+- 즉, HA(High Availability)를 보장한다.
+
+해당 Replica Set을 구성할 때 중요한 것이 각 DB 서버를 다른 곳에 보관해야 목적에 맞게 사용할 수 있다는 점이다.
+- 가령, 이번 kakao 사태에 대해 if kakao(https://www.youtube.com/watch?v=giCSm1D028s&t=1742s)에서는 이중화는 구성했지만, 다른 데이너 센터 간 이중화가 부족했다고 말했습니다. 동일한 데이터 센터의 다른 서버에 이중화를 함으로써 무용지물이 된 것입니다.
+- 즉, 다른 DB 서버를 물리적으로 다른 서버에 보관해야 목적에 맞게 사용할 수 있다. 
+
+Primary
+- Read/Write 요청을 모두 처리할 수 있다.
+- Write를 처리하는 유일한 멤버이다.
+- Replica Set에 하나만 존재할 수 있다.
+
+Secondary
+- Read에 대한 요청만 처리할 수 있다.
+- 복제를 통해 Primary와 동일한 데이터 셋을 유지한다.
+- Replica Set에 여러 개 존재할 수 있다.
+
+Replica Set은 Master-slave의 종류로 생각해도 좋을 것 같다.
+
+### Shareded Cluster
+
+문제는 Replica Set을 사용해도 부하는 DB 서버 1대가 받고 있는 상황이다.
+
+해당 DB 서버가 트래픽을 받는데 무리가 있을 때 DB 서버의 부하 분산을 하게 된다.
+
+MongoDB에서는 이러한 샤딩 처리를 위해 Sharded Cluster 배포 전략을 제공한다.
+
+![img_2.png](img_2.png)
+
+해당 방식은 Router가 어느 DB에 붙어서 처리를 할 지 정해주게 된다.
+- HA(High Availability - 고가용성)
+- Distiribution(분산)
+
+(Router도 Scale out이 가능하다.)
+
+## 참고
+- https://www.mongodb.com/basics
