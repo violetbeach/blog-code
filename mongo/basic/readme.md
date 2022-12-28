@@ -69,7 +69,7 @@ MongoDB는 아래 3개의 기본 Database를 제공한다. (루트 권한 여부
   - 인증과 권한 부여 역할을 한다.
   - shutdown 등 명령어는 해당 DB에 대한 접근이 필요하다.
 - local
-  - replication 절차레 필요한 oplog와 같은 컬렉션을 저장
+  - replication에 필요한 oplog와 같은 컬렉션을 저장
   - instance 진단을 위한 startup_log와 같은 정보를 저장 
   - 복제 대상에서 제외된다.
 - config
@@ -129,6 +129,16 @@ Secondary
 - Read에 대한 요청만 처리할 수 있다.
 - 복제를 통해 Primary와 동일한 데이터 셋을 유지한다.
 - Replica Set에 여러 개 존재할 수 있다.
+- Primary가 죽으면 선출을 통해 Primary가 될 수 있다.
+
+데이터 복제는 Local Database의 oplog.rs를 구독하는 형태로 동작한다. 해당 oplog를 조회해보면 아래와 같은 데이터가 있다.
+
+![img_3.png](img_3.png)
+
+- op는 insert를 뜻한다.
+- ns는 수정이 일어난 컬렉션.도큐먼트이다.
+
+데이터를 저장할 때마다 이러한 기록이 남고, Secondary Database는 해당 Oplog를 사용해서 데이터를 동기화하게 된다.
 
 Replica Set은 Master-slave의 종류로 생각해도 좋을 것 같다.
 
@@ -148,5 +158,27 @@ MongoDB에서는 이러한 샤딩 처리를 위해 Sharded Cluster 배포 전략
 
 (Router도 Scale out이 가능하다.)
 
+그래서 용량의 한계를 극복할 수 있고, 데이터 규모와 부하가 크더라도 처리량이 좋다.
+- 단, 단순한 조회 쿼리는 Replica Set에 비해 쿼리가 느릴 수 있다.
+
+전체 아키텍처 그림을 보면 아래와 같다.
+
+![img_4.png](img_4.png)
+
+- 각 Shard는 Replica Set으로 구성되어 있고, 데이터를 가진다.
+- Mongos(Router)는 Config Server를 참조해서 쿼리를 샤드로 전달을 하고 결과를 반환한다.
+- Config Server는 어떤 샤드가 어떤 데이터를 가지고 있는지나 각 샤드의 상태 등 중요한 정보를 가지고, Config Server 역시 Replica Set으로 구성되어 있다.
+- 샤딩은 Collection 단위로 설정할 수 있고, Chunk를 단위로 데이터를 나눈다.
+- 샤드 DB로 직접 접근도 가능하지만, 반드시 Router를 통해 접근해야 정확한 결과를 얻을 수 있다.
+
+각 샤딩 전략의 특징은 다음과 같다.
+- Range Sharding는 데이터가 균형적이지 않을 수 있다.
+  - 이 경우 데이터가 균형적이도록 Chunk split, Chunk migration을 수행해야 하는데 부하가 매우 커서 조심해야 한다.
+- Hash Sahrding은 데이터가 균형적이라서 목적에 부합한다. 실제로 80%~90%는 해당 전략을 사용한다. 
+  - 단, 범위 검색을 하면 많은 샤드를 읽어야 한다는 단점이 있다.
+- Zone Sharding는 값에 대한 목록을 설정하고, 각 샤딩마다 Zone 목록으로 분산하는 방법이다. (가령, A 서버는 한국 사용자, 일본 사용자 데이터를 보관)
+  - Range Sharding이나 Hash Sharding을 함께 사용할 수 있다.
+
 ## 참고
 - https://www.mongodb.com/basics
+- https://www.interviewbit.com/mongodb-interview-questions/
