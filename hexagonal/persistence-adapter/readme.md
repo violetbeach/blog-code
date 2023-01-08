@@ -93,11 +93,6 @@ public class Account {
 		// ...
 	}
 
-	@Value
-	public static class AccountId {
-		private Long value;
-	}
-
 }
 ```
 
@@ -105,7 +100,162 @@ Account 클래스는 getter와 setter만 가진 데이터 클래스가 아니며
 
 그리고 생성과 모든 상태 변경 메서드에서 유효성 검증을 수행하기 때문에 유효하지 않은 도메인 모델을 생성할 수 없다.
 
+다음은 영속성 모델(JPA)을 살펴보자.
 
+```java
+@Entity
+@Table(name = "account")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+class AccountJpaEntity {
+
+	@Id
+	@GeneratedValue
+	private Long id;
+
+}
+```
+
+```java
+@Entity
+@Table(name = "activity")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+class ActivityJpaEntity {
+
+	@Id
+	@GeneratedValue
+	private Long id;
+
+	@Column
+	private LocalDateTime timestamp;
+
+	@Column
+	private Long ownerAccountId;
+
+	@Column
+	private Long sourceAccountId;
+
+	@Column
+	private Long targetAccountId;
+
+	@Column
+	private Long amount;
+
+}
+```
+
+해당 단계에서 @ManyToOne이나 @OneToMany 같은 관계를 사용할 수 있었지만, 우선 이는 생략한다.
+
+다음은 Repository이다.
+
+```java
+interface ActivityRepository extends JpaRepository<ActivityJpaEntity, Long> {
+
+	@Query("select a from ActivityJpaEntity a " +
+			"where a.ownerAccountId = :ownerAccountId " +
+			"and a.timestamp >= :since")
+	List<ActivityJpaEntity> findByOwnerSince(
+			@Param("ownerAccountId") Long ownerAccountId,
+			@Param("since") LocalDateTime since);
+
+	@Query("select sum(a.amount) from ActivityJpaEntity a " +
+			"where a.targetAccountId = :accountId " +
+			"and a.ownerAccountId = :accountId " +
+			"and a.timestamp < :until")
+	Long getDepositBalanceUntil(
+			@Param("accountId") Long accountId,
+			@Param("until") LocalDateTime until);
+
+	@Query("select sum(a.amount) from ActivityJpaEntity a " +
+			"where a.sourceAccountId = :accountId " +
+			"and a.ownerAccountId = :accountId " +
+			"and a.timestamp < :until")
+	Long getWithdrawalBalanceUntil(
+			@Param("accountId") Long accountId,
+			@Param("until") LocalDateTime until);
+
+}
+```
+
+중요한 것은 해당 Repository를 외부로 분리시키는 것이다.
+
+그래서 해당 Repository를 사용하는 곳이 바로 영속성 어댑터가 된다.
+
+```java
+@RequiredArgsConstructor
+@PersistenceAdapter
+class AccountPersistenceAdapter implements
+		LoadAccountPort,
+		UpdateAccountStatePort {
+
+    private final SpringDataAccountRepository accountRepository;
+    private final ActivityRepository activityRepository;
+    private final AccountMapper accountMapper;
+
+    @Override
+    public Account loadAccount(
+            AccountId accountId,
+            LocalDateTime baselineDate) {
+
+        AccountJpaEntity account =
+                accountRepository.findById(accountId.getValue())
+                        .orElseThrow(EntityNotFoundException::new);
+
+        List<ActivityJpaEntity> activities =
+                activityRepository.findByOwnerSince(
+                        accountId.getValue(),
+                        baselineDate);
+
+        Long withdrawalBalance = orZero(activityRepository
+                .getWithdrawalBalanceUntil(
+                        accountId.getValue(),
+                        baselineDate));
+
+        Long depositBalance = orZero(activityRepository
+                .getDepositBalanceUntil(
+                        accountId.getValue(),
+                        baselineDate));
+
+        return accountMapper.mapToDomainEntity(
+                account,
+                activities,
+                withdrawalBalance,
+                depositBalance);
+
+    }
+
+    private Long orZero(Long value) {
+        return value == null ? 0L : value;
+    }
+
+
+    @Override
+    public void updateActivities(Account account) {
+        for (Activity activity : account.getActivityWindow().getActivities()) {
+            if (activity.getId() == null) {
+                activityRepository.save(accountMapper.mapToJpaEntity(activity));
+            }
+        }
+    }
+}
+```
+해당 영속성 어댑터는 외부인 DB, JPA Repository와 도메인 코드를 분리한다.
+
+해당 영속성 어댑터는 Port를 통해 접근해서 사용한다.
+- LoadAccountPort, UpdateAccountStatePort
+
+결과적으로 도메인 코드가 더이상 외부인 DB, JPA Repository(영속성)에 의존하지 않게 되었고, 저수준 모듈인 포트, 어댑터가 안정적인 도메인 서비스(Usecase)에 의존한다. 의존성 역전 원칙이 적용되었다!
+
+
+
+
+
+---
+
+단점 - 관리할 포인트가 늘어난다.
 
 
 
