@@ -149,6 +149,8 @@ class ActivityJpaEntity {
 
 해당 단계에서 @ManyToOne이나 @OneToMany 같은 관계를 사용할 수 있었지만, 우선 이는 생략한다.
 
+해당 영속성 모델은 {domain}.adapter.out.persistence 패키지에 포함시킬 수 있다.
+
 다음은 Repository이다.
 
 ```java
@@ -250,16 +252,35 @@ class AccountPersistenceAdapter implements
 결과적으로 도메인 코드가 더이상 외부인 DB, JPA Repository(영속성)에 의존하지 않게 되었고, 저수준 모듈인 포트, 어댑터가 안정적인 도메인 서비스(Usecase)에 의존한다. 의존성 역전 원칙이 적용되었다!
 
 
+## Transaction
+
+트랜잭션 경계는 어디에 위치시켜야 할까?
+
+트랜잭션은 하나의 유스케이스에 대해서 일어나는 모든 쓰기 작업에 걸쳐 있어야 한다.
+
+즉, 트랜잭션은 영속성 어댑터를 호출하는 응용 서비스(Usecase의 구현체)에서 관리해야 한다.
+
+```java
+@Transactional
+public class SendMoneyService implements SendMoneyUseCase {
+    // ...
+}
+```
+
+만약 서비스와 @Transactional 애노테이션을 분리하길 원한다면 Spring AOP를 활용해서 트랜잭션 경계를 위빙(Weaving)할 수 있다.
+
+## 정리
+
+도메인 코드에 플러그인처럼 동작하는 영속성 어댑터를 만들면 도메인 코드가 영속성과 관련된 것들로부터 분리되어 풍부한 도메인 모델을 만들 수 있다.
+
+추가로 좁은 포트 인터페이스를 사용하면서 포트마다 다른 방식으로 구현할 수 있는 유연함이 생기고 영속성 계층 교체가 간단해진다.
+
+(생각) 단점으로는 도메인 모델과 영속성 모델을 분리하면서 관리해야될 포인트가 늘어난다는 점이 있다. 가령, 영속성 모델도 자율적으로 자신의 상태를 검증하며 완전한 상태를 유지할 것인가?에 대한 고민이 필요할 것 같다. 
 
 
+## 참고
 
----
-
-단점 - 관리할 포인트가 늘어난다.
-
-
-
-
+- http://www.yes24.com/Product/Goods/105138479
 
 
 
