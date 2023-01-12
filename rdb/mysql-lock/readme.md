@@ -42,4 +42,34 @@ MySQL에서는 트랜잭션의 커밋 혹은 롤백시점에 잠금이 풀린다
 
 즉, 읽기 락끼리는 공유가 가능하지만 다른 경우들은 모두 데이터를 공유할 수 없고 대기를 하게 된다고 생각하면 된다.
 
-읽기 락은
+MYSQL에서 읽기 락은 SELECT ... FOR SHARE 구문을 사용하고,
+
+쓰기락은 SELECT ... FOR UPDATE 또는 UPDATE, DELETE 쿼리 시 획득할 수 있다.
+
+## Lock의 범위
+
+MySQL에서 잠금은 row가 아니라 인덱스를 잠근다.
+
+그래서 인덱스가 없는 조건으로 Locking Read시 불필요한 데이터들이 잠길 수 있다.
+
+예를 들어 아래의 쿼리를 실행한다고 가정해보자.
+
+```sql
+start transaction;
+SELECT * FROM post WHERE memberId = 1 AND contents = 'string' FOR UPDATE;
+```
+
+여기서 만약 contents 컬럼에 인덱스가 없다면 어떻게 될까?!!
+
+아래의 락 조회 문을 사용할 수 있다. (위에서 COMMIT을 수행하지 않았으므로 락을 유지하고 있을 것이다.)
+
+```sql
+# 실행중인 락 조회
+SELECT * FROM performance_schema.data_locks;
+# 실행중인 트랜잭션 조회
+SELECT * FROM performance_schema.innodb_trx;
+```
+
+![img.png](img.png)
+
+![img_1.png](img_1.png)
