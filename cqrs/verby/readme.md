@@ -76,7 +76,7 @@ CQRS에서 조회 모델 생성을 비 관심사로 볼 지는 프로젝트의 �
 
 아래는 멀티 모듈을 구성하기 위해 문제를 해결하면서 알게된 사실이다.
 
-### jar / bootjar
+### jar / bootJar
 
 멀티 모듈을 다 구성했고 IntelliJ에서 테스트 및 빌드가 성공하는데 자꾸 CI/CD가 깨지는 현상이 발생했다.
 
@@ -84,7 +84,32 @@ CQRS에서 조회 모델 생성을 비 관심사로 볼 지는 프로젝트의 �
 
 에러 내용을 보면 Import가 자꾸 실패한다고 한다.
 
+해당 내용은 IntelliJ에서 Gradle을 Build 할 때는 이상이 없었지만, ./gradlew build와 같이 내장 그래들로 빌드할 경우 빌드가 깨지는 현상이 발생한 것이다.
 
+해당 이유를 결국 찾았는데, 나는 배포할 모듈에서 아래와 같은 빌드를 구성하고 있었다.
+
+```groovy
+jar {
+    enabled = false
+}
+```
+싱글 모듈 프로젝트할 때 plain-jar가 생기는 것을 방지하기 위해서 추가한 부분이었다.
+
+이 경우 싱글 모듈 프로젝트에서는 문제가 안되지만, 멀티 모듈에서는 문제가 되었다.
+- 멀티 모듈에서는 패키지가 다르기 때문에 jar을 disable하면 찾을 수 없다.
+- 각 실행 애플리케이션 클래스를 상위 패키지로 올렸기 때문
+  - (Component Scan을 위함) 참고: https://techblog.woowahan.com/2637
+
+이 경우 jar task를 enabled(default)로 설정해야 한다.
+
+**<추가>**
+해당 작업 때문에 빌드 스크립트가 동작하지 않는 문제가 발생했다. (plain-jar가 잡힘)
+```diff
+-JAR_NAME=$(ls $REPOSITORY/jar/ |grep 'api-server' | tail -n 1)
++JAR_NAME=$(ls $REPOSITORY/jar/ |grep 'api-server' | head -n 1)
+```
+
+그래서 tail을 head로 변경하면서 기본 jar를 잡도록 수정할 수 있었다.
 
 ## yml
 
