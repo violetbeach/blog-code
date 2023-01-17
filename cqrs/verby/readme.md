@@ -102,6 +102,12 @@ jar {
 
 이 경우 jar task를 enabled(default)로 설정해야 한다.
 
+메모 - 내용 추가
+
+**<참고>**
+- https://github.com/gradle/gradle/issues/11696
+- https://github.com/spring-projects/spring-boot/issues/19380
+
 **<추가>**
 해당 작업 때문에 빌드 스크립트가 동작하지 않는 문제가 발생했다. (plain-jar가 잡힘)
 ```diff
