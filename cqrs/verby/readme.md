@@ -225,7 +225,7 @@ java-test-fixtures plugin을 추가하고 아래와 같이 testFixtures 폴더�
 
 위 문제들을 해결하고 멀티 모듈을 구성을 완료했고 배포까지 완료했다.
 
-하지만, 추가적으로 아쉬운 부분이 조금 남아있다.
+하지만, 추가적으로 아쉬운 부분이 남아있다. 아래에서는 더 필요한 부분을 정리했다.
 
 ### 배포
 
@@ -259,19 +259,29 @@ hooks:
       - "core/**/*"
 ```
 
-그래서 위와 같이 only.changes 구문으로 변경 내역이 있는 모듈만 배포하는 전략 적용이 필요하다.
+그래서 추후 위(gitlab-ci 예시)와 같이 변경 내역이 있는 모듈만 배포하는 전략 적용이 필요하다.
 
 <참고>
 - https://docs.aws.amazon.com/ko_kr/codebuild/latest/userguide/sample-pipeline-multi-input-output.html
 
 ### CQRS
 
-조회 모델로 Redis를 선택하면서 생긴 이슈이다.
+조회 모델을 저장할 저장소로 Redis를 선택하면서 생긴 이슈이다.
 
 Redis는 Key-Value 기반 데이터이기 때문에 Feed(프로젝트 메인 데이터) 목록에서 질의를 할 수 없었다.
+- (제목, 본문, 작성자 등으로 검색)
 
+그래서 findAll(GET /feeds), findById(GET /feeds/{id})의 경우에는 조회 모델을 사용할 수 있지만, QueryString을 사용한 다양한 질의의 경우에서는 Redis를 사용할 수 없었다.
+- (Redis를 사용할 수는 있지만 데이터 중복이 커서 관리하기 힘들다.)
 
+배민 B마트 CQRS 영상에서는 이와 동일하게 조회 모델로서 Redis를 사용하고 있지만, 추가 요구사항에 따라서 Mongo나 ES 등으로 교체할 수도 있다고 한다.
 
+배달의민족 가게노출 시스템에서는 아래와 같이 질의를 위한 DynamoDB와 캐싱을 위해 Redis를 각각 사용하고 있다.
+
+![img_6.png](img_6.png)
+
+그래서 복잡한 질의의 경우에도 조회 모델의 이점을 활용하려면 DynamoDB, MongoDB와 같은 DBMS를 Redis의 앞단에 두는 등의 처리를 하는 것이 필요하다.
+- (AWS 자원 부족으로 보류 한다 ㅠ)
 
 ## 참고
 - https://techblog.woowahan.com/2637
@@ -281,5 +291,6 @@ Redis는 Key-Value 기반 데이터이기 때문에 Feed(프로젝트 메인 데
 - https://www.youtube.com/watch?v=fg5xbs59Lro
 - https://www.youtube.com/watch?v=38cmd_fYwQk
 - https://www.youtube.com/watch?v=b65zIH7sDug
+- https://techblog.woowahan.com/2667
 
 
