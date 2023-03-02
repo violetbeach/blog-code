@@ -1,4 +1,4 @@
-## ElasticSearch란 ?
+## ElasticSearch 이해하기!
 
 ![img_2.png](img_2.png)
 
