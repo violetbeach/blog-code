@@ -199,8 +199,7 @@ HttpEntityMethodProcessor를 보면 Spring에서는 ResponseEntity를 HttpServle
 
 이를 해결하기 위해서는 두 가지 방법이 있었다.
 
-
-// 메모
+#### StreamingResponseBody
 
 response의 OutputStream에 바로 출력하려고 하니 ResponseEntity의 header가 적용되지 않는 이슈가 있었습니다.
 
@@ -210,6 +209,20 @@ response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName +
 response.setHeader("Content-Type", contentType);
 ```
 
+```java
+@GetMapping(produces = APPLICATION_ZIP)
+    @SubDbUserSet
+    public void getZip(@AuthenticationPrincipal SecurityHiworksUser hiworksUser, @PathVariable long mailNo, HttpServletResponse response) {
+        Office officeSetting = officeService.getOfficeSetting(hiworksUser.getOfficeNo());
+
+        List<MailAttachmentDto.Detail> noCidAttachments = mailAttachmentService.getAttachments(hiworksUser.getOfficeNo(), hiworksUser.getOfficeUserNo(), mailNo, hiworksUser.getUserId(), officeSetting, true);
+
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + generateFileName(hiworksUser.getUserId()) + "\";");
+        response.setHeader("Content-Type", APPLICATION_ZIP);
+
+        responseZipFromAttachments(response, noCidAttachments);
+    }
+```
 (메서드는 void를 반환하게 됨)
 
 해당 부분이 너무 row한 것 같아서 StreamingResponseBody를 사용해서 구현하였습니다.
