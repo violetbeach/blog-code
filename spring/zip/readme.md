@@ -130,7 +130,7 @@ private void responseZipFromAttachments(OutputStream os, List <MailAttachments> 
 
 (아실 분은 아시겠지만) 해당 코드에는 몇가지 문제가 있었다.
 
-#### 1. Memory 낭비
+### 1. Memory 낭비
 
 위와 같이 Response의 OutputStream을 바로 ZipOutputStream으로 변환해서 사용한 이유는 메모리 낭비를 줄이기 위해서이다.
 
@@ -167,7 +167,7 @@ try {
 }
 ```
 
-StreamUtils를 사용하면 InputStream의 내용을 OutputStream으로 write할 수 있다.
+StreamUtils를 사용하면 InputStream의 내용을 OutputStream으로 buffer를 사용해서 write할 수 있다.
 
 (InputStream의 close를 직접해야 한다는 불편함이 있는데, 다른 Util은 없을까..?) 
 
@@ -177,11 +177,9 @@ FileCopyUtils를 사용하면 close까지도 직접 해준다.
 
 문제는 ZipOutputStream이 닫히면 다음 Entry를 쓸 수 없다. 그래서 해당 처리가 없는 StreamUtils를 활용해서 데이터를 옮긴 다음 InputStream만 닫아주는 처리가 필요하다.
 
-즉, StreamUtils를 사용하도록 한다.
-
 이제 메모리 문제는 해결되었다.
 
-#### 2. 헤더 적용
+### 2. 헤더 적용
 
 위 Controller 코드를 다시 보면 OutputStream에서 write를 한 다음 ResponseEntity를 만들어서 반환하고 있다.
 
@@ -201,30 +199,169 @@ HttpEntityMethodProcessor를 보면 Spring에서는 ResponseEntity를 HttpServle
 
 #### StreamingResponseBody
 
-response의 OutputStream에 바로 출력하려고 하니 ResponseEntity의 header가 적용되지 않는 이슈가 있었습니다.
 
-해당 부분을 처리하려면 zip 파일을 쓰기(`os.write`) 전에 아래의 처리가 필요합니다.
+```java
+@GetMapping(produces = APPLICATION_ZIP)
+public ResponseEntity<StreamingResponseBody> getZip(@AuthenticationPrincipal SecurityUser user, @PathVariable long mailId,
+        HttpServletResponse response) {
+        List<MailAttachment> attachments = mailAttachmentService.getAttachments(user.getId(),  mailId);
+
+        StreamingResponseBody streamingResponseBody = out -> responseZipFromAttachments(out, attachments);
+
+        ContentDisposition contentDisposition = ContentDisposition
+                .attachment()
+                .filename(generateFileName(user.getId()))
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(contentDisposition);
+        headers.setContentType(MediaType.valueOf(APPLICATION_ZIP));
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(streamingResponseBody);
+}
 ```
+
+위와 같이 StreamingResponseBody를 사용하면 헤더를 세팅한 후에 OutputStream을 쓰는 것이 가능했다.
+
+아래는 StreamingResponseBodyReturnValueHandler의 일부이다.
+
+![img_6.png](img_6.png)
+
+내용은 비동기 스레드를 활용해서 헤더부터 다 세팅한 다음 OutputStream에 데이터를 출력하는 방식이라고 이해하면 된다.
+
+해당 부분은 예외를 콜백받을 수는 있지만, Thread를 추가로 사용하게 되었다.
+
+Spring.io(공식 문서)에 StreamingResponseBody 설명을 보면 TaskExecutor를 명시적으로 구성하는 것이 좋다고 한다.
+- https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servlet/mvc/method/annotation/StreamingResponseBody.html
+
+문제는 해당 end-point밖에 비동기 출력을 사용하지 않는데, AsyncMvcExecutor를 구현하면 스레드 풀의 스레드 수를 어떻게 잡을 지 등 애매한 부분이 있었다.
+- 추가적인 스레드를 사용하는 점도 다소 애매했다. (메인 기능이 아니라, 부 기능이기 때문)
+
+#### javax.servlet.http.HttpServletResponse
+
+애플리케이션이 OutputStream을 응답에 직접 쓸 수 있게 Spring 4.2부터 StreamingResponseBody를 지원한다.
+
+StreamingResponseBody를 사용하지 않고도 이를 처리할 수 있는데, javax.servlet.http.HttpServletResponse에서 헤더를 먼저 세팅하면 된다.
+
+즉, 해당 부분을 처리하려면 zip 파일을 쓰기(`os.write`) 전에 아래의 처리가 필요합니다.
+```java
 response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\";");
 response.setHeader("Content-Type", contentType);
 ```
 
+해당 부분을 구현한 결과는 아래와 같다.
+
+이 부분을 사용하지 않았던 이유는 Spring에서 지원하는 추상화된 객체들을 사용할 수 없다는 점이다.
+- HttpHeaders, ResponseEntity 등
+
+의미 없이 스레드가 추가되고, executor가 추가되어 시스템이 복잡해지는 것보다는 낫다고 판단하였다. (+ 해당 기능이 주 기능이 아니라, 부가 기능인 점)
+
+아래는 최종적인 구현이다.
+
 ```java
 @GetMapping(produces = APPLICATION_ZIP)
-    @SubDbUserSet
-    public void getZip(@AuthenticationPrincipal SecurityHiworksUser hiworksUser, @PathVariable long mailNo, HttpServletResponse response) {
-        Office officeSetting = officeService.getOfficeSetting(hiworksUser.getOfficeNo());
-
-        List<MailAttachmentDto.Detail> noCidAttachments = mailAttachmentService.getAttachments(hiworksUser.getOfficeNo(), hiworksUser.getOfficeUserNo(), mailNo, hiworksUser.getUserId(), officeSetting, true);
+public ResponseEntity<StreamingResponseBody> getZip(@AuthenticationPrincipal SecurityUser user, @PathVariable long mailId,
+        HttpServletResponse response) {
+        List<MailAttachment> attachments = mailAttachmentService.getAttachments(user.getId(),  mailId);
 
         response.setHeader("Content-Disposition", "attachment; filename=\"" + generateFileName(hiworksUser.getUserId()) + "\";");
         response.setHeader("Content-Type", APPLICATION_ZIP);
 
-        responseZipFromAttachments(response, noCidAttachments);
-    }
+        responseZipFromAttachments(response, attachments);
+}
 ```
-(메서드는 void를 반환하게 됨)
 
-해당 부분이 너무 row한 것 같아서 StreamingResponseBody를 사용해서 구현하였습니다.
-- thread를 추가로 사용하게 되는 단점
-  - 예외 처리는 가능
+### 모듈화
+
+Zip을 응답으로 내려주는 코드 구현이 완료되었지만, 다른 곳에서도 해당 기능이 추가된다면 동일한 구현을 또 하게 되어 DRY 원칙(반복하지 마라)에 위배될 수 있다.
+
+그래서 아래와 같이 Zip 모듈을 추가하게 되었다.
+
+```java
+public static void toZip(OutputStream os, ZipRequest request) {
+    Map<String, Integer> fileNames = new HashMap<>();
+
+    try(ZipOutputStream zos = new ZipOutputStream(os)) {
+        for(ZipRequest.ZipEntry entry : request.getEntries()) {
+            InputStream is = entry.getInputStream();
+
+            String fileName = entry.getFileName();
+            fileNames.put(fileName, fileNames.getOrDefault(fileName, 0) + 1);
+
+            int duplicatedCount = fileNames.get(fileName);
+            if(duplicatedCount > 1) {
+                fileName = String.format("%s_%s_%s", FileNameUtils.getBaseName(fileName), duplicatedCount, FileNameUtils.getExtension(fileName));
+            }
+
+            ZipEntry zipEntry = new ZipEntry(fileName);
+            zos.putNextEntry(zipEntry);
+            try {
+                StreamUtils.copy(entry.getInputStream(), zos);
+            } finally {
+                is.close();
+            }
+            zos.closeEntry();
+        }
+    } catch (IOException e) {
+        throw new StorageIOException(e.getMessage());
+    }
+
+}
+```
+
+Map으로 filenames를 저장하는 이유는 ZipOutputStream에서는 ZipEntry의 파일 명을 Hash로 하여 구분한다.
+
+즉, 동일한 파일 명을 가진 Entry가 있으면 하나로 인식하고 1개의 Entry에 덮어써지는 문제가 발생한다.
+
+그래서 IU.png가 2개가 있더라도, 하나는 IU_2.png가 될 수 있도록 처리하였다.
+
+Request 객체는 아래와 같다.
+
+```java
+@Getter
+public class ZipRequest {
+
+    private final List<ZipEntry> entries;
+
+    public ZipRequest() {
+        this.entries = new ArrayList<>();
+    }
+
+    public void addEntry(InputStream is, String fileName) {
+        entries.add(new ZipEntry(is, fileName));
+    }
+
+    @Getter
+    @AllArgsConstructor
+    static class ZipEntry {
+        private final InputStream inputStream;
+        private final String fileName;
+    }
+
+}
+```
+
+그래서 Controller에서는 아래와 같이 공통화된 모듈이 필요로 하는 객체를 만들어서 모듈의 메서드를 호출하는 방식으로 변경하였다.
+
+```java
+private void responseZipFromAttachments(HttpServletResponse response, List<MailAttachmentDto.Detail> noCidAttachments) {
+    try (OutputStream os = response.getOutputStream()) {
+        ZipRequest zipRequest = new ZipRequest();
+        for (MailAttachmentDto.Detail attachment : noCidAttachments) {
+            zipRequest.addEntry(attachment.getDataSource().getInputStream(), attachment.getFilename());
+        }
+        ZipModule.toZip(os, zipRequest);
+    } catch (IOException e) {
+        throw new StorageIOException(e.getMessage());
+    }
+}
+```
+
+## 참고
+
+- https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servlet/mvc/method/annotation/StreamingResponseBody.html
+- https://madplay.github.io/post/java-file-zip
+- https://stackoverflow.com/questions/53885467/java-zip-files-from-streams-instantly-without-using-byte
+- https://velog.io/@dailylifecoding/file-zip-and-download
