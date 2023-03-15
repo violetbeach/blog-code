@@ -68,3 +68,9 @@ OLAP(Onnline Analytical Processing)의 경우 OLTP와는 정반대의 성격을 
 
 OLAP의 대표적인 예로는 Wide Column Database가 있다.
 - HBase, Cassandra
+
+- Wide Column Database는 대용량 파일 시스템 기반으로 동작
+  - HBase의 경우 Hadoop 위에서 돌아간다.
+- Row 단위가 아니라, col 단위로 저장하기 때문에 분석이 용이함
+  - 만약 어떤 Collection의 price 평균을 구하겠다고 하면 일반적인 Row 기반 같은 경우에는 필요 없는 데이터도 다 메모리에 올려야하는 문제가 발생
+- PK 이외의 Index를 사용할 수 없다는 문제가 있다.
