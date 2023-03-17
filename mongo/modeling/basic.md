@@ -105,3 +105,72 @@ db.members.updateMany(
 
 
 
+## Conflict
+
+인덱스를 하나만 추가하면 되게 된다. 
+
+추가로 log를 하나씩 보관하게 되므로 16MB를 넣을 리도 없게 된다.
+
+(Pull한 후 해결)
+
+## 상품 관리
+
+예시로 사용한 게임 로그 관리에서는 요소의 크기가 작아서 고려하지 않은 사항이 있다.
+
+아래는 상품을 MongoDB에 저장한 예시이다.
+
+```mongodb-json-query
+[{
+  name: "Cherry Coke 6-pack",
+  manufacturer: "Coca-Cola",
+  brand: "Coke",
+  sub_brand: "Cherry Coke",
+  price: 5.99,
+  color: "red",
+  size: "12 ounces",
+  container: "can",
+  sweetener : "sugar"
+},
+{
+  name: "z-flip5",
+  manufacturer: "Samgsung",
+  brand: "Galaxy",
+  price: 99.99,
+  "color": "green",
+  "display_size": "170.3 mm",
+  "camera": "10.0 MP",
+  "memory": "8G"
+}]
+```
+
+이 경우 공통의 필드와, 선택적 필드 여부에 따라 아래와 같이 관리할 수 있다.
+
+```mongodb-json-query
+[{
+  name: "Cherry Coke 6-pack",
+  manufacturer: "Coca-Cola",
+  brand: "Coke",
+  sub_brand: "Cherry Coke",
+  price: 5.99,
+  spaces: [
+    {key:  "color", value:  "red"},
+    {key:  "size", value:  12, unit: "ounces"},
+    {key:  "container", value:  "can"},
+    {key:  "sweetener", value:  "sugar"}
+  ]
+},
+{
+  name: "z-flip5",
+  manufacturer: "Samgsung",
+  brand: "Galaxy",
+  price: 99.99,
+  spaces: [
+    {key:  "color", value:  "green"},
+    {key:  "display_size", value:  170.3, unit: "mm"},
+    {key:  "camera", value:  10.0, unit: "MP"},
+    {key:  "memory", value:  8, unit: "G"},
+  ]
+}]
+```
+
+
