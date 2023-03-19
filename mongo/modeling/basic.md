@@ -280,9 +280,62 @@ WorkingSet이 가게 및 리뷰 데이터 전체이기 때문에 캐시 공간�
 
 결과적으로 데이터의 document 크기(16MB)도 신경쓸 필요가 없어지고, 캐시 메모리는 절약되고 사용자 응답은 빨라지게 된다.
 
+## 회귀 서치와 Tree 구조
 
+GraphLookup을 사용하면 회귀 서치나 Depth가 있는 트리 구조 서치에 유용하게 사용할 수 있다.
 
+#### 회귀 서치
 
+회귀 서치의 경우 결재선이나 댓글(+답글) 등의 경우 사용할 수 있다.
+
+결재선을 예로 들어보자.
+```mongodb-json-query
+db.employees.insertMany([
+  {
+    _id: 1,
+    name: "Eliot",
+    position: "CEO"
+  },
+  {
+    _id: 2,
+    name: "Ron",
+    position: "Team Lead",
+    reportsTo: "Eliot"
+  },
+  {
+    _id: 3,
+    name: "Tom",
+    position: "Team Member",
+    reportsTo: "Ron"
+  }
+])
+
+db.employees.aggregate([
+  {
+    $graphLookup: {
+      from: "employees",
+      startWith: "$reportsTo",
+      connectFromField: "reportsTo",
+      connectToField: "name",
+      depthField: "depth",
+      as: "reportingHierarchy"
+    }
+  }
+])
+```
+
+아래는 aggregate의 결과이다.
+
+![img.png](img.png)
+
+각 유저가 자신의 결재선 정보를 담고 있다.  
+
+GraphLookup은 식품, 생활, 가전 등의 카테고리가 있는 트리 구조에서도 매우 유용하게 사용할 수 있다.
+
+## 참고
+- https://fastcampus.co.kr/dev_online_bedata
+- https://marsettler.com/mongodb/mongodb-study-week-5
+- http://www.yes24.com/Product/Goods/103415627
 
 
 
