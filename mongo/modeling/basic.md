@@ -4,7 +4,7 @@
 
 아래 데이터 기반의 카페 서비스가 있다.
 
-```mongo
+```mongodb-json-query
 db.cafe.insertMany([
     {
         _id: 1,
@@ -58,7 +58,7 @@ db.cafe.insertMany([
 
 그럼 위 부분은 어떻게 해결할 수 있을까?
 
-```mongo
+```mongodb-json-query
 db.members.insertMany([
     {
         id: "tom93",
@@ -88,10 +88,10 @@ cafe가 members를 가지는 것이 아니라, member가 각각 자신이 속한
 
 cafe의 정보를 수정한다고 했을 때는 아래와 같이 members에도 수정사항을 직접 반영해줘야 한다.
 
-```mongo
+```mongodb-json-query
 db.members.updateMany(
     {
-        "joined_Cafes._id": 1
+        "joined_cafes._id": 1
     },
     {
         $set: {
@@ -103,15 +103,232 @@ db.members.updateMany(
 
 이때 모든 members의 join_cafes를 탐색하며 하나씩 전부 수정하기 때문에 선형적으로 작업이 필요하게 되는 문제가 발생한다.
 
+## Collection 분리
 
+이러한 문제를 해결하기 위해서는 Collection을 분리해야 한다.
 
-## Conflict
+```mongodb-json-query
+db.cafe.insertMany([
+    {
+        _id: 1,
+        name: "IT Community",
+        desc: "A Cafe where developer's share information.",
+        created_at: ISODate("2018-08-09"),
+        last_article: ISODate("2022-06-01T10:56:32.00Z"),
+        level: 5
+    }    
+]);
+```
 
-인덱스를 하나만 추가하면 되게 된다. 
+```mongodb-json-query
+db.members.insertMany([
+    {
+        id: "tom93",
+        first_name: "Tom",
+        last_name: "Park",
+        phone: "000-0000-1234",
+        job: "DBA",
+        join_cafes: [1, 2, ...]
+    },
+    ...
+])
+```
+
+즉, RDB와 마찬가지로 Join(Lookup)이 필요하다.
+
+1:1의 경우 문제가 안될 수도 있지만, 1:n의 관계의 경우 데이터가 많아지면 성능상 문제가 충분히 발생할 수 있다.
+
+가령 아래와 같이 조회할 수 있다.
+```mongodb-json-query
+db.cafe.aggregate([
+    {
+        $lookup: }
+            from: "members",
+            localField: "_id",
+            foreignField: "joined_cafes",
+            as: "members",
+            pipeline: [
+                {
+                    $match: {
+                        job: "DBA"
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        id: 1,
+                        job: 1
+                    }
+                }
+            ]
+            
+        }
+    },
+    {
+        $project: {
+            name: 1,
+            desc: 1,
+            created_at: 1,
+            joinedMemberJob: {
+                $first: "$members.job"
+            },
+            cnt: {
+                $sizt: "$members"
+            }
+        }
+    }
+])
+```
+
+이의 실행계획을 확인해보면 lookup에 많은 시간이 걸렸다.
+- (테스트 케이스가 커지면 더 많은 시간이 소요된다.)
+
+![img.png](img.png)
+
+그렇다고 해서 joined_cafes에 index를 추가하더라도 악영향만 끼친다.
+
+이를 어떻게 해결할까?
+
+## Extended Reference Pattern
+
+Extended Reference Pattern은 절대 변경되지 않을 값을 Document에 내장시키는 방법이다.
+
+```mongodb-json-query
+db.cafe.insertMany([
+    {
+        _id: 1,
+        name: "IT Community",
+        desc: "A Cafe where developer's share information.",
+        created_at: ISODate("2018-08-09"),
+        last_article: ISODate("2022-06-01T10:56:32.00Z"),
+        level: 5
+    }    
+]);
+```
+
+cafe에서 변경되지 않는 필드는 어떤 게 있을까? 요구사항에 따라 다르지만 아래와 같이 정의할 수 있다.
+- (변경되지 않음) _id, name, desc, created_at, level
+- (자주 변경됨) last_article
+
+즉, members가 cafe의 해당 변하지 않는 정보를 가진다면 Join을 하지 않아도 될 수 있다.
+
+```mongodb-json-query
+db.members.insertMany([
+    {
+        id: "tom93",
+        first_name: "Tom",
+        last_name: "Park",
+        phone: "000-0000-1234",
+        job: "DBA",
+        join_cafes: [{
+            _id: 1,
+            name: "IT Community",
+            desc: "A Cafe where developer's share information.",
+            created_at: ISODate("2018-08-09")
+        }, ...]
+    },
+    ...
+])
+```
+
+이제 조회문을 아래와 같이 변경할 수 있다.
+
+```mongodb-json-query
+db.members.aggregate([
+    {
+        $match: {
+            job: "DBA"
+        }
+    },
+    {
+        $unwind: "$joined_cafes"
+    },
+    {
+        $group: {
+            _id: "$joined_cafe._id",
+            joined_cafes: {
+                $first: "$joined_cafes"
+            },
+            joinedMemberJob: {
+                $first: "$job"
+            },
+            cnt: {
+                $sum:" 1
+            }
+        }
+    },
+    {
+        $project: {
+            _id: 0,
+            name: "$joined_cafes.name",
+            desc: "$joined_cafes.desc",
+            created_at: "$joined_cafes.created_at",
+            joinedMemberJob: 1,
+            cnt: 1
+        }
+    }
+
+])
+```
+
+추가로 members의 job필드에 index만 추가해주니 310ms -> 155ms 정도로 쿼리 실행 시간을 줄일 수 있었다.
+
+## 다양한 종류의 필드
+
+이번에는 특정 게임에서 사용자의 행동 로그에 대해서 DB에 저장한다고 가정해보자.
+
+이 경우 로그인을 할 때 로그를 쌓아뒀다가, 로그아웃을 할 때 1개의 로그 셋으로 저장한다고 가정해보자.
+
+아래와 같이 데이터 모델링을 할 수 있을 것이다.
+```mongodb-json-query
+log = {
+    loginTime: new Date(),
+    visits: [],
+    sails: [],
+    trades: [],
+    battles: [],
+    quests: [],
+    fishings: [],
+    gambles: [],
+    castings: [],
+    farmings: []
+}
+```
+
+그러면 다음과 같은 로그가 쌓일 수 있다.
+```mongodb-json-query
+log.visits.push({
+    location: "London",
+    time: new Date()
+})
+
+log.trades.push({
+    item: "Musket",
+    qty: 50,
+    price: 1800
+})
+
+log.quests.push({
+    name: "Cave Investigation",
+    reward: 50000
+})
+```
+
+이 경우에는 필드가 다양해짐에 따라 인덱스를 무수히 많이 생성해야 한다.
+
+```mongodb-json-query
+actions: [
+    { action: "visit", value: "London", time: date },
+    { action: "trade", value: "Musket", type: "buy", qty: 50, price: 1800 },
+    { action: "quest", value: "Cave Investigation", reward: 50000, status: "In Progress" },
+]
+```
+
+이렇게 필드를 통합하면 인덱스를 하나만 만들어도 된다는 장점이 있다.
+`db.logs.createIndex({"actions.action": 1, "actions.value": 1})`
+ 
 
 추가로 log를 하나씩 보관하게 되므로 16MB를 넣을 리도 없게 된다.
-
-(Pull한 후 해결)
 
 ## 공통스펙
 
