@@ -42,3 +42,40 @@
 - Application, Core 모두 해당 Infrastructure 위에서 빌드된다.
 - Job의 실행 흐름과 처리를 위한 틀을 제공
 - Reader, Processor, Writer, Skip, Retry 등을 말한다.
+
+## 설정 클래스
+
+Spring Batch를 사용하려면 아래의 애노테이션을 Configuration에 등록하면 된다.
+
+```java
+@EnableBatchProcessing
+```
+
+결과적으로 스프링 배치의 실행 및 초기화가 이루어진다.
+
+이때 총 3개의 설정 클래스가 설정으로 등록된다.
+
+#### 1. BatchAutoConfiguration
+
+- 스프링 배치가 초기화 될 때 자동으로 실행되는 설정 클래스
+- Job을 수행하는 JobLauncherApplicationRunner 빈을 생성
+
+#### 2. SimpleBatchConfiguration
+- JobBuilderFactory와 StepBuilderFactory 빈 생성
+- 스프링 배치의 주요 구성 요소 생성 (프록시 객체)
+
+#### 3. BatchConfigurerConfiguration
+
+아래 두 개의 설정 클래스를 가진다.
+
+- BasicBatchConfigurer
+  - SimpleBatchConfiguration에서 생성한 프록시 객체의 실제 대상 객체를 생성하는 설정 클래스
+- JpaBatchConfigurer
+  - BasicBatchConfigurer를 상속받는다.
+  - JPA 관련 객체를 생성하는 설정 클래스
+
+실행 순서는 아래와 같다.
+
+![img_1.png](img_1.png)
+
+해당 클래스들은 BatchConfigurer 인터페이스를 구현한다. 즉 커스텀으로 직접 구현해서 등록하는 것도 가능하다.
