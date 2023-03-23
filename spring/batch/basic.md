@@ -79,3 +79,39 @@ Spring Batch를 사용하려면 아래의 애노테이션을 Configuration에 �
 ![img_1.png](img_1.png)
 
 해당 클래스들은 BatchConfigurer 인터페이스를 구현한다. 즉 커스텀으로 직접 구현해서 등록하는 것도 가능하다.
+
+## JobConfiguration
+
+Job은 아래와 같은 Configuration 클래스에서 등록할 수 있다.
+
+```java
+@Configuration
+@RequiredArgsConstructor
+public class HelloJobConfiguration {
+
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+
+    @Bean
+    public Job HelloJob() {
+        return jobBuilderFactory.get("helloJob")
+                .start(helloStep())
+                .build();
+    }
+    
+    @Bean
+    public Step helloStep() {
+        return stepBuilderFactory.get("helloStep")
+                .tasklet(((stepContribution, chunkContext) -> {
+                    System.out.println("Hello");
+                    return RepeatStatus.FINISHED;
+                }))
+                .build();
+    }
+
+}
+```
+
+해당 클래스에서는 JobBuilderFactory와 StepBuilderFactory를 사용해서 Job과 Step의 빈을 등록한다.
+
+Job을 생성할 때는 Job이 구동될 때 어떤 Step을 실행할 지 구성을 정의하고, Step에서는 어떤 Tasklet을 실행할 지 구성을 정의한다.
