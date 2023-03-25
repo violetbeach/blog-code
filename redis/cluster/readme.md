@@ -49,6 +49,8 @@ Redis Cluster는 Strong consistency를 제공하지 않는다.
 
 결과적으로 해당 Master 노드의 Slave 노드 중 1개가 Master 노드로 승격하게 된다.
 
+만약 Spring에서 Redis Cluster 환경을 구성했다면 해당과 같이 Fail over가 일어났을 때, yaml을 별도로 수정하지 않아도 Sentinal이나 Redis Cleint 라이브러리가 자동으로 승격한 새로운 Master 노드로 연결될 수 있게 된다.
+
 ## 제약
 
 #### 1. Cluster에서는 DB0만 사용 가능하다.
