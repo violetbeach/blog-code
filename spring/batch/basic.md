@@ -114,4 +114,53 @@ public class HelloJobConfiguration {
 
 해당 클래스에서는 JobBuilderFactory와 StepBuilderFactory를 사용해서 Job과 Step의 빈을 등록한다.
 
-Job을 생성할 때는 Job이 구동될 때 어떤 Step을 실행할 지 구성을 정의하고, Step에서는 어떤 Tasklet을 실행할 지 구성을 정의한다.
+Job을 생성할 때는 Job이 구동될 때 어떤 Step들을 실행할 지 구성을 정의하고, Step에서는 어떤 Tasklet을 실행할 지 구성을 정의한다.
+- (Tasklet는 비즈니스 로직을 포함한다.)
+
+즉, Job과 Step과 Tasklet은 1:n:nm이 되겠다.
+- 그리고 나중에 알아보겠지만 Step이 Tasklet이 아니라 Chunk를 실행하도록 구현할 수도 있다.
+
+## Meta data
+
+데이터의 일괄처리 등을 담당하게 되면 이력이나 해당 처리의 진행 상황이나 상태 등이 매우 중요하게 된다. 가령 MSA의 경우 외부 시스템 호출이 빈번하게 발생하기 때문에 성공/실패 여부나 진행 상태 등을 시스템적으로 파악하기가 어렵다.
+
+스프링 배치에서는 기본적으로 실행 및 관리를 위한 목적으로 Job, Step, JobParameters 등의 정보들을 저장, 업데이트, 조회할 수 있는 메타 데이터 스키마를 제공한다. 해당 메타데이터를 활용하면 Job의 실행했던 이력과 성공 및 실패 여부 등을 매우 자세하게 스프링 배치가 관리해주기 때문에 리스크 발생시 빠른 대처가 편리하다.
+
+![img_2.png](img_2.png)
+
+Schema는 기본적으로 Spring Batch에서 자체적으로 정의하고 있다. DBMS 별로 해당 스키마의 DDL을 제공한다.
+
+ddl 스크립트는 /org/springframework/batch/core/schema-{dbms}.sql을 수동으로 실행시키거나
+spring.batch.jdbc.initialize-schema 프로퍼티를 수정하면 된다.
+- ALWAYS
+  - 항상 실행
+- EMBEDDED (default)
+  - 내장 DB일때만 실행
+- NEVER
+  - 스크립트를 항상 실행하지 않음
+
+### Schema
+
+Job 관련 테이블
+
+- BATCH_JOB_INSTANCE
+  - Job이 실행될 때 job_name이 key로 저장된다.
+- BATCH_JOB_EXECUTION
+  - job이 실행될 때 생성, 시작, 종료 시간, 실행 상태, 메시지 등을 관리
+- BATCH_JOB_EXECUTION_PARAMS
+  - Job과 함께 시랳ㅇ되는 JobParameter 정보를 저
+- BATCH_JOB_EXECUTION_CONTEXT
+  - Job이 실행동안 여러가지 상대 정보와 공유 데이터 등을 직렬화(JSON)해서 저장
+  - Step간 서로 공유가 가능
+
+Step 관련 테이블
+
+- BATCH_STEP_EXECUTION
+  - Step의 실행 정보 및 생성, 시작, 종료 시간, 실행 상태, 메시지 등을 관리
+- BATCH_STEP_EXECUTION_CONTEXT
+  - Step의 실행동안 여러가지 상태 정보와 공유 데이터 등을 직렬화(JSON)해서 저장
+  - Step 별로 지정되므로 Step 간 서로 공유할 수 없음
+
+## 참고
+- https://docs.spring.io/spring-batch/docs/current/reference/html/schema-appendix.html
+- https://docs.spring.io/spring-batch/docs/current/reference/html/spring-batch-architecture.html
