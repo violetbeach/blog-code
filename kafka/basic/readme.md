@@ -103,7 +103,15 @@ Fortune 100개 기업 중 80% 이상이 Kafka를 사용한다. 국내에서도 �
 -   대규모 서비스와 배치 시스템에 적합하다.
 -   트래픽의 변화가 큰 곳에서 유용하다.
 
----
+## Replication
+
+Kafka Cluster에서는 Leader 파티션의 Follower 파티션을 추가로 구성할 수 있다.
+
+![img_1.png](img_1.png)
+
+다만, Follower 파티션은 실제로 Produce, Consume 모두 일어나지 않으며 장애를 대비한 백업 용도로 사용한다.
+
+Leader 파티션에 문제가 생긴다면 Kafka Cluster 내의 모듈이 이를 탐지하여 Follower 파티션이 Leader 파티션으로 승격하게 된다.
 
 ### Reference
 
