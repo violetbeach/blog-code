@@ -113,6 +113,34 @@ Kafka Cluster에서는 Leader 파티션의 Follower 파티션을 추가로 구�
 
 Leader 파티션에 문제가 생긴다면 Kafka Cluster 내의 모듈이 이를 탐지하여 Follower 파티션이 Leader 파티션으로 승격하게 된다.
 
+## 사용 사례
+
+### User Activity Tracking
+
+- 고객의 페이지 뷰, 클릭 등의 구체적인 행위를 수집해서 고객 행동을 분석/모니터링한다.
+- 주 관심사는 아니므로 비동기 Batch 전송 등을 활용하여 사용자 경험에 영향을 끼치지 않아야 한다.
+- 데이터 규모가 매우 크고 폭발적으로 늘어날 수 있음을 고려해야 한다.
+- 유실없는 완벽한 수집보다는 빠르고 지속적인 수집에 좀 더 관심. (ack=1)
+
+### Event Sourcing (+ CQRS)
+- 애플리케이션의 상태에 대한 모든 변경사항을 일련의 이벤트로 표현
+- 대규모의 MSA 아키텍쳐에서 CQRS 패턴과 결합하여 도입되는 추세
+
+### 파티션 추가
+
+운영중인 Topic의 파티션을 추가할 때는 Partition을 reblancing하는 과정에서 시스템 성능에 영향을 끼칠 수 있다. (Effect가 적은 시간에 수행해야 한다.)
+
+추가로 특정 Key-Partition 기반한 Consumer를 운영중이라면 메시지의 유실 가능성도 있으므로 신규 Topic을 생성하여 Migration 하는 것이 나은 선택일 수도 있다.
+
+topic 최초 생성 시 데이터 확장 규모를 충분히 고려해서 partition을 여유있게 생성하는 것이 좋다.
+
+## 데이터 마이그에리션
+
+a. 신규 Cluster 용 Broker를 기존 Cluster에 추가하고, partition을 reassign 한 후, 기존 Cluster를 shutdown
+b. MimrrorMaker2를 세팅하여 기존 Cluster에서 새로운 Cluster로 실시간으로 데이터를 동기화
+c. Kafka Connect 등을 이용해서 기존 Cluster에서 새로운 Cluster로 재전송
+d. Application 레벨에서 2개의 Kafka Cluster에 Dual Write/Dual Read로 처리
+
 ### Reference
 
 -   [https://velog.io/@jaehyeong/Apache-Kafka%EC%95%84%ED%8C%8C%EC%B9%98-%EC%B9%B4%ED%94%84%EC%B9%B4%EB%9E%80-%EB%AC%B4%EC%97%87%EC%9D%B8%EA%B0%80](https://velog.io/@jaehyeong/Apache-Kafka%EC%95%84%ED%8C%8C%EC%B9%98-%EC%B9%B4%ED%94%84%EC%B9%B4%EB%9E%80-%EB%AC%B4%EC%97%87%EC%9D%B8%EA%B0%80)
