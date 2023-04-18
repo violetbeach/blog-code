@@ -112,7 +112,7 @@ INSERT INTO `external_mail`.`pop3_pull_processes` (server_name, fk_pop3_pull_lis
 
 정답은 성공할 수도 있고, 실패할 수도 있다. (MySQL에서는 Index를 잠그기 때문)
 
-Index는 `constraint fk_pop3_auto_pull_list_no unique (fk_pull_id)`를 사용하고 있고, SELECT로 조회 시 반드시 해당 인덱스를 탄다.
+Index는 `constraint fk_pop3_auto_pull_list_no unique (fk_pull_id)`를 사용하고 있고, SELECT로 조회 시 반드시 해당 인덱스를 타는 것으로 보인다(?!..아래서)
 
 #### 그런데!
 
@@ -125,7 +125,7 @@ Index는 `constraint fk_pop3_auto_pull_list_no unique (fk_pull_id)`를 사용하
 해당 부분의 경우 const 조회를 했지만, 데이터가 존재하지 않아서 Key를 사용하지 않았다는 내용이다.
 
 ChatGPT한테 해당 내용을 물어봤었는데 아예 락을 걸지 않았다고 했다. 그런데 그게 아니고 테이블 단위의 갭 락이 걸린거였다.
-- 다른 Key 컬럼으로 해서 INSERT를 할 수 없다.
+- 다른 Key 컬럼으로도 INSERT를 할 수 없다!
 
 Holy..!
 
