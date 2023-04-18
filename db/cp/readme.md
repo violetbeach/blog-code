@@ -43,12 +43,13 @@ App단의 HikariCP의 maxTimeOut으로 인해 커넥션 연결을 끊기도 전�
   - HikariCP는 Tomcat-dbcp와 달리 사용하지 않는 Connection을 빠르게 회수하도록 설계
   - Tomcat-dbcp는 지속적으로 DB에 Validation Query를 보내서 커넥션이 끊어지지 않도록 설계
 
-
 ## 해결 방법 (잘 알려진 솔루션)
 
 ### 1. maxTimeOut 조정
 
-HikariCP의 maxTimeOut을 DB의 wait_timeout보다 2~3초 낮게 설정하는 것을 권장한다는 가이드가 많다.
+HikariCP에서 maxLifeTime이 끝나면 커넥션 풀에서 해당 커넥션을 종료 후 리소스(메모리)도 해제한다. 이후 커넥션 객체를 새로 생성해서 커넥션 풀에 추가한다. 
+
+HikariCP에서는 maxTimeOut을 DB의 wait_timeout보다 2~3초 낮게 설정하는 것을 권장한다.
 
 문제는 현재 MySQL 운영 서버의 wait_timeout이 15초이고, HikariCP의 maxTimeOut의 최솟값은 30초이다.
 
@@ -101,4 +102,10 @@ hikari:
       connection-init-sql: set wait_timeout = 600
 ```
 
+```java
+if(newHikariConfig.getDriverClassName().equals("com.mysql.cj.jdbc.Driver")) {
+            long waitTimeOut = TimeUnit.MILLISECONDS.toSeconds(newHikariConfig.getMaxLifetime()) + 5;
+            newHikariConfig.setConnectionInitSql(String.format("SET SESSION wait_timeout = %s", waitTimeOut));
+        }
+```
 
