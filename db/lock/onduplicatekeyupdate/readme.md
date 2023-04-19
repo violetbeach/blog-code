@@ -124,58 +124,14 @@ Index는 `constraint fk_pop3_auto_pull_list_no unique (fk_pull_id)`를 사용하
 
 해당 부분의 경우 const 조회를 했지만, 데이터가 존재하지 않아서 Key를 사용하지 않았다는 내용이다.
 
-ChatGPT한테 해당 내용을 물어봤었는데 아예 락을 걸지 않았다고 했다. 그런데 그게 아니고 테이블 단위의 갭 락이 걸린거였다.
+ChatGPT한테 해당 내용을 물어봤었는데 아예 락을 걸지 않았다고 했다. 그런데 그게 아니고 테이블 단위의 갭 락이 걸린 것 같다. (아래에서 더 정확히 확인)
 - 다른 Key 컬럼으로도 INSERT를 할 수 없다!
 
 Holy..!
 
-### 해결 방법..?
+## MySQL 8.0으로 디버깅해보자!
 
-해결 방법은 아래와 같이 강제로 INDEX를 지정하는 것이다.
-
-```php
-SELECT * FROM `external_mail`.`pop3_pull_processes`
-FORCE INDEX (fk_pop3_auto_pull_list_no)
-WHERE `fk_pop3_pull_list_no` = 12421 FOR UPDATE;
-```
-
-이상한 점은 실행 계획은 동일하게 보인다.
-
-![img_2.png](img_2.png)
-
-그렇지만 실제로는 동일하지 않았고 해당 부분으로 문제를 해결할 수 있었다.
-
-그래서 어떤 차이가 있는 지 확인하려고 MySQL 8.0을 도커로 띄웠다..! ㅠ
-
-### MySQL 8.0으로 디버깅해보자!
-
-확인할 것은 아래의 두 개이다.
-- 실행 계획
-- 락 획득
-- MySQL 5.7과 동작이 동일한 지 확인
-
-우선 실행 계획의 경우 아래와 같이 FORCE INDEX 사용 여부와 관계없이 동일했다.
-
-![img_4.png](img_4.png)
-
-MySQL 8.0에서는 경합이 발생하지 않아도 Lock을 확인할 수 있어서 정합한 디버깅이 가능했다.
-
-![img_3.png](img_3.png)
-
-보면 Lock이 2개가 걸린다.
-- Table 단위의 IX 락 (Intention exclusive lock)
-- RECORD 단위의 X 락 (Exclusive lock)
-
-이는 FORCE INDEX()를 사용해도 결과가 동일했고, 찾아보니 이는 정상적인 동작이라고 한다.
-
-실행 계획이랑 LOCK이 똑같은데 어떻게 동작이 다를 수 있지..? 라고 생각해서 동작 확인을 해봤는데, MySQL5.7과 동작이 달랐다.
-- FORCE INDEX를 사용해도 여전히 데드락이 터졌다.
-- (뭐가 어떻게 되는거야 🤣...)
-- MySQL 8.0에서는 스토리지 엔진에서 인덱스 스캔 시 락을 걸고 작업을 수행하기 때문이라고 한다.
-
-그래서 FORCE INDEX를 활용한 방법도.. 완벽한 솔루션이라고 할 수 없었다 ㅠ
-
-## 데이터 존재에 따라 결과가 달라지는 이유!
+### 데이터 존재에 따라 결과가 달라지는 이유!
 
 맨 처음에 데이터의 존재 여부에따라 데드락의 발생 여부가 달라진다고 했다. 해당 부분을 살펴보자!
 
@@ -225,14 +181,35 @@ WHERE `fk_pop3_pull_list_no` = 3252 FOR UPDATE;
 
 ![img_7.png](img_7.png)
 
-해당 경우에는 1~4000까지 데이터를 잠근다.
+해당 경우에는 1~4000까지 데이터를 잠근다. 즉, 이 경우에도 의도대로 동작하지 않았다.
 
 생각해보면 MySQL에서는 Index 기반으로 잠그는데, 데이터도 없는 채로 SELECT FOR UPDATE를 날리고, 레코드가 잠기길 기대했던 것이 생각이 조금 부족했던 듯 하다..
 
 그래서 비관적 락은 현재 데이터 구조와 비즈니스 로직에서는 적합하지 않았던 것 같다.
-- 차라리 로직을 분리하거나 분산 락으로 풀 수 있는 방법을 고민해보자..!
 - SELECT FOR UPDATE는 조심해야 한다..!
   - INSERT 문과 함께 사용하면 데드락이 발생할 가능성이 크다는 것을 고려해야 한다.
+
+## 다시 해결 방법 고민..
+
+#### .. FOR UPDATE 제거
+
+흔히 아는 JPA의 Repository.save() 메서드를 수행할 때도 일반적인 SELECT 구문이 나간다. 해당 부분을 검토해보자.
+- FOR UPDATE 를 제거하면 INSERT가 Pantom Read에 의해 INSERT 중복으로 인해 한쪽이 실패하는 현상이 생길 수 있었다.
+  - (실제 동작으로도 확인했다.)
+
+#### Named Lock
+
+```php
+$lock_name = 'pop3_pull_processes_lock_' . $fk_pop3_pull_list_no;
+$sql = "SELECT GET_LOCK(?, 10);
+		INSERT INTO `external_mail`.`pop3_pull_processes` (server_name, fk_pop3_pull_list_no, start_date, update_date)
+		    VALUES(?, ? , NOW(), NOW()) ON DUPLICATE KEY UPDATE update_date = NOW();
+		SELECT RELEASE_LOCK(?)";
+```
+
+위와 같이 NamedLock을 사용한다면 어떨까..? 자주 실행되는 메서드의 경우 (위 메서드는 초당 100번도 실행될 수 있었다.) 성능 저하가 발생할 수도 있었고, 레거시 코드여서 RELEASE_LOCK이 반드시 실행된다는 보장도 없었다.
+
+그래서 NamedLock도 적용할 수 없었다.
 
 ## 참고
 - https://kimdubi.github.io/mysql/insert_on_duplicate_lock
