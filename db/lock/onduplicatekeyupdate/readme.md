@@ -126,6 +126,7 @@ Index는 `constraint fk_pop3_auto_pull_list_no unique (fk_pull_id)`를 사용하
 
 ChatGPT한테 해당 내용을 물어봤었는데 아예 락을 걸지 않았다고 했다. 그런데 그게 아니고 테이블 단위의 갭 락이 걸린 것 같다. (아래에서 더 정확히 확인)
 - 다른 Key 컬럼으로도 INSERT를 할 수 없다!
+- SELECT 문에 강제로 Index를 걸어도 동일하다.
 
 Holy..!
 
@@ -191,12 +192,6 @@ WHERE `fk_pop3_pull_list_no` = 3252 FOR UPDATE;
 
 ## 다시 해결 방법 고민..
 
-#### .. FOR UPDATE 제거
-
-흔히 아는 JPA의 Repository.save() 메서드를 수행할 때도 일반적인 SELECT 구문이 나간다. 해당 부분을 검토해보자.
-- FOR UPDATE 를 제거하면 INSERT가 Pantom Read에 의해 INSERT 중복으로 인해 한쪽이 실패하는 현상이 생길 수 있었다.
-  - (실제 동작으로도 확인했다.)
-
 #### Named Lock
 
 ```php
@@ -210,6 +205,44 @@ $sql = "SELECT GET_LOCK(?, 10);
 위와 같이 NamedLock을 사용한다면 어떨까..? 자주 실행되는 메서드의 경우 (위 메서드는 초당 100번도 실행될 수 있었다.) 성능 저하가 발생할 수도 있었고, 레거시 코드여서 RELEASE_LOCK이 반드시 실행된다는 보장도 없었다.
 
 그래서 NamedLock도 적용할 수 없었다.
+
+#### .. FOR UPDATE 제거
+
+흔히 아는 JPA의 Repository.save() 메서드를 수행할 때도 일반적인 SELECT 구문이 나간다. 해당 부분을 검토해보자.
+- FOR UPDATE 를 제거하면 INSERT가 Pantom Read에 의해 INSERT 중복으로 인해 한쪽이 실패하는 현상이 생길 수 있었다.
+  - (실제 동작으로도 확인했다.)
+
+그런데 잘생각해보면 INSERT를 할 때 DuplicateKey가 생기는 것은 현재 비즈니스 로직에서 충분히 감안할 수 있었다.
+- 비즈니스 상 INSERT가 중복되면 그 프로세스는 어차피 종료 되어야 했다.
+- 즉, try-catch문에서 처리할 부분만 추가해주면 되었다. (trigger 테이블의 status를 Running -> READY로 변경)
+
+즉 아래와 같이 처리할 수 있었다.
+
+```php
+public function update_process($fk_pull_id) {
+    $server_name = gethostname();
+    $this->_db_connect();
+    try {
+        $this->open_db->trans_begin();
+        $sql_lock = "SELECT * FROM `external_mail`.`pop3_pull_processes` WHERE `fk_pull_id` = ?";
+        $this->open_db->query($sql_lock, array($fk_pull_id));
+        if ($this->open_db->affected_rows() > 0) {
+            $sql_update = "UPDATE `external_mail`.`pop3_pull_processes` SET `server_name` = ?, `update_date` = NOW() WHERE `fk_pull_id` = ?";
+            $this->open_db->query($sql_update, array($server_name, $fk_pull_id));
+        } else {
+            $sql_insert = "INSERT INTO `external_mail`.`pop3_pull_processes` (server_name, fk_pull_id, start_date, update_date) VALUES(?, ?, NOW(), NOW())";
+            $this->open_db->query($sql_insert, array($server_name, $fk_pull_id));
+        }
+        // Commit the transaction
+        $this->open_db->trans_commit(); 
+    } catch (Exception $e) {
+        // Handle duplicate key exception
+        if ($e->getCode() == 1062) {
+            // 예외 처리 (trigger 테이블의 status 컬럼을 Running -> READY로 수정)
+        }
+    }
+}
+```
 
 ## 참고
 - https://kimdubi.github.io/mysql/insert_on_duplicate_lock
