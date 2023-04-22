@@ -6,7 +6,7 @@
 the last packet successfully received from the server was 30,035 milliseconds ago. The last packet  sent successfully to the server was 30,036 milliseconds ago.
 ```
 
-조금더 로그를 올라가보니 이런 경고가 뜨고있었다.
+조금더 로그를 올라가보니 이런 경고가 뜨고있었다. 아래와 같이 모든 커넥션으로 연결을 시도하다가 모두 실패했다.
 
 ```java
 023-04-18 08:01:12.345  WARN 20 --- [nio-8080-exec-9] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@1d5d809b (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
@@ -21,19 +21,6 @@ the last packet successfully received from the server was 30,035 milliseconds ag
 2023-04-18 08:01:12.349  WARN 20 --- [nio-8080-exec-9] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@1ed2242a (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
 ```
 
-시간이 지나면 아래와 같이 모든 커넥션으로 연결을 시도하다가 모두 실패했다.
-```java
-2023-04-18 08:19:35.589  WARN 20 --- [nio-8080-exec-5] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@60422b6c (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value.
-2023-04-18 08:19:35.590  WARN 20 --- [nio-8080-exec-5] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@2e035a5c (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
-2023-04-18 08:19:35.590  WARN 20 --- [nio-8080-exec-5] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@7b47c35 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
-2023-04-18 08:19:35.591  WARN 20 --- [nio-8080-exec-8] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@24a31414 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
-2023-04-18 08:19:35.591  WARN 20 --- [nio-8080-exec-5] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@76dc3ee4 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
-2023-04-18 08:19:35.592  WARN 20 --- [nio-8080-exec-8] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@362af980 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
-2023-04-18 08:19:35.592  WARN 20 --- [nio-8080-exec-5] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@4a75497 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
-2023-04-18 08:19:35.592  WARN 20 --- [nio-8080-exec-5] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@30422fe5 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
-2023-04-18 08:19:35.593  WARN 20 --- [nio-8080-exec-5] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@1433b80c (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
-```
-
 ## 원인
 
 원인은 사실 대부분 잘 알다시피 커넥션 누수다.
@@ -42,12 +29,18 @@ App단의 HikariCP의 maxTimeOut으로 인해 커넥션 연결을 끊기도 전�
 - HikariCP와 Tomcat-dbcp 철학이 달라서 발생한 문제라고 한다.
   - HikariCP는 Tomcat-dbcp와 달리 사용하지 않는 Connection을 빠르게 회수하도록 설계
   - Tomcat-dbcp는 지속적으로 DB에 Validation Query를 보내서 커넥션이 끊어지지 않도록 설계
-
+  
 ## 해결 방법 (잘 알려진 솔루션)
 
-### 1. maxTimeOut 조정
+![img.png](img.png)
 
-HikariCP에서 maxLifeTime이 끝나면 커넥션 풀에서 해당 커넥션을 종료 후 리소스(메모리)도 해제한다. 이후 커넥션 객체를 새로 생성해서 커넥션 풀에 추가한다. 
+위는 PoolBase.isConnectionAlive() 메서드이다. HikariCP는 이미 닫힌 커넥션으로 어떤 행위도 할 수 없다. 로그만 찍어준다.
+
+HikariConfig의 maxLifeTime이 끝나면 커넥션 풀에서 해당 커넥션을 종료 후 리소스(메모리)도 해제한다. 이후 커넥션 객체를 새로 생성해서 커넥션 풀에 추가한다. 
+
+그래서 HikariCP의 철학대로 DB에서 wait_timeout으로 커넥션을 끊기 전에 App에서 Hikari의 maxTimeOut으로 인해 커넥션을 해제해야 한다.
+
+### 1. maxTimeOut 조정
 
 HikariCP에서는 maxTimeOut을 DB의 wait_timeout보다 2~3초 낮게 설정하는 것을 권장한다.
 
@@ -92,20 +85,35 @@ wait_timeout 설정도 GLOBAL 설정이 있고, SESSION 설정이 있었다.
 
 즉, SpringBoot 앱에서 MySQL 서버로 연결할 때 세션의 wait_timeout을 바꿀 수 있다면 해결할 수 있지 않을까..? 하는 생각이었다.
 
-```java
+```yaml
 hikari:
-      pool-name: SpringBootJPAHikariCP
-      maximum-pool-size: 10
-      connection-timeout: 10000
-      validation-timeout: 10000
-      max-lifetime: 580000
-      connection-init-sql: set wait_timeout = 600
+  pool-name: SpringBootJPAHikariCP
+  maximum-pool-size: 10
+  connection-timeout: 10000
+  validation-timeout: 10000
+  max-lifetime: 580000
+  # 여기
+  connection-init-sql: set wait_timeout = 600
 ```
+
+spring.datasource.hikari.connection-init-sql을 사용하면 Connection 객체가 생성될 때 init SQL을 실행해서 세션 wait_timeout을 수정할 수 있다.
+
+나의 경우에는 다중 데이터 소스를 사용하고 있고, 각 DB마다 maxTimeOut이 달랐기 때문에 아래와 같이 설정할 수 있었다.
 
 ```java
-if(newHikariConfig.getDriverClassName().equals("com.mysql.cj.jdbc.Driver")) {
-            long waitTimeOut = TimeUnit.MILLISECONDS.toSeconds(newHikariConfig.getMaxLifetime()) + 5;
-            newHikariConfig.setConnectionInitSql(String.format("SET SESSION wait_timeout = %s", waitTimeOut));
-        }
+if(hikariConfig.getDriverClassName().equals("com.mysql.cj.jdbc.Driver")) {
+    long waitTimeOut = TimeUnit.MILLISECONDS.toSeconds(hikariConfig.getMaxLifetime()) + 5;
+    hikariConfig.setConnectionInitSql(String.format("SET SESSION wait_timeout = %s", waitTimeOut));
+}
 ```
 
+위 코드는 세션의 wait_timeout을 HikariPool의 maxLifeTime보다 5초 더 높게  설정한다.
+
+결과적으로 더 이상 메모리 누수가 발생하지 않았고, maxLifeTime을 늘리라는 경고가 나타나지 않았다. 즉, 성공적으로 적용을 완료할 수 있었다!
+
+## 참고
+- https://jaehun2841.github.io/2020/01/08/2020-01-08-hikari-pool-validate-connection/#maxLifetime-wait-timeout-%EC%96%B4%EB%96%BB%EA%B2%8C-%EC%84%A4%EC%A0%95%ED%95%B4%EC%95%BC-%ED%95%98%EB%82%98%EC%9A%94
+- https://github.com/brettwooldridge/HikariCP
+- https://pkgonan.github.io/2018/04/HikariCP-test-while-idle
+- https://mangkyu.tistory.com/293
+- https://do-study.tistory.com/97
