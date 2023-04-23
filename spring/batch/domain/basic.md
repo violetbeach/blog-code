@@ -60,6 +60,15 @@ public class JobRunner implements ApplicationRunner {
 존재 여부에 따라 기존의 JobInstance를 반환하거나 새로운 JobInstance를 생성한다.
 - 기존의 JobInstance가 완료가 된 상태라면 예외를 발생한다.
 
+JobRepository는 배치 작업의 수행과 관련된 모든 MetaData에 대한 CRUD를 담당한다.
+- @EnableBatchProcessing 어노테이션을 선언하면 JobRepository가 빈으로 생성된다.
+- BatchConfigurer 인터페이스를 구현하면 JobRepository를 커스터마이징할 수 있다.
+- JDBC 방식으로 설정 - JobRepositoryFactoryBean
+  - 내부적으로 트랜잭션 처리를 해주고 있다. (격리 수준 default: SERIALIZABLE, 변경 가능)
+  - Table prefix 변경 가능 (default: "BATCH_")
+- In Memory 방식으로 설정 - MapJobRepositoryFactoryBean
+  - 성능이나 자원의 문제로 도메인 오브젝트를 굳이 DB에 저장하고 싶지 않은 경우 (Test 목적, ...)
+
 ## JobParameters
 
 그럼 jobParameters는 어떻게 구성될까?
@@ -81,6 +90,22 @@ JobExecution의 상태에 따라 JobInstance는 아래의 영향을 받는다.
 - COMPLETED라면 재실행이 불가능하다.
 - FAILED라면 재실행이 가능하다.
   - JobParameters가 동일해도 재실행이 가능하다.
+
+## JobLauncher
+
+Job을 실행시키는 역할을 한다.
+- Job과 JobParameters를 인자로 받아서 배치를 수행을 완료한 후 JobExecution을 반환
+- SpringBoot Batch에서 기본적으로 JobLauncher 빈이 등록된다.
+  - JobLauncherApplicationRunner가 자동으로 JobLauncher를 실행
+- 동기 실행
+  - TaskExecutor를 SyncTaskExecutor로 설정할 경우 (default: SyncTaskExecutor)
+  - ExitStatus.FINISHED or FAILED를 반환한다.
+  - 일반적인 경우 많이 사용 (Scheduler에 의한 배치, ...)
+- 비동기 실행
+  - TaskExecutor를 AsyncTaskExecutor로 설정한 경우
+  - ExitStatus.UNKNOWN을 먼저 반환하고, 나중에 ExitStatus를 저장소에 반영한다.
+  - 빠른 응답, 비관심사 분리 등에 용이 (HTTP 요청에 의한 배치, ...)
+- 비동기 실행
 
 지금까지 Job에 대해 알아봤다.
 
@@ -145,11 +170,18 @@ StepContribution은 청크 프로세스의 변경 사항을 버퍼링한 후 Ste
     - StepContribution에 readCount, readSkipCount 등 진행 상황을 반영해둔다.
 - StepExecution이 완료되는 시점에 apply()를 호출해서 진행 상황을 최종적으로 반영한다.
 
+## ExecutionContext
+
+StepExecution/JobExecution 객체의 상태(State)를 저장하는 객체이다.
+- 내부에 가진 Map을 직렬화한 형태로 DB에 저장된다.
+
+공유 범위
+- Job - 각 Job의 JobExecution에 저장되며 Job간 공유되지 않고 동일 Job의 Step 간 공유된다.
+- Step - 각 Step의 StepExecution에 저장되며 Step간 공유되지 않는다.
+
+Job/Step은 ExecutionContext를 확인하여 진행 상태를 파악하고 실행/스킵할 수 있다.
+
 ## 참고
 
 - https://inf.run/p7si
 - https://jojoldu.tistory.com/325
-
-
-
-
