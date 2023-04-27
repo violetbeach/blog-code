@@ -20,6 +20,95 @@ Rancher에서 메모리가 나오지만, 누수가 발생하는 지나 Heap과 M
 - 실서버 환경에서는 적용이 어려워서 로컬 환경에서 띄워서 JMeter로 요청을 보내서, TPS나 메모리 누수(Heap, MetaSpace, ...)가 존재하지는 않는 지 확인하는 용도였다.
 
 
+```java
+@EnableWebSecurity
+@Configuration
+@RequiredArgsConstructor
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+    private final HiworksSecurityFilter hiworksSecurityFilter;
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .csrf().disable()
+                .httpBasic().disable()
+
+                .cors().and()
+
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+
+                .addFilterBefore(hiworksSecurityFilter, UsernamePasswordAuthenticationFilter.class)
+
+                .authorizeRequests()
+                        .antMatchers("/v2/health").permitAll()
+                        .antMatchers("/v2/office/**/receipt-confirm/**/email/**").permitAll()
+                        .antMatchers(HttpMethod.GET, "/v2/signatures/images").permitAll()
+                .and()
+
+                .authorizeRequests()
+                .antMatchers("/v2/server/**").access(
+                        HiworksRole.getFullHasRoleStringBy(HiworksRole.SERVER)
+                )
+                .and()
+
+                .authorizeRequests()
+                .antMatchers("/admin/**", "/admin2/**").access(
+                        HiworksRole.getFullHasRoleStringBy(HiworksRole.OFFICE_MANAGER)
+                )
+
+                .anyRequest().access(
+                        HiworksRole.getFullHasAnyRoleStringBy(
+                                HiworksRole.OFFICE_MANAGER,
+                                HiworksRole.HIWORKS_USER
+                        )
+                )
+                .and()
+                .exceptionHandling()
+                .authenticationEntryPoint(new HiworksUnAuthorizeEntryPoint())
+        ;
+    }
+
+    @Override
+    public void configure(WebSecurity web) {
+        web.ignoring().antMatchers("/actuator/**");
+    }
+
+}
+```
+
+```yaml
+management:
+  health:
+    db:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+```
+
+```yml
+global:
+  scrape_interval: 10s
+
+scrape_configs:
+  - job_name: 'spring--app'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['mail-api.devoffice.hiworks.com']
+
+    scheme: https  # to use https instead of http for scraping
+
+    tls_config:
+      insecure_skip_verify: true  # This is the key
+```
+
+```groovy
+implementation 'org.springframework.boot:spring-boot-starter-actuator'
+runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+```
 ## 준비
 
 Apache JMeter 사용법은 이전 포스팅(https://jaehoney.tistory.com/224)을 참고하면 된다.
