@@ -30,3 +30,7 @@
   - 한 페이지를 읽을 때마다 Connection을 맺고 끊기 때문에 대량의 SocketTimeOut 걱정이 없다.
   - 페이징 단위의 결과만 메모리에 할당하기 때문에 메모리 사용량이 적다.
 
+## JdbcBatchItemWriter
+
+Jdbc의 Batch 기능을 사용하여 bulk insert/update/delete 방식으로 처리할 수 있다.
+
