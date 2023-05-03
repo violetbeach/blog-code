@@ -1,4 +1,4 @@
-## 우아한 스프링 배치 내용 정리 (+ 통합 테스트 시 SpringTestContext Caching 팁!)
+## 우아한 스프링 배치 내용 정리 (+ 통합 테스트 SpringTestContext Caching 팁!)
 
 배달의 민족의 주문, 포인트, 정산 시스템에서 향로님께서 적용하면서 얻은 팁을 아래 강연에서 발표했다.
 - https://www.youtube.com/watch?v=_nkJkWVH-mo
