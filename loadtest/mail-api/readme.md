@@ -1,3 +1,5 @@
+## 부하 테스트 및 성능 개선 여행기!
+
 # 1. 메모리 누수 확인 (로컬)
 
 팀내에서 메모리 누수는 뜨거운 감자였다.. 사내에서 JVM 환경의 프로젝트 개발에 대한 노하우가 부족했고, 새롭게 개발한 프로젝트에서 Heap OOM, MetaSpace OOM이 자주 터졌었기 때문이다. 그래서 지속적으로 누수를 잡았는데, 다시 한번 검사해봤다. 
@@ -12,7 +14,7 @@ Ngrinder보다 Apache JMeter로 테스트를 구성하는 게 나한테 쉬웠�
 
 Rancher에서는 아래의 정보를 준다.
 
-![img.png](img.png)
+![img_52.png](img_52.png)
 
 Rancher에서 메모리가 나오지만, 누수가 발생하는 지나 Heap과 MetaSpace 영역이 각각 어떻게 되는지, GC는 얼마나 자주 실행되는 지 등을 파악하기 어렵다.
 
@@ -35,6 +37,12 @@ Eden의 경우 GC가 일어나는 시점에 공간이 10MB 이하로 줄기 때�
 
 (끊긴 부분은 부하가 커서 Promotheus에서 Actuator를 조회하지 못해서 생긴 부분이다.)
 
+## G1 Survivor Space
+
+![img_17.png](img_17.png)
+
+Survivor Space의 경우 용량을 크게 차지하지 않고, 잘 정리가 되는 것으로 판단됩니다.
+
 ## G1 Old Gen
 
 ![](img_16.png)
@@ -44,12 +52,6 @@ Eden의 경우 GC가 일어나는 시점에 공간이 10MB 이하로 줄기 때�
 OldGen의 경우 GC가 발생해도 데이터가 많이 정리되지 않아서, 오랜 시간 데이터를 운영해야 확실하게 누수를 파악할 수 있을 것 같다.
 
 (이 부분에 대해서는 나중에 제대로 다룬다.)
-
-## G1 Survivor Space
-
-![img_17.png](img_17.png)
-
-Survivor Space의 경우 용량을 크게 차지하지 않고, 잘 정리가 되는 것으로 판단됩니다.
 
 ## Metaspace
 
