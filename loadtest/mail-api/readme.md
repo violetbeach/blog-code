@@ -20,7 +20,12 @@ Rancher에서 메모리가 나오지만, 누수가 발생하는 지나 Heap과 M
 
 그래서 Local에서 Prometheus + Grafana 를 사용해서 지표를 시각화하고, JMeter로 부하를 보내면서 메모리를 측정했다.
 
-- 다양한 지표와 높은 Thread 수로 1시간 정도 확인을 했지만, 메모리 누수는 확인할 수 없었다.
+아래의 API 목록을 ThreadGroup 200으로 해서 무작위로 요청을 보내면서 메모리 위주로 체크했다.
+- GET /v2/mailboxes
+- GET /v2/mails (+ with Params)
+- GET /v2/mails/:no
+- GET /v2/office/:officeNo/receipt-confirm/:certKey/email/:email
+- POST /v2/mails/send
 
 ![img_11.png](img_11.png)
 ![img_12.png](img_12.png)
