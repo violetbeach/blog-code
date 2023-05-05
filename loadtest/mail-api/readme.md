@@ -295,7 +295,7 @@ Number of Threads (users): 50
 - [X] sentry 이슈 발생
   - DeadLock이 발생하는 것으로 보임 
 
-## 3. 결과 정리
+# 3. 결과 정리
 
 부하 테스트 결과 해결이 필요하다고 생각되는 end-point는 아래와 같다.
 
@@ -311,9 +311,9 @@ Number of Threads (users): 50
 
 **치명적인 메모리 누수는 없는 걸로!**
 
-## 4. 개선
+# 4. 개선
 
-## /mails 개선
+# 4-1. /mails 개선
 
 ```sql
 select
@@ -389,7 +389,7 @@ AND personalma1_.lockinfo_type IN ('B','A')
 
 참고로 HTTP 트랜잭션 시간은 320ms -> 120ms 정도로 개선되었어요!
 
-## /mails with Params
+### /mails with Params
 
 /v2/mails?sort[received_date]=desc&with=approval_mail&with=receipt_confirm&with=encrypted
 
@@ -406,7 +406,7 @@ Number of Threads (users): 200
 - [ ] 메모리 증가
 - [ ] sentry 이슈 발생
 
-## /mails/:mailNo
+## 4-2. /mails/:mailNo
 
 #### 1. 예상대로 서비스 단위에서 Transaction이 열려서 DB 트랜잭션 안에서 스토리지에 저장하고 있었다.
 
@@ -488,7 +488,6 @@ public class MailStreamBuffer {
 - ReplaceingInputStream은 비즈니스 요구사항을 위해 사용하고 있고, 사용하지 않아도 드라마틱한 변화는 없다.  
 
 TPS는 로컬 기준 4.2 -> 10.1로 개선되었다.
-
 
 ### dev는 여전히 터짐..
 
@@ -629,7 +628,7 @@ create의 경우 javax.MimeMessage를 생성하는 부분이라서 우리가 제
 
 그래서 GET /mails/:mailNo의 경우 이 정도로 개선하기로 했다.
 
-## /mails/send
+## 4-3. /mails/send
 
 ![img_42.png](img_42.png)
 
