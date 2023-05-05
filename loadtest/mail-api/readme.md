@@ -6,6 +6,13 @@
 - [2. 부하 테스트](#2-부하-테스트)
 - [3. 결과 정리](#3-결과-정리)
 - [4. 개선](#4-개선)
+  - [Outer Join 쿼리 개선](#4-1-mails)
+  - [DB 트랜잭션 축소](#1-예상대로-서비스-단위에서-transaction이-열려서-db-트랜잭션-안에서-스토리지에-저장하고-있었다)
+  - [BufferedInputStream 활용](#2-bufferedinputstream-활용)
+  - [JVM 튜닝](#JVM-튜닝)
+  - [성능 누수 해결](#성능-누수-확인)
+  - [HikariCP 데드락 해결](#4-3-mailssend)
+  - ...
 
 # 1. 메모리 누수 확인
 
@@ -346,7 +353,8 @@ where
 (이상하게도 포스트맨 한번 요청할 시 0.3s밖에 안걸리는데 TPS가 12정도 밖에 안나왔다..)
 
 원인은 SQL 실행 순서에 있었다. mail_content와 personal_mailbox는 1대 0~1 관계임에도 불구하고 Left Outer Join을 사용하면서 문제가 생겼다.
-- Where 조건을 먹이기 전에 LeftOuterJoin으로 모든 mailbox를 불러온 후 매칭시켜야 하는 점
+- Where 절로 필터링을 하기 전에 LeftOuterJoin으로 모든 mailbox를 불러온 후 매칭시켜야 하는 점
+- Disk I/O 발생으로 많은 사용자 환경에서 TPS가 상당히 저하
 
 ### 쿼리 분리
 
@@ -491,7 +499,7 @@ public class MailStreamBuffer {
 
 TPS는 로컬 기준 4.2 -> 10.1로 개선되었다.
 
-### dev는 여전히 터진다..
+### JVM 튜닝
 
 그래서 Local 환경에서 TPS 4.2 -> 10.1 인 것을 확인하고 dev에 반영했는데, dev에서는 해당 TPS가 나오지 않고 계속 서버가 터졌다.
 - Users를 30으로 해도, TPS를 3.0 정도 유지하다가 서버가 터짐
