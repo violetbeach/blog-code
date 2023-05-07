@@ -353,17 +353,61 @@ where
 
 (이상하게도 포스트맨 한번 요청할 시 0.3s밖에 안걸리는데 TPS가 12정도 밖에 안나왔다..)
 
-원인은 SQL 실행 순서에 있었다. mail_content와 personal_mailbox는 1대 0~1 관계임에도 불구하고 Left Outer Join을 사용하면서 문제가 생겼다.
+원인은 SQL 실행 순서에 있었다. mail_content와 personal_mailb리x는 1대 0~1 관계임에도 불구하고 Left Outer Join을 사용하면서 문제가 생겼다.
 - Where 절로 필터링을 하기 전에 LeftOuterJoin으로 모든 mailbox를 불러온 후 매칭시켜야 하는 점
 - Disk I/O 발생으로 많은 사용자 환경에서 TPS가 상당히 저하
+
+INNER JOIN을 사용한다면 나쁘지 않은 결과가 나오곘지만, 기본 편지함은 mailbox와 매칭을 하지 않으므로 사용할 수 없었다.
 
 ### 쿼리 분리
 
 그래서 해당 쿼리를 두 개로 분리하기로 했다.
-- 잠금 상태의 personal_mailbox 목록 조회
+- 사용자의 잠금 편지함 조회
 - 메일 리스트 조회 시 mailbox_id NOT IN (?)
 
 이렇게 분리하면 Left Outer Join을 수행하지 않아도 된다.
+
+즉, 쿼리를 아래와 같이 변경할 수 있었다.
+
+```sql
+# 잠금 메일함 조회
+select 
+  no as col_0_0_ 
+from 
+  mail_01.personal_mailbox personalma1_ 
+where 
+  personalma1_.basic_info_no = 1994 
+  and personalma1_.fk_user_info_no = 1 
+  and personalma1_.lockinfo_type in ('B', 'A');
+
+# 메일 리스트 조회
+select 
+  count(mail0_.no) as col_0_0_ 
+from 
+  mail_01.mail_content mail0_ 
+where 
+  mail0_.del_flag = 'N' 
+  and mail0_.basic_info_no = 1994 
+  and mail0_.fk_user_info_no = 1 
+  and mail0_.mbox_no not in (?);
+```
+
+적용 결과 아래의 변화가 있었다.
+
+**Number of Threads (users): 200**
+
+![img_22.png](img_22.png)
+
+- **TPS: 10.8 -> 107.7**
+- 평균 소요 시간 : 7.914s -> 2.147s
+- 90% 요청이 11.089s -> 3.176s 이내에 완료
+
+특이사항 :
+- [ ] CPU 증가
+- [ ] 메모리 증가
+- [ ] sentry 이슈 발생
+
+참고로 HTTP 트랜잭션 시간은 320ms -> 120ms 정도로 개선되었다!
 
 (사실 아래와 같이 SubQuery를 사용해도 되었다.)
 
@@ -382,23 +426,6 @@ AND personalma1_.lockinfo_type IN ('B','A')
 ```
 
 하지만 QueryDsl에서 Exists를 사용하기 어려울 뿐 아니라 유지보수 관점에서 쿼리를 분리하는 것이 낫다고 판단했다.
-
-적용 결과 아래의 변화가 있었다.
-
-**Number of Threads (users): 200**
-
-![img_22.png](img_22.png)
-
-- **TPS: 10.8 -> 107.7**
-- 평균 소요 시간 : 7.914s -> 2.147s
-- 90% 요청이 11.089s -> 3.176s 이내에 완료
-
-특이사항 :
-- [ ] CPU 증가
-- [ ] 메모리 증가
-- [ ] sentry 이슈 발생
-
-참고로 HTTP 트랜잭션 시간은 320ms -> 120ms 정도로 개선되었어요!
 
 ### /mails with Params
 
