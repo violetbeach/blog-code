@@ -1,11 +1,26 @@
-## 부하 테스트 및 성능 개선 여행기!
+## 메일 - 부하 테스트 및 성능 개선기!
 
-# 1. 메모리 누수 확인 (로컬)
+# 0. 시작하기전에
+
+- [1. 메모리 누수 확인](#1-메모리-누수-확인)
+- [2. 부하 테스트](#2-부하-테스트)
+- [3. 결과 정리](#3-결과-정리)
+- [4. 개선](#4-개선)
+  - [Outer Join 쿼리 개선](#4-1-mails)
+  - [DB 트랜잭션 축소](#1-예상대로-서비스-단위에서-transaction이-열려서-db-트랜잭션-안에서-스토리지에-저장하고-있었다)
+  - [BufferedInputStream 활용](#2-bufferedinputstream-활용)
+  - [JVM 튜닝](#JVM-튜닝)
+  - [성능 누수 해결](#성능-누수-확인)
+  - [HikariCP 데드락 해결](#4-3-mailssend)
+  - ...
+- [5. 마무리 정리](#5-마무리)
+
+# 1. 메모리 누수 확인
 
 팀내에서 메모리 누수는 뜨거운 감자였다.. 사내에서 JVM 환경의 프로젝트 개발에 대한 노하우가 부족했고, 새롭게 개발한 프로젝트에서 Heap OOM, MetaSpace OOM이 자주 터졌었기 때문이다. 그래서 지속적으로 누수를 잡았는데, 다시 한번 검사해봤다. 
 
 사내에서 부하 테스트를 할 때 보통은 Rancher + Ngrinder를 자주 사용한다.
-- 사내 dev 환경 쿠버네티스에 올리면 Rancher에서 확인할 수 있습니다.
+- 사내 dev 환경 쿠버네티스에 올리면 Rancher에서 확인할 수 있다.
 - (Ngrinder를 사용하면 사내 독립된 서버에서 Client에 영향없이 부하테스트를 진행할 수 있음)
 
 Ngrinder보다 Apache JMeter로 테스트를 구성하는 게 나한테 쉬웠다.
@@ -18,9 +33,14 @@ Rancher에서는 아래의 정보를 준다.
 
 Rancher에서 메모리가 나오지만, 누수가 발생하는 지나 Heap과 MetaSpace 영역이 각각 어떻게 되는지, GC는 얼마나 자주 실행되는 지 등을 파악하기 어렵다.
 
-그래서 Prometheus + Grafana 를 사용해서 지표를 시각화하고, JMeter로 부하를 보내면서 메모리를 측정했다.
+그래서 Local에서 Prometheus + Grafana 를 사용해서 지표를 시각화하고, JMeter로 부하를 보내면서 메모리를 측정했다.
 
-- 다양한 지표와 높은 Thread 수로 1시간 정도 확인을 했지만, 메모리 누수는 확인할 수 없었다.
+주요로 사용하는 API 목록을 ThreadGroup 200으로 해서 무작위로 요청을 보내면서 메모리 위주로 체크했다.
+- GET /v2/mailboxes
+- GET /v2/mails (+ with Params)
+- GET /v2/mails/:no
+- GET /v2/office/:officeNo/receipt-confirm/:certKey/email/:email
+- POST /v2/mails/send
 
 ![img_11.png](img_11.png)
 ![img_12.png](img_12.png)
@@ -41,27 +61,27 @@ Eden의 경우 GC가 일어나는 시점에 공간이 10MB 이하로 줄기 때�
 
 ![img_17.png](img_17.png)
 
-Survivor Space의 경우 용량을 크게 차지하지 않고, 잘 정리가 되는 것으로 판단됩니다.
+Survivor Space의 경우 용량을 크게 차지하지 않고, 잘 정리가 되는 것으로 판단된다.
 
 ## G1 Old Gen
 
 ![](img_16.png)
 
-서버를 오랜시간 지속시킬 수록 OldGen이 차고 있다.
+서버를 오랜시간 지속시킬 수록 OldGen이 차고 있다가 일정 수준을 유지한다.
 
 OldGen의 경우 GC가 발생해도 데이터가 많이 정리되지 않아서, 오랜 시간 데이터를 운영해야 확실하게 누수를 파악할 수 있을 것 같다.
 
-(이 부분에 대해서는 나중에 제대로 다룬다.)
+(이 부분에 대해서는 나중에 다룰 내용에서 제대로 체크한다.)
 
 ## Metaspace
 
 ![img_18.png](img_18.png)
 
-Metaspace의 경우 메모리가 눈에 띄게 쌓이지 않고 일정해서 누수는 없을 것 같습니다.
+Metaspace의 경우 메모리가 눈에 띄게 쌓이지 않고 일정했다.
 
 ### 확인 결과 정리
 
-확인 결과 치명적인 메모리 누수는 찾을 수 없었다.
+내용을 정리하면 치명적인 메모리 누수는 존재하지 않았다.
 
 # 2. 부하 테스트
 
@@ -283,21 +303,25 @@ Number of Threads (users): 50
 - [X] sentry 이슈 발생
   - DeadLock이 발생하는 것으로 보임 
 
-# 정리
- 
-**TODO**
+# 3. 결과 정리
+
+부하 테스트 결과 해결이 필요하다고 생각되는 end-point는 아래와 같다.
+
 - /mails (리스트 조회)
-  - [ ] 병목 구간 확인
+  - [ ] 병목 구간 확인 및 개선 검토
 - /mail/:mailNo (단건 조회)
   - [ ] 파일 크기가 클 때 TPS 개선안 찾기
   - [ ] 파일 크기가 클 때 OOM 발생하는 이슈 해결방안 모색
   - [ ] HikariPool Timeout 발생하는 것 보니깐, Storage Transaction 분리 안된 것 같음 (체크)
 - /mails/send (메일 발송)
   - [ ] 데드락 발생? 원인 확인
+  - [ ] TPS 개선 검토
 
 **치명적인 메모리 누수는 없는 걸로!**
 
-## /mails 개선
+# 4. 개선
+
+# 4-1. /mails
 
 ```sql
 select
@@ -329,14 +353,61 @@ where
 
 (이상하게도 포스트맨 한번 요청할 시 0.3s밖에 안걸리는데 TPS가 12정도 밖에 안나왔다..)
 
-원인은 SQL 실행 순서에 있었다. mail_content와 personal_mailbox는 1대 0~1 관계임에도 불구하고 Left Outer Join을 사용하면서 문제가 생겼다.
-- Where 조건을 먹이기 전에 LeftOuterJoin으로 모든 mailbox를 불러온 후 매칭시켜야 하는 점
+원인은 SQL 실행 순서에 있었다. mail_content와 personal_mailb리x는 1대 0~1 관계임에도 불구하고 Left Outer Join을 사용하면서 문제가 생겼다.
+- Where 절로 필터링을 하기 전에 LeftOuterJoin으로 모든 mailbox를 불러온 후 매칭시켜야 하는 점
+- Disk I/O 발생으로 많은 사용자 환경에서 TPS가 상당히 저하
+
+INNER JOIN을 사용한다면 나쁘지 않은 결과가 나오곘지만, 기본 편지함은 mailbox와 매칭을 하지 않으므로 사용할 수 없었다.
+
+### 쿼리 분리
 
 그래서 해당 쿼리를 두 개로 분리하기로 했다.
-- 잠금 상태의 personal_mailbox 목록 조회
+- 사용자의 잠금 편지함 조회
 - 메일 리스트 조회 시 mailbox_id NOT IN (?)
 
 이렇게 분리하면 Left Outer Join을 수행하지 않아도 된다.
+
+즉, 쿼리를 아래와 같이 변경할 수 있었다.
+
+```sql
+# 잠금 메일함 조회
+select 
+  no as col_0_0_ 
+from 
+  mail_01.personal_mailbox personalma1_ 
+where 
+  personalma1_.basic_info_no = 1994 
+  and personalma1_.fk_user_info_no = 1 
+  and personalma1_.lockinfo_type in ('B', 'A');
+
+# 메일 리스트 조회
+select 
+  count(mail0_.no) as col_0_0_ 
+from 
+  mail_01.mail_content mail0_ 
+where 
+  mail0_.del_flag = 'N' 
+  and mail0_.basic_info_no = 1994 
+  and mail0_.fk_user_info_no = 1 
+  and mail0_.mbox_no not in (?);
+```
+
+적용 결과 아래의 변화가 있었다.
+
+**Number of Threads (users): 200**
+
+![img_22.png](img_22.png)
+
+- **TPS: 10.8 -> 107.7**
+- 평균 소요 시간 : 7.914s -> 2.147s
+- 90% 요청이 11.089s -> 3.176s 이내에 완료
+
+특이사항 :
+- [ ] CPU 증가
+- [ ] 메모리 증가
+- [ ] sentry 이슈 발생
+
+참고로 HTTP 트랜잭션 시간은 320ms -> 120ms 정도로 개선되었다!
 
 (사실 아래와 같이 SubQuery를 사용해도 되었다.)
 
@@ -356,24 +427,7 @@ AND personalma1_.lockinfo_type IN ('B','A')
 
 하지만 QueryDsl에서 Exists를 사용하기 어려울 뿐 아니라 유지보수 관점에서 쿼리를 분리하는 것이 낫다고 판단했다.
 
-적용 결과 아래의 변화가 있었다.
-
-**Number of Threads (users): 200**
-
-![img_22.png](img_22.png)
-
-- **TPS: 10.8 -> 107.7**
-- 평균 소요 시간 : 7.914s -> 2.147s
-- 90% 요청이 11.089s -> 3.176s 이내에 완료
-
-특이사항 :
-- [ ] CPU 증가
-- [ ] 메모리 증가
-- [ ] sentry 이슈 발생
-
-참고로 HTTP 트랜잭션 시간은 320ms -> 120ms 정도로 개선되었어요!
-
-## /mails with Params
+### /mails with Params
 
 /v2/mails?sort[received_date]=desc&with=approval_mail&with=receipt_confirm&with=encrypted
 
@@ -390,9 +444,9 @@ Number of Threads (users): 200
 - [ ] 메모리 증가
 - [ ] sentry 이슈 발생
 
-## /mails/:mailNo
+## 4-2. /mails/:mailNo
 
-#### 1. 예상대로 서비스 단위에서 Transaction이 열려서 DB 트랜잭션 안에서 스토리지에 저장하고 있었다.
+### 1. 예상대로 서비스 단위에서 Transaction이 열려서 DB 트랜잭션 안에서 스토리지에 저장하고 있었다.
 
 그래서 Service 단위의 트랜잭션을 제거했다. (Reader에서 트랜잭션을 가지고 있다.)
 
@@ -402,7 +456,7 @@ Number of Threads (users): 200
 
 TPS는 로컬 기준 1.7 -> 4.2 정도로 개선되었다.
 
-#### 2. BufferedInputStream 활용
+### 2. BufferedInputStream 활용
 
 ```java
 @Component
@@ -473,8 +527,7 @@ public class MailStreamBuffer {
 
 TPS는 로컬 기준 4.2 -> 10.1로 개선되었다.
 
-
-### dev는 여전히 터짐..
+### JVM 튜닝
 
 그래서 Local 환경에서 TPS 4.2 -> 10.1 인 것을 확인하고 dev에 반영했는데, dev에서는 해당 TPS가 나오지 않고 계속 서버가 터졌다.
 - Users를 30으로 해도, TPS를 3.0 정도 유지하다가 서버가 터짐
@@ -492,7 +545,7 @@ TPS는 로컬 기준 4.2 -> 10.1로 개선되었다.
 2. 메모리 누수가 발생한 경우
 3. 그냥 요구사항 및 특성에 따른 Heap Size가 모자란 경우
 
-## 1. Serial GC를 사용하는 점
+### 1. Serial GC를 사용하는 점
 
 로컬에서랑 다르게 부하 테스트 중인 Dev 서버의 경우 Serial GC를 사용하고 있었다. (다중 코어 프로세스가 아닌 경우에 해당한다. 1개 Pod는 단일 코어로 구성되어 있었다.)
 
@@ -506,7 +559,7 @@ GC를 위해 강제로 코어를 올리는 것은 권장되지 않는다. 대신
 참고
 - https://pretius.com/blog/jvm-kubernetes/
 
-## 2. Heap Size가 모자란 경우
+### 2. Heap Size가 모자란 경우
 
 일반적인 API Server의 경우 적당한 Heap Size가 1GB ~ 2GB 정도라고 한다.
 
@@ -520,7 +573,7 @@ GC를 위해 강제로 코어를 올리는 것은 권장되지 않는다. 대신
   
 스레드 5~10개에서 20MB 본문 조회 요청만 해도 OOM이 발생하면서 심각한 문제를 야기한다. 즉, 요구사항이나 본문을 조회하는 로직을 개선하기 전에는 HeapSize 512MB은 턱없이 부족했다.
 
-우선 GC 알고리즘은 내버려두기로 하고, HeapSize를 1GB로 늘리기로 했다.
+우선 GC 알고리즘은 내버려두기로 하고, **HeapSize를 1GB로 늘리기로 했다.**
 
 ![img_27.png](img_27.png)
 
@@ -540,7 +593,7 @@ GC를 위해 강제로 코어를 올리는 것은 권장되지 않는다. 대신
 - 단건 HTTP 트랜잭션 시간은 local, dev가 비슷한데, 부하 테스트때 TPS가 안나오는 거라서 CPU나 Disk I/O 리소스 문제인 것으로 추정.
 - 정확한 원인을 알게 되면 내용을 추가하자..!
 
-## 3. 메모리 누수가 발생한 경우
+### 3. 메모리 누수가 발생한 경우
 
 맨 처음에 메모리 누수를 어렴풋이 확인할 수 있었는데, dev쪽에서만 Heap OOM이 계속 터지는 상황이었고, 요청 하나를 처리하지도 못하는 상황까지도 이르렀다.
 
@@ -563,7 +616,7 @@ GC를 위해 강제로 코어를 올리는 것은 권장되지 않는다. 대신
 
 결과적으로 메모리 누수는 없었던 것 같다.
 
-### TPS 별 효과 없음..
+### 성능 누수 확인
 
 Heap을 향상 시켰고, 메모리 누수는 없었다. 그런데 dev 기준으로는 TPS가 드라마틱한 변화가 없었다. (1.7 -> 3.2) 
 
@@ -583,6 +636,8 @@ Heap을 향상 시켰고, 메모리 누수는 없었다. 그런데 dev 기준으
 ![img_51.png](img_51.png)
 
 팀에서 개발했던 라이브러리의 parser가 사용하지도 않을 첨부파일의 byte[]를 전부 읽어서 저장하고 있었다. 즉, MimeMessage는 헤더정도만 읽고, 데이터는 InputStream을 보관하던 것이 Custom하면서 전체 바이너리 데이터를 Heap에 올리고 있었던 것이다.
+
+### 성능 누수 해결
 
 첨부파일의 경우 별도의 end-point를 통해 다운로드 하기 때문에 바이너리 데이터가 필요가 없다.
 - 읽기와 발송 등을 모두 가능하게 하려다가 읽기의 성능을 고려하지 못한 것 같다.
@@ -613,19 +668,20 @@ create의 경우 javax.MimeMessage를 생성하는 부분이라서 우리가 제
 
 그래서 GET /mails/:mailNo의 경우 이 정도로 개선하기로 했다.
 
-## /mails/send
+## 4-3. /mails/send
 
 ![img_42.png](img_42.png)
 
-예상대로 부하 테스트 중 락이 쌓여 있었다. 그래서 문제가 되는 트리거를 비활성화 한 다음 다시 테스트를 돌려봤는데, 여전히 같은 현상이 발생했어요.
+예상대로 부하 테스트 중 락이 쌓여 있었다. 그래서 문제가 되는 트리거를 비활성화 한 다음 다시 테스트를 돌려봤는데, 여전히 같은 현상이 발생했다.
 - 데드락 관련 익셉션만 사라진 상황
 
 추가로 해당 쿼리는 트리거에서 단일 쿼리로 동작하기 때문에 데드락이 될 수 없었다. 그리고 일부 쿼리의 blocking_query가 출력되지 않았던 것이 의아했다.
 
-
 ![img_44.png](img_44.png)
 
-이후 HikariCP Log를 통해 특정 DB의 커넥션이 꽉차있고, 다른 DB에만 계속 조회가 쌓이고, 그 특정 DB에게 요청만 하지 못하고 대기하는 상황인 것을 발견했다.
+### HikariCP 데드락 (with. Nested Transaction)
+
+HikariCP Log를 통해 특정 DB의 커넥션이 꽉차있고, 다른 DB에만 계속 조회가 쌓이고, 그 특정 DB에게 요청만 하지 못하고 대기하는 상황인 것을 발견했다.
 
 ![img_43.png](img_43.png)
 
@@ -648,7 +704,7 @@ REQUIRES_NEW로 사용하게 된 이유가 메인 코드에서 수신 확인 태
 
 그래서 사실상 1번과 2번은 임시 방편에 불과했고, 나는 4번을 선택했다. 해당 로직을 비동기로 처리했다는 것은 아니다.
 
-### 해결 방법
+### Nested Transaction 제거
 
 그래서 해당 메서드의 propagation = REQUIRES_NEW를 제거하고, 발송을 비동기 발송으로 변경했다.
 
@@ -681,3 +737,22 @@ Number of Threads (users): 150
 - 평균 소요 시간: (측정 불가) -> 1.178s
 - 90% 요청이 (측정 불가) -> 1.683s 이내 완료
 - CP 데드락 해결
+
+# 5. 마무리
+
+이상으로 1차로 개발 완료 지점에서 TPS를 측정하고 개선한 내용이었다.
+
+다른 프로젝트들의 부하 테스트 이력을 보면서 살펴봤는데, POD 1개 환경(Cpu: 1000m, HeapSize: 500m)에서 대부분 단건 요청(findById)의 경우 200~1000 정도로 다양했다.
+
+이번 프로젝트는 크기가 컸지만, 다른 프로젝트에 비해 단건 요청의 경우 TPS는 나쁘지 않았던 것 같다.
+
+반면 Storage I/O에 소모되는 시간이 다른 프로젝트에 비해서는 정말 많이 개선이 되었지만, 여전히 아쉬운 부분이다.
+- Storage I/O가 꼭 필요하지 않을 때도 사용해야 하는 점과
+- Mount 기반의 Linux FileSystem을 사용하는 점도 앞으로의 프로젝트에서는 검토가 필요할 것 같다.
+
+그리고 부하 테스트를 하다 보면 기존의 레거시 프로젝트에서 병목이 너무 많이 발생하는 것 같았다.
+- 간단한 단건 요청에서 TPS가 100 나오는 API..가 많다.
+
+다른 프로젝트도 코드 개편이나, 시스템 구조 개선(캐싱 활용) 등으로 사용자 요청에도 수 초, 수십 초가 소요될 수 있는 것을 최대 1초 이내로 줄일 수 있었으면 좋겠다.
+
+끝. 👍👍
