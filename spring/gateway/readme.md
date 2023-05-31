@@ -1,4 +1,4 @@
-## API Gateway 이해하기!
+## API Gateway 가볍게 이해하기!
 
 현재 고객 서비스를 위해 도메인 별로 시스템을 만들어서 MSA 환경을 구축하고 있다.
 
@@ -45,10 +45,6 @@ AWS, Microsoft Azure, Google Cloud 등 클라우드 업체에서 제공하는 AP
 
 이처럼 Spring Cloud GateWay는 API Gateway 구성에 필요한 대부분의 기능을 제공한다.
 
-동작 방식은 아래와 같다.
-
-![img_1.png](img_1.png)
-
 - Gateway Handler - 요청과 경로에 대한 매칭 처리
 - Gateway Web Handler
   - Before 필터
@@ -61,6 +57,27 @@ AWS, Microsoft Azure, Google Cloud 등 클라우드 업체에서 제공하는 AP
 - Filter
   - 요청과 응답을 중간에 변경할 수 있다.
 
+동작 방식은 아래와 같다.
+
+![img_1.png](img_1.png)
+
+## BFF(Backend For Frontend) 패턴
+
+앞서 설명했듯 단일 API 게이트 웨이는 아래의 문제가 있다.
+- 단일 장애 포인트가 될 수 있음
+- 트래픽이 병목될 수 있고, 과도한 책임이 생길 수 있다.
+
+그래서 BFF 패턴(Backend For Frontend)을 활용할 수 있다.
+
+![img_2.png](img_2.png)
+
+API 게이트 웨이를 클라이언트에 맞춰서 전용 API 게이트 웨이를 제공하면 아래의 장점이 있다.
+- 확장, 변경, 배포가 용이하다.
+- 부하 분산
+- 신뢰성 향상
+- SPoF 제거
+
 ## 참고
 
 - https://cloud.spring.io/spring-cloud-static/spring-cloud-gateway/2.1.0.RELEASE/single/spring-cloud-gateway.html
+- https://dev.to/damikun/web-app-security-understanding-the-meaning-of-the-bff-pattern-i85
