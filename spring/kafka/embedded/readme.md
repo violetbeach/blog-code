@@ -438,7 +438,10 @@ public class EmbeddedKafkaContextCustomizerFactory implements ContextCustomizerF
 
 해당 코드는 OuterClass까지 모두 고려한 후, Inner Class를 우선해서 어노테이션을 서칭하고 적용한다.
 
-받아줄진 모르겠지만 Spring-Kafka 측에 PR을 날려봐야겠다.
+받아줄진 모르겠지만 Spring-Kafka 측에 PR을 보냈다.
+- https://github.com/spring-projects/spring-kafka/pull/2693
+
+결과를 기다려본다. 🙏
 
 ## 참고
 - https://github.com/spring-projects/spring-kafka
