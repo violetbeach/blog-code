@@ -62,7 +62,7 @@ java -jar xxx.jar를 사용해서 jar를 풀면 아래의 파일들이 존재한
 
 아래는 스프링부트가 만든 MANIFEST.MF이다.
 
-```java
+```
 Manifest-Version: 1.0
 Main-Class: org.springframework.boot.loader.JarLauncher
 Start-Class: hello.boot.BootApplication
@@ -78,11 +78,62 @@ Build-Jdk-Spec: 17
 
 #### 3. JarLauncher.main() 실행
 
-스프링 부트에서는 Jar 내부에 Jar을 감싸고, 그것을 인식을 가능케 한다. 그래서 Jar 안에 있는 우리가 만든 Jar 파일을 JarLauncher가 읽어온 다. 
+스프링 부트에서는 Jar 내부에 Jar을 감싸고, 그것을 인식을 가능케 한다. 스프링 부트에서 뭔가 실행을 해서 동작을 시켜야 하는데 그래서 우리가 개발한 앱을 Main을 바로 실행하면 Jar 안에 Jar가 있는 이런 구조를 읽을 수 없다.
 
-JarLauncher는 BOOT-INF에 있는 우리가 개발한 클래스와 리소스, 외부 라이브러리, 구조 정보 등을 읽어 들이고 `Start-Class`에 지정된 **main()**을 실행한다.
+그래서 일종의 Hook 역할을 하는 JarLauncher가 XXXMainApplication.main()을 대신 호출한다. 
+
+JarLauncher는 BOOT-INF에 있는 `classes`, `lib`에 있는 jar를 읽은 후 `Start-Class`에 지정된 **main()**을 실행한다.
 
 (IDE를 사용할 때는 JarLauncher를 사용하지 않는다. 실행 가능한 Jar가 아니라 IDE에서 필요한 라이브러리를 모두 인식할 수 있게 도와주기 때문)
+
+## 라이브러리 관리
+
+라이브러리를 관리할 때 각 라이브러리는 호환이 잘되는 라이브러리가 있고, 호환이 잘되는 버전이 있다는 것이다. 더 큰 문제는 호환이 잘 안되는 버전도 있다. 그래서 기존에는 라이브러리의 버전을 선택할 때 많은 시간이 소요되었다.
+
+```groovy
+dependencies {
+    implementation 'org.springframework:spring-webmvc:6.0.4'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-core:10.1.5'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.1' //스프링 부트 관련
+    implementation 'org.springframework.boot:spring-boot:3.0.2'
+    implementation 'org.springframework.boot:spring-boot-autoconfigure:3.0.2' //LOG 관련
+    implementation 'ch.qos.logback:logback-classic:1.4.5'
+    implementation 'org.apache.logging.log4j:log4j-to-slf4j:2.19.0'
+    implementation 'org.slf4j:jul-to-slf4j:2.0.6'
+    implementation 'org.yaml:snakeyaml:1.33'
+}
+```
+
+스프링 부트는 개발자가 라이브러리를 편리하게 사용할 수 있게 다양한 기능을 제공한다.
+- 외부 라이브러리 버전 관리
+- 스프링 부트 스타터를 제공을 해준다.
+
+의존성 관리 플러그인만 설치해주면 스프링 부트 버전에 맞는 라이브러리의 버전으로 관리해준다.
+
+```groovy
+plugins {
+    id 'org.springframework.boot' version '3.0.7'
+    id 'io.spring.dependency-management' version '1.1.0' // 추가
+}
+
+dependencies {
+  implementation 'org.springframework:spring-webmvc'
+  implementation 'org.apache.tomcat.embed:tomcat-embed-core'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'org.springframework.boot:spring-boot'
+  implementation 'org.springframework.boot:spring-boot-autoconfigure'
+  implementation 'ch.qos.logback:logback-classic'
+  implementation 'org.apache.logging.log4j:log4j-to-slf4j'
+  implementation 'org.slf4j:jul-to-slf4j'
+  implementation 'org.yaml:snakeyaml'
+}
+```
+
+내부적으로는 Gradle의 의존 관리 플러그인을 사용해서 SpringBoot의 bom 정보를 참고한다. 
+- https://jaehoney.tistory.com/345
+
+SpringBoot가 관리하는 외부 라이브러리 버전은 아래를 참고하면 된다. (private 하거나 대중적이지 않은 라이브러리 빼고는 왠만하면 있다.)
+- https://docs.spring.io/spring-boot/docs/current/reference/html/dependency-versions.html
 
 ## spring.factories
 
