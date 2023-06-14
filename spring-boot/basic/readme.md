@@ -132,8 +132,58 @@ dependencies {
 내부적으로는 Gradle의 의존 관리 플러그인을 사용해서 SpringBoot의 bom 정보를 참고한다. 
 - https://jaehoney.tistory.com/345
 
-SpringBoot가 관리하는 외부 라이브러리 버전은 아래를 참고하면 된다. (private 하거나 대중적이지 않은 라이브러리 빼고는 왠만하면 있다.)
+SpringBoot가 관리하는 외부 라이브러리 버전은 아래를 참고하면 된다. (private 라이브러리나 대중적이지 않은 라이브러리 빼고는 왠만하면 있다.)
 - https://docs.spring.io/spring-boot/docs/current/reference/html/dependency-versions.html
+
+## 스프링 부트 스타터
+
+버전은 의존성 관리 플러그인으로 편하게 관리가 되지만, 여전히 수 많은 라이브러리가 필요한 문제가 있다.
+
+웹 프로젝트를 하나 사용하려면 위와 같이 많은 라이브러리에 대한 의존성이 필요하다.
+
+```yaml
+implementation 'org.springframework.boot:spring-boot-starter-web'
+```
+
+이는 내부적으로 여러 라이브러리를 포함하고 있다.
+
+그래서 스프링 부트 스타터 하나만 의존성에 추가해주면 필요한 라이브러리를 전부 가져온다.
+
+## AutoConfiguration
+
+스프링 MVC의 문제 중 하나가 초기에 필요한 빈들을 수동으로 등록해줘야 한다는 것이다.
+
+스프링 부트는 자동 구성(Auto Configuration)이라고 하는 필요한 빈을 자동으로 등록해주는 기능을 제공한다.
+- 일반적으로는 spring-boot-starter 안에 있는 spring-boot-autoconfigure 라이브러리가 동작하게 된다.
+
+내부적으로는 아래의 클래스들이 있다.
+- JdbcTemplateAutoConfiguration
+- DataSourceAutoConfiguration
+- JacksonAutoConfiguration
+- HttpMessageConvertersAutoConfiguration
+- BatchAutoConfiguration
+- ...
+
+그 중 JdbcTemplateAutoConfiguration.class을 보자.
+
+```java
+@AutoConfiguration(after = DataSourceAutoConfiguration.class)
+@ConditionalOnClass({ DataSource.class, JdbcTemplate.class })
+@ConditionalOnSingleCandidate(DataSource.class)
+@EnableConfigurationProperties(JdbcProperties.class)
+@Import({ DatabaseInitializationDependencyConfigurer.class,
+        JdbcTemplateConfiguration.class,
+        NamedParameterJdbcTemplateConfiguration.class })
+public class JdbcTemplateAutoConfiguration {
+}
+```
+
+- `@AutoConfiguration`: 자동 구성을 사용하려면 이 애노테이션을 등록해야 한다.
+  - 애노테이션 내부에 `@Configuration`이 있어서 빈을 등록하는 자바 설정 파일로 사용할 수 있다.
+  - after = `XXXAutoConfiguration.class`
+    - 자동 구성이 실행되는 순서를 지정할 수 있다. `JdbcTemplate`은 `DataSource`가 필요하기 때문에 `DataSourceAutoConfiguration.class` 이후에 실행하도록 설정되어 있다.
+
+
 
 ## spring.factories
 
