@@ -1,6 +1,6 @@
 ## Spring-Boot의 동작 원리 이해하기!
 
-최근에 Spring-kafka와 같은 외부 라이브러리에 대해 관심이 많아졌고, 코드를 분석하는 과정에서 Spring-boot에 대해서 이해도가 많이 부족하다고 느꼈다.
+최근에 Spring-Kafka에 기여하게 되고, 사내에서 라이브러리름 많이 만들면서 공통 라이브러리에 대해 관심이 많아졌고, Spring-boot에 대해서 이해도가 많이 부족하다고 느꼈다.
 
 해당 포스팅에서는 SpringBoot의 동작 원리에 대해 간략히 다룬다.
 
@@ -182,8 +182,48 @@ public class JdbcTemplateAutoConfiguration {
   - 애노테이션 내부에 `@Configuration`이 있어서 빈을 등록하는 자바 설정 파일로 사용할 수 있다.
   - after = `XXXAutoConfiguration.class`
     - 자동 구성이 실행되는 순서를 지정할 수 있다. `JdbcTemplate`은 `DataSource`가 필요하기 때문에 `DataSourceAutoConfiguration.class` 이후에 실행하도록 설정되어 있다.
+- @ConditionalOnClass({ DataSource.class, JdbcTemplate.class )
+  - 해당 클래스들이 빈으로 등록된 경우에만 빈으로 등록된다.
+- @Import
+  - 스프링 컨테이너에 자바 설정을 추가할 때 사용한다.
 
+결과적으로 @Import에 포함된 DatabaseInitializationDependencyConfigurer.class, JdbcTemplateConfiguration.class,
+NamedParameterJdbcTemplateConfiguration.class가 빈으로 구성된다.
 
+## @Conditional
+
+이 기능은 스프링 부트의 자동 구성 및 라이브러리 등에서 자주 사용된다.
+- 특정 조건이 만족하는 지 여부를 구분하는 애노테이션이다.
+
+예를 들어 `@ConditionalOnBean` 애노테이션을 까보면 아래와 같다.
+
+```java
+@Target({ ElementType.TYPE, ElementType.METHOD })
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Conditional(OnBeanCondition.class)
+public @interface ConditionalOnBean {
+    // 생략
+}
+```
+
+여기서 `OnBeanCondition.class` 는 `Condition` 인터페이스를 구현하고 있다.
+
+```java
+package org.springframework.context.annotation;
+
+public interface Condition {
+    boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata);
+}
+```
+
+해당 인터페이스는 `matchs()` 메서드가 `true`를 반환하면 조건에 만족해서 동작하고, `false`를 반환하면 동작하지 않는다.
+- ConditionContext: 스프링 컨테이너, 환경 정보를 담고 있다.
+- AnnotatedTypeMetadata: 애노테이션 메타 정보를 담고 있다.
+
+`@Condtiional` 애노테이션이 붙어 있으면 스프링이 로드될 때 `ConditionEvaluator`를 사용해서 Condition 여부를 체크하고 true일 경우 빈으로 등록한다.
+
+사실 다 아는 내용이지만 개발에 필요한 대부분의 `ConditionalOnXXX` 메서드를 스프링이 제공하고 있다.
 
 ## spring.factories
 
