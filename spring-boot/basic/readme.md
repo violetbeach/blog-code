@@ -225,6 +225,79 @@ public interface Condition {
 
 사실 다 아는 내용이지만 개발에 필요한 대부분의 `ConditionalOnXXX` 메서드를 스프링이 제공하고 있다.
 
+## 라이브러리
+
+기본적으로 의존성의 경우 컴파일 과정에서 jar 형태로 가져와서 사용한다.
+
+```java
+implementation files('libs/module.jar')
+```
+
+가령, 위와 같이 특정 모듈의 jar를 프로젝트에 포함할 수 있고, 필요 시 maven과 같은 저장소를 활용할 수도 있다.
+
+라이브러리를 사용할 때 문제는 README.md, GUIDE.md 등에 사용 방법을 명확하게 명시해줘야 한다.
+- ...Config를 컴포넌트로 스캔해줘야 하고
+- ...빈을 등록해줘야 하고
+- ...
+
+이런 처리를 모두 사용측에서 하기는 귀찮다. 그래서 그냥 라이브러리에서 대부분의 처리를 대신 해줄 수 있는 방법이 있다. 위에서 언급한 스프링 부트 **자동 구성(AutoConfiguration)**이다.
+
+### AutoConfiguration
+
+라이브러리를 제공하는 사람이 코드 1줄을 쓰면 가져다 쓰는 사람 100만명의 1줄을 아낄 수 있다. 
+
+프로젝트에 라이브러리를 추가하기만 하면 모든 구성이 자동으로 처리되도록 구성해보자.
+
+```java
+// @Configuration 삭제
+@AutoConfiguration
+@ConditionalOnProperty(name = "memory", havingValue = "on")
+public class MemoryAutoConfig {
+    
+    @Bean
+    public MemoryController memoryController() {
+        return new MemoryController(memoryFinder());
+    }
+    @Bean
+    public MemoryFinder memoryFinder() {
+        return new MemoryFinder();
+    }
+    
+}
+```
+
+`@Configuration`을 `@AutoConfiguration`으로 교체했다. 그리고 환경에 따라 해당 기능을 켜고 끌 수 있게 하기 위해서 `ConditionalOnProperty`를 추가했다.
+
+### 자동 구성 대상 지정
+
+이대로 프로젝트를 빌드해도 해당 @AutoConfiguration이 등록되지 않는다. 대상을 지정해야 한다.
+
+아래 파일을 생성한다.
+
+```
+src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+```
+
+해당 파일에는 아래의 내용을 추가한다.
+```
+memory.MemoryAutoConfig
+```
+
+이제 해당 모듈을 Import하면 해당 파일을 읽어서 AutoConfiguration이 자동으로 등록된다.
+
+### spring.factories
+
+라이브러리를 개발하면서 많이 본 파일이 있다. `spring.factories`이다. 해당 파일은 `org.springframework.boot.autoconfigure.AutoConfiguration.imports
+`와 뭐가 다를까?
+
+
+
+
+
+
+
+
+
 ## spring.factories
 
 ## 참고
