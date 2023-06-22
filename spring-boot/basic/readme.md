@@ -1,4 +1,4 @@
-## Spring-Boot의 동작 원리 이해하기!
+## Spring-Boot의 동작원리 이해하기 (+ 자동구성, 라이브러리 잘 사용하기!)
 
 최근에 Spring-Kafka에 기여하게 되고, 사내에서 라이브러리름 많이 만들면서 공통 라이브러리에 대해 관심이 많아졌고, Spring-boot에 대해서 이해도가 많이 부족하다고 느꼈다.
 
@@ -275,7 +275,7 @@ public class MemoryAutoConfig {
 아래 파일을 생성한다.
 
 ```
-src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
 ```
 
 해당 파일에는 아래의 내용을 추가한다.
@@ -287,18 +287,88 @@ memory.MemoryAutoConfig
 
 ### spring.factories
 
-라이브러리를 개발하면서 많이 본 파일이 있다. `spring.factories`이다. 해당 파일은 `org.springframework.boot.autoconfigure.AutoConfiguration.imports
-`와 뭐가 다를까?
+자동 구성을 구성하는 두 가지 주요 방법 중 `spring.factories`를 활용하는 방법도 있다.
 
+해당 파일을 활용하면 `@Configuration`을 그대로 사용할 수 있다.
 
+`resources/META-INF/spring.factories`에
 
+```
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  memory.MemoryAutoConfiguration
+```
 
+그러면 앱이 실행될 때 EnableAutoConfiguration 목록에 MemoryAutoConfiguration이 추가된다.
 
+### 차이
 
+일반적으로 외부 라이브러리에서 제공하는 구성을 사용하거나, 애플리케이션에서 커스텀한 구성을 정의할 때 `spring.factories`를 사용한다.
 
+그리고 내부 라이브러리에서 제공하는 구성을 확장하거나, 특정 모듈의 자동 구성을 정의할 때는 `org.springframework.boot.autoconfigure.AutoConfiguration.imports` 를 주로 사용한다고 한다.
 
+추가로 spring.factories의 경우 Configuration을 등록하는 것 이외에도 아래와 같이 다양한 것을 할 수 있다.
 
-## spring.factories
+```java
+# ApplicationContext Initializers
+org.springframework.context.ApplicationContextInitializer=\
+org.springframework.boot.autoconfigure.SharedMetadataReaderFactoryContextInitializer,\
+org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener
+
+# Application Listeners
+org.springframework.context.ApplicationListener=\
+org.springframework.boot.autoconfigure.BackgroundPreinitializer
+
+# Environment Post Processors
+org.springframework.boot.env.EnvironmentPostProcessor=\
+org.springframework.boot.autoconfigure.integration.IntegrationPropertiesEnvironmentPostProcessor
+
+# Auto Configuration Import Listeners
+org.springframework.boot.autoconfigure.AutoConfigurationImportListener=\
+org.springframework.boot.autoconfigure.condition.ConditionEvaluationReportAutoConfigurationImportListener
+
+# Auto Configuration Import Filters
+org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=\
+org.springframework.boot.autoconfigure.condition.OnBeanCondition,\
+org.springframework.boot.autoconfigure.condition.OnClassCondition,\
+org.springframework.boot.autoconfigure.condition.OnWebApplicationCondition
+
+# Failure Analyzers
+org.springframework.boot.diagnostics.FailureAnalyzer=\
+org.springframework.boot.autoconfigure.data.redis.RedisUrlSyntaxFailureAnalyzer,\
+org.springframework.boot.autoconfigure.diagnostics.analyzer.NoSuchBeanDefinitionFailureAnalyzer,\
+org.springframework.boot.autoconfigure.flyway.FlywayMigrationScriptMissingFailureAnalyzer,\
+org.springframework.boot.autoconfigure.jdbc.DataSourceBeanCreationFailureAnalyzer,\
+org.springframework.boot.autoconfigure.jdbc.HikariDriverConfigurationFailureAnalyzer,\
+org.springframework.boot.autoconfigure.jooq.NoDslContextBeanFailureAnalyzer,\
+org.springframework.boot.autoconfigure.r2dbc.ConnectionFactoryBeanCreationFailureAnalyzer,\
+org.springframework.boot.autoconfigure.r2dbc.MissingR2dbcPoolDependencyFailureAnalyzer,\
+org.springframework.boot.autoconfigure.r2dbc.MultipleConnectionPoolConfigurationsFailureAnalyzer,\
+org.springframework.boot.autoconfigure.r2dbc.NoConnectionFactoryBeanFailureAnalyzer
+
+# Template Availability Providers
+org.springframework.boot.autoconfigure.template.TemplateAvailabilityProvider=\
+org.springframework.boot.autoconfigure.freemarker.FreeMarkerTemplateAvailabilityProvider,\
+org.springframework.boot.autoconfigure.mustache.MustacheTemplateAvailabilityProvider,\
+org.springframework.boot.autoconfigure.groovy.template.GroovyTemplateAvailabilityProvider,\
+org.springframework.boot.autoconfigure.thymeleaf.ThymeleafTemplateAvailabilityProvider,\
+org.springframework.boot.autoconfigure.web.servlet.JspTemplateAvailabilityProvider
+
+# DataSource Initializer Detectors
+org.springframework.boot.sql.init.dependency.DatabaseInitializerDetector=\
+org.springframework.boot.autoconfigure.flyway.FlywayMigrationInitializerDatabaseInitializerDetector
+
+# Depends on Database Initialization Detectors
+org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitializationDetector=\
+org.springframework.boot.autoconfigure.batch.JobRepositoryDependsOnDatabaseInitializationDetector,\
+org.springframework.boot.autoconfigure.quartz.SchedulerDependsOnDatabaseInitializationDetector,\
+org.springframework.boot.autoconfigure.session.JdbcIndexedSessionRepositoryDependsOnDatabaseInitializationDetector
+```
+
+그래서 SpringBoot 프로젝트의 내부를 보면 AutoConfiguration의 경우 `org.springframework.boot.autoconfigure.AutoConfiguration.imports`로 등록하고, Provider 등과 같은 경우 `spring.factories`를 활용하고 있다.
+
+- https://github.com/spring-projects/spring-boot/blob/main/spring-boot-project/spring-boot-autoconfigure/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+- https://github.com/spring-projects/spring-boot/blob/main/spring-boot-project/spring-boot-autoconfigure/src/main/resources/META-INF/spring.factories
 
 ## 참고
 - 김영한님 스프링부트 핵심 원리와 활용: https://inf.run/LXBX
+- https://javacan.tistory.com/entry/spring-boot-auto-configuration
