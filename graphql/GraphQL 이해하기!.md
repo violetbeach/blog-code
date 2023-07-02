@@ -1,5 +1,3 @@
-## GraphQL 이해하기!
-
 GraphQL 이란 2012년 페이스북의 클라이언트 데이터 전송 방식 개선 목적으로 시작되었다.
 
 GraphQL이란 클라이언트와 서버의 통신 **명세**이다. (REST와 마찬가지로 실체는 없다.)
@@ -33,11 +31,13 @@ GraphQL과 REST API의 차이를 알아보자.
 
 클라이언트 측은 사용자의 이름을 다음과 같이 질의할 수 있다.
 
-- request: `{ hero { name }}`, response: `{ "hero": { "name": "Luke Skywalker" }}`
+- request:`{ hero { name } }`
+- response: `{ "hero": { "name": "Luke Skywalker" } }`
 
 이때 이름 뿐만 아니라 키와 머리색도 질의하고 싶다면 다음과 같이 질의할 수 있다.
 
-- request: `{ hero { name height hairColors }}`, response: `{ "hero": { "name": "Luke Skywalker", "height": 1.72, "hairColors": ["black", "brown"] }}`
+- request: `{ hero { name height hairColors } }`
+- response: `{ "hero": { "name": "Luke Skywalker", "height": 1.72, "hairColors": ["black", "brown"] } }`
 
 즉, 클라이언트에서 필요한 필드를 주도적으로 조회할 수 있게 된다.
 
@@ -102,7 +102,7 @@ Query는 조회, 질의를 할 때 사용한다.
 
 스키마에 아래와 같이 쿼리 타입을 정의할 수 있다.
 
-```graphql
+```bash
 type Query {
     shows: [Show]
 }
@@ -119,7 +119,7 @@ type Show {
 
 Mutation은 생성, 수정, 삭제 시 사용한다.
 
-```graphql
+```bash
 type Mutation {
     addRating(title: String, stars: Int):Rating 
 }
@@ -135,7 +135,7 @@ Query와 마찬가지로 응답이 Value에 해당한다.
 
 Subscription은 클라이언트 측에서 서버의 이벤트를 구독하고 처리할 때 사용한다.
 
-```graphql
+```bash
 type Subscription {
     commentAdded(postId: ID!):Comment 
 }
@@ -155,7 +155,8 @@ GraphQL은 아래 타입을 지원합니다.
 - Fragment
 
 아래는 Custom Scalar의 경우 아래와 같이 표현할 수 있다.
-```
+
+```bash
 type Query {
     products(page: Int, size: Int): [Product]
 }
@@ -191,7 +192,7 @@ BigDecimal과 DateTime과 같은 커스텀 스칼라를 선언하고, 타입으�
 
 필드(파라미터, 응답 값)를 표현할 때는 크게 보면 두 가지만 알면 된다.
 - null 규칙을 `!`로 표현한다.
-- 배열을 표현할 때는 `[]`를 사용한다.
+- 배열을 표현할 때는 []를 사용한다.
 
 null 규칙의 경우 아래를 참고하자.
 
@@ -203,7 +204,7 @@ null 규칙의 경우 아래를 참고하자.
 
 예를 들어 Product 질의 시 id에 null을 넣을 수 있고, null이 반환될 수도 있으면 아래와 같이 작성한다.
 
-```graphql
+```bash
 type Query {
     Product(id: ID!): Product!    
 }
@@ -213,7 +214,7 @@ type Query {
 
 기본 값의 경우 아래와 같이 표현할 수 있다.
 
-```graphql
+```bash
 type Query {
     products(pages: Int=1 size: Int=10): [Product!]!
 }
