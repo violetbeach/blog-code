@@ -1,4 +1,4 @@
-Pinpoint는 Naver에서 2015년에 오픈소스로 공개한 APM 도구이다.
+Pinpoint는 Naver에서 2015년에 오픈소스로 공개한 **APM 도구**이다.
 
 분산 환경에서 JVM 언어 기반으로 작성된 서버에서 많이 사용한다.
 
@@ -6,7 +6,7 @@ Pinpoint는 Naver에서 2015년에 오픈소스로 공개한 APM 도구이다.
 
 APM이란 Application Performance Management / Application Performance Monitoring의 약자이다.
 
-즉, 애플리케이션의 성능을 관리/모니터링 한다고 보면 된다.
+즉, **애플리케이션의 성능을 관리/모니터링** 한다고 보면 된다.
 
 APM 도구를 사용하면 서버에서 발생하는 메트릭(CPU, Memory, Thread, Transaction, ...), 이벤트, 로그, 트랜잭션 등을 모니터링할 수 있다.
 
@@ -22,7 +22,7 @@ APM 도구를 사용하면 서버에서 발생하는 메트릭(CPU, Memory, Thre
 
 Prometheus와 Pinpoint는 모두 APM(성능 모니터링) 도구이다.
 
-### 추적
+### 1. 추적
 
 Prometheus는 서버의 각 지표(metric)을 활용해서 JVM Memory, 초당 트랜잭션 발생 수, Redis 사용률, Thread 상황 등 자원 상태를 파악하기 좋다.
 
@@ -32,13 +32,13 @@ Pinpoint는 트레이싱(tracing)을 통해 요청을 추적할 수 있고, 어�
 
 쉽게 말하면 숲을 보기에는 Prometheus + Grafana가 편리하고, 나무를 보기에는 Pinpoint가 유리하다고 할 수 있다.
 
-### 데이터 저장 및 질의
+### 2. 데이터 저장 및 질의
 
 Prometheus는 내장된 시계열 데이터에 수집한 데이터를 저장하고, PromQL이라는 DSL을 사용해서 질의할 수 있다.
 
 Pinpoint에서는 Elasticsearch와 HBase와 같은 분산 데이터베이스에 데이터를 저장할 수 있고, Kibana를 통해 저장된 데이터를 검색하고 시각화할 수 있다.
 
-### 확장성
+### 3. 확장성
 
 두 APM 도구는 데이터 수집 방식에 따른 확장성 차이가 있다.
 
@@ -48,7 +48,7 @@ Pinpoint는 확장성을 제공하는 데 중점을 두었고, 수집된 데이�
 
 ## Pinpoint의 Architecture
 
-![img_5.png](img_5.png)
+![img_5.png](././img_5.png)
 
 - Pinpoint Agent - 애플리케잇녀의 성능 관련 지표 수집 및 전달
 - Pinpoint Collector - Agent에서 ㅂ다은 정보를 HBase에 적재
@@ -71,7 +71,7 @@ Pinpoint는 아래의 특징을 가진다.
 
 ServerMap 지표를 활용하면 서버의 전체적인 시스템 아키텍처와, 각 End-point에 대한 요청 비율 등을 쉽게 파악할 수 있다.
 
-![img.png](img.png)
+![img.png](./img.png)
 
 - 분산 시스템의 연결된 상황과 트랜잭션을 시각화
 - 각 요청의 성공, 실패 지표 제공
@@ -85,7 +85,7 @@ ServerMap 지표를 활용하면 서버의 전체적인 시스템 아키텍처�
 
 CallStack은 모든 트랜잭션에 대한 코드 수준의 가시성 정보를 제공한다.
 
-![img_1.png](img_1.png)
+![img_1.png](./img_1.png)
 
 - 코드 수준의 병목 지점이나 장애 지점을 식별할 수 있다.
 
@@ -95,7 +95,7 @@ CallStack은 모든 트랜잭션에 대한 코드 수준의 가시성 정보를 
 
 Inspector는 애플리케이션에 대한 상세 정보를 제공한다.
 
-![img_2.png](img_2.png)
+![img_2.png](./img_2.png)
 
 - CPU 사용률
 - Memory
@@ -140,21 +140,21 @@ profiler:
 
 에러 상황을 가정해보자.
 
-![img_6.png](img_6.png)
+![img_6.png](./img_6.png)
 
 에러가 캐치될 때마다 ServerMap에 빨간 점이 하나 생긴다.
 
 해당 부분을 드래그하면 상세 조회를 할 수 있다.
 
-![img_7.png](img_7.png)
+![img_7.png](./img_7.png)
 
 선택한 트랜잭션의 Call Tree에서 각 지점의 소요 시간과 클래스 정보, 발생한 예외에 대한 상세 정보를 확인할 수 있다.
 
-![img_3.png](img_3.png)
+![img_3.png](./img_3.png)
 
 더 트리를 타고 내려가면 실행된 쿼리에 대해서도 확인할 수 있다.
 
-![img_8.png](img_8.png)
+![img_8.png](./img_8.png)
 
 ReadTimeOut 같은 문제가 발생한다면 Timeline을 활용해서 정확한 병목지점이 쿼리 실행 부분이 맞는 지 확인할 수 있다.
 
