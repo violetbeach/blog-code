@@ -29,7 +29,7 @@ Ngrinder보다 Apache JMeter로 테스트를 구성하는 게 나한테 쉬웠�
 
 Rancher에서는 아래의 정보를 준다.
 
-![img_52.png](img_52.png)
+![img/img_52.png](img/img_52.png)
 
 Rancher에서 메모리가 나오지만, 누수가 발생하는 지나 Heap과 MetaSpace 영역이 각각 어떻게 되는지, GC는 얼마나 자주 실행되는 지 등을 파악하기 어렵다.
 
@@ -42,8 +42,8 @@ Rancher에서 메모리가 나오지만, 누수가 발생하는 지나 Heap과 M
 - GET /v2/office/:officeNo/receipt-confirm/:certKey/email/:email
 - POST /v2/mails/send
 
-![img_11.png](img_11.png)
-![img_12.png](img_12.png)
+![img/img_11.png](img/img_11.png)
+![img/img_12.png](img/img_12.png)
 
 일반적으로 메모리는 아래와 같이 구성된다고 할 수 있다.
 - (Heap Space) G1 Eden Space + G1 Old Gen + G1 Survivor Space
@@ -51,7 +51,7 @@ Rancher에서 메모리가 나오지만, 누수가 발생하는 지나 Heap과 M
 
 ## G1 Eden Space
 
-![img_15.png](img_15.png)
+![img/img_15.png](img/img_15.png)
 
 Eden의 경우 GC가 일어나는 시점에 공간이 10MB 이하로 줄기 때문에 누수는 아닐 것 같다.
 
@@ -59,13 +59,13 @@ Eden의 경우 GC가 일어나는 시점에 공간이 10MB 이하로 줄기 때�
 
 ## G1 Survivor Space
 
-![img_17.png](img_17.png)
+![img/img_17.png](img/img_17.png)
 
 Survivor Space의 경우 용량을 크게 차지하지 않고, 잘 정리가 되는 것으로 판단된다.
 
 ## G1 Old Gen
 
-![](img_16.png)
+![](img/img_16.png)
 
 서버를 오랜시간 지속시킬 수록 OldGen이 차고 있다가 일정 수준을 유지한다.
 
@@ -75,7 +75,7 @@ OldGen의 경우 GC가 발생해도 데이터가 많이 정리되지 않아서, 
 
 ## Metaspace
 
-![img_18.png](img_18.png)
+![img/img_18.png](img/img_18.png)
 
 Metaspace의 경우 메모리가 눈에 띄게 쌓이지 않고 일정했다.
 
@@ -119,7 +119,7 @@ Number of Threads (users): 550
 
 Number of Threads (users): 100
 
-![img_2.png](img_2.png)
+![img/img_2.png](img/img_2.png)
 
 - TPS: 12.0
 - 평균 소요 시간 : 7.376s
@@ -138,7 +138,7 @@ Number of Threads (users): 100
 
 **1차: Number of Threads (users): 100**
 
-![img_14.png](img_14.png)
+![img/img_14.png](img/img_14.png)
 
 - **TPS: 10.8**
 - 평균 소요 시간 : 7.914s
@@ -157,7 +157,7 @@ Number of Threads (users): 100
 
 Number of Threads (users): 600
 
-![img_3.png](img_3.png)
+![img/img_3.png](img/img_3.png)
 
 - TPS: 947.3
 - 평균 소요 시간 : 595ms
@@ -176,7 +176,7 @@ Number of Threads (users): 600
 
 Number of Threads (users): 600
 
-![img_6.png](img_6.png)
+![img/img_6.png](img/img_6.png)
 
 - TPS: 139.4
 - 평균 소요 시간 : 3.692s
@@ -211,7 +211,7 @@ Number of Threads (users): 600
 
 3차 - Number of Threads (users): 30
 
-![img_7.png](img_7.png)
+![img/img_7.png](img/img_7.png)
 
 - TPS: 1.7
 - 평균 소요 시간: 14.820s
@@ -219,7 +219,7 @@ Number of Threads (users): 600
 
 4차 - Number of Threads (users): 80
 
-![img_8.png](img_8.png)
+![img/img_8.png](img/img_8.png)
 
 - TPS: 1.7
 - 평균 소요 시간: 30s
@@ -240,7 +240,7 @@ Number of Threads (users): 600
 
 Number of Threads (users): 600
 
-![img_4.png](img_4.png)
+![img/img_4.png](img/img_4.png)
 
 - TPS: 936.7
 - 평균 소요 시간 : 603ms
@@ -277,19 +277,19 @@ Number of Threads (users): 50
 }
 ```
 
-![img_34.png](img_34.png)
+![img/img_34.png](img/img_34.png)
 
 발송 부하테스트 시 위와 같이 10개 ~ 30 개 정도 요청까지 TPS 16으로 실행된 이후, Deadlock이 걸린 것처럼 요청에 대한 응답이 돌아오지 않는 현상이 발생한다.
 
 조금 더 기다리면 아래 처럼 모조리 실패하는 것을 볼 수 있었다.
 
-![img_40.png](img_40.png)
+![img/img_40.png](img/img_40.png)
 
-![img_41.png](img_41.png)
+![img/img_41.png](img/img_41.png)
 
 - TPS / 평균 소요 시간 / 90% Line :  (정상 측정 불가)
 
-![](img_10.png)
+![](img/img_10.png)
 
 데드락을 피하고자 수신 확인 태그 저장 옵션을 끄면 아래와 같이 측정된다.
 
@@ -396,7 +396,7 @@ where
 
 **Number of Threads (users): 200**
 
-![img_22.png](img_22.png)
+![img/img_22.png](img/img_22.png)
 
 - **TPS: 10.8 -> 107.7**
 - 평균 소요 시간 : 7.914s -> 2.147s
@@ -433,7 +433,7 @@ AND personalma1_.lockinfo_type IN ('B','A')
 
 Number of Threads (users): 200
 
-![img_20.png](img_20.png)
+![img/img_20.png](img/img_20.png)
 
 - **TPS: 10.8 -> 84.1**
 - 평균 소요 시간 : 7.914s -> 2.220s
@@ -536,7 +536,7 @@ TPS는 로컬 기준 4.2 -> 10.1로 개선되었다.
 
 정확한 원인을 찾기 위해 그라파나를 dev와 동일한 환경인 feature에 붙여서 확인했다.
 
-![img_21.png](img_21.png)
+![img/img_21.png](img/img_21.png)
 
 결과 Eden, Survivor, Old Gen 모두 가득차서 더이상 Heap에 공간이 없는 사태가 존재한다.
 
@@ -577,11 +577,11 @@ GC를 위해 강제로 코어를 올리는 것은 권장되지 않는다. 대신
 
 우선 GC 알고리즘은 내버려두기로 하고, **HeapSize를 1GB로 늘리기로 했다.**
 
-![img_27.png](img_27.png)
+![img/img_27.png](img/img_27.png)
 
 그 결과 Number of Threads (users)가 10일때도 OOM이 계속 터지던 것이 30으로 해도 꽤 안정적으로 돌아간다.
 
-![img_24.png](img_24.png)
+![img/img_24.png](img/img_24.png)
 
 - TPS: 1.7 -> 3.2
 - 평균 소요 시간: 14.820s -> 9s
@@ -607,7 +607,7 @@ GC를 위해 강제로 코어를 올리는 것은 권장되지 않는다. 대신
 
 해당 부분은 동료 분의 의견을 듣고 오전에는 부하를 계속 보내고 있다가 메모리가 빠지는 지를 우선 체크하기로 했다.
 
-![img_29.png](img_29.png)
+![img/img_29.png](img/img_29.png)
 
 3시간 가량 동안 JMeter로 요청을 보냈으나 MajorGC에서 Heap 사이즈는 매번 비슷한 수준으로 잘 빠졌다.
 
@@ -615,7 +615,7 @@ GC를 위해 강제로 코어를 올리는 것은 권장되지 않는다. 대신
 
 아래는 요청을 중지한 후 1분 정도 경과했을 때의 메모리 사용량이다.
 
-![img_30.png](img_30.png)
+![img/img_30.png](img/img_30.png)
 
 결과적으로 메모리 누수는 없었던 것 같다.
 
@@ -625,18 +625,18 @@ Heap을 향상 시켰고, 메모리 누수는 없었다. 그런데 dev 기준으
 
 그래서 로직 중 가장 병목이 심한 곳이 어디인지 체크해봤다.
 
-![img_31.png](img_31.png)
+![img/img_31.png](img/img_31.png)
 
 그 결과 병목이 발생하는 구간은 MimeMessage를 읽어서 POJO(Response)로 변환하는 parse 메서드에서 가장 심하다는 것을 알 수 있었다.
 - (위 캡쳐는 TPS로 부하테스트 중에 PostMan으로 별도로 요청을 보낸 것이다. 일반적인 환경에서는 58ms, 320ms 정도가 나온다.)
 
 그리고 parse 과정 중에 가장 부하가 큰 부분은 아래 부분이다.
 
-![img_32.png](img_32.png)
+![img/img_32.png](img/img_32.png)
 
 해당 메서드를 계속 타고 내려간 끝에 아래의 부분에서 막대한 처리 시간이 필요하다는 것을 알게 되었다!
 
-![img_51.png](img_51.png)
+![img/img_51.png](img/img_51.png)
 
 팀에서 개발했던 라이브러리의 parser가 사용하지도 않을 첨부파일의 byte[]를 전부 읽어서 저장하고 있었다. 즉, MimeMessage는 헤더정도만 읽고, 데이터는 InputStream을 보관하던 것이 Custom하면서 전체 바이너리 데이터를 Heap에 올리고 있었던 것이다.
 
@@ -645,11 +645,11 @@ Heap을 향상 시켰고, 메모리 누수는 없었다. 그런데 dev 기준으
 첨부파일의 경우 별도의 end-point를 통해 다운로드 하기 때문에 바이너리 데이터가 필요가 없다.
 - 읽기와 발송 등을 모두 가능하게 하려다가 읽기의 성능을 고려하지 못한 것 같다.
 
-![img_39.png](img_39.png)
+![img/img_39.png](img/img_39.png)
 
 그래서 위와 같이 InputStream을 내장하고 Byte[]를 읽지 않아도 되도록 변경했다.
 
-![img_36.png](img_36.png)
+![img/img_36.png](img/img_36.png)
 
 변경 이후에는 TPS가 눈에띄게 상승했다.
 
@@ -659,13 +659,13 @@ Number of Threads (users): 70
 - 평균 소요 시간: 14.820s -> 3.003s
 - 90% 요청이 21.247s -> 5.523s 이내 완료
 
-![img_35.png](img_35.png)
+![img/img_35.png](img/img_35.png)
 
 더 개선할 수는 없을까? 고민하면서 부하 상황에서 디버깅 해봤는데, 전체 트랜잭션 8.71s 중에 대부분인 5.4s를 create에 사용하고 있었고,
 
-![img_37.png](img_37.png)
+![img/img_37.png](img/img_37.png)
 
-![img_38.png](img_38.png)
+![img/img_38.png](img/img_38.png)
 
 create의 경우 javax.MimeMessage를 생성하는 부분이라서 우리가 제어할 수 있는 부분이 아니었다.
 
@@ -673,20 +673,20 @@ create의 경우 javax.MimeMessage를 생성하는 부분이라서 우리가 제
 
 ## 4-3. /mails/send
 
-![img_42.png](img_42.png)
+![img/img_42.png](img/img_42.png)
 
 예상대로 부하 테스트 중 락이 쌓여 있었다. 그래서 문제가 되는 트리거를 비활성화 한 다음 다시 테스트를 돌려봤는데, 여전히 같은 현상이 발생했다.
 - 데드락 관련 익셉션만 사라진 상황
 
 추가로 해당 쿼리는 트리거에서 단일 쿼리로 동작하기 때문에 데드락이 될 수 없었다. 그리고 일부 쿼리의 blocking_query가 출력되지 않았던 것이 의아했다.
 
-![img_44.png](img_44.png)
+![img/img_44.png](img/img_44.png)
 
 ### HikariCP 데드락 (with. Nested Transaction)
 
 HikariCP Log를 통해 특정 DB의 커넥션이 꽉차있고, 다른 DB에만 계속 조회가 쌓이고, 그 특정 DB에게 요청만 하지 못하고 대기하는 상황인 것을 발견했다.
 
-![img_43.png](img_43.png)
+![img/img_43.png](img/img_43.png)
 
 그래서 Rancher를 뒤져서 쿼리 로그를 따라 가고 보니깐 위 쿼리 이전에서 병목이 걸려있었다. 메인 트랜잭션이랑 무관하게 반드시 필요한 처리여서 고립 수준을 REQUIRES_NEW로 해서 새로운 커넥션으로 DB에 커밋까지 하는 코드였다.
 
@@ -711,7 +711,7 @@ REQUIRES_NEW로 사용하게 된 이유가 메인 코드에서 수신 확인 태
 
 그래서 해당 메서드의 propagation = REQUIRES_NEW를 제거하고, 발송을 비동기 발송으로 변경했다.
 
-![img_46.png](img_46.png)
+![img/img_46.png](img/img_46.png)
 
 그게 가능했던 이유는 원래 Exception을 던지지 않고, 발송에서 Exception이 터져도 catch해서 무조건 커밋을 하고 있었다.
 
@@ -720,13 +720,13 @@ REQUIRES_NEW로 사용하게 된 이유가 메인 코드에서 수신 확인 태
 한 가지 걱정되는 것은 발송 서버의 프로세스가 돌아가는 시점에 DB에 커밋이 되어 있는 것을 보장할 수 있느냐는 것이다.
 - 이에 대해서는 메인 트랜잭션에서 DB에 INSERT 하면서 락을 획득했고, 발송 서버에서는 이를 기다려야 데이터를 수정할 수 있기 때문에 순서가 보장된다고 판단했다.
 
-![img_47.png](img_47.png)
+![img/img_47.png](img/img_47.png)
 
 그래서 위와 같이 수정할 수 있었고, 성능도 많이 향상되었다. 발송 서버가 병목 지점 중 하나였다.
 
 Number of Threads (users): 150
 
-![img_50.png](img_50.png)
+![img/img_50.png](img/img_50.png)
 
 아래에서 기준 값은 수신확인 태그 옵션을 false로 한 채로 발송했을 때이다. (데드락 발생 안하는 경우)
 - TPS: 12.7 -> 85.7
@@ -735,7 +735,7 @@ Number of Threads (users): 150
 
 아래는 수신확인 태그 옵션을 true로 발송했을 때이다.
 
-![img_48.png](img_48.png)
+![img/img_48.png](img/img_48.png)
 - TPS: (측정 불가) -> 75.0
 - 평균 소요 시간: (측정 불가) -> 1.178s
 - 90% 요청이 (측정 불가) -> 1.683s 이내 완료
