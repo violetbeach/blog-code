@@ -29,6 +29,21 @@
 5. ViewResolver를 통해 view 화면을 찾는다.
 6. 클라이언트에게 응답을 반환한다.
 
+## RestController에서는..?
+
+![img_1.png](images/img_3.png)
+
+컨트롤러에 `@ResponseBody`가 붙어있으면 `ViewResolver` 대신 `RequestResponseBodyMethodProcessor`를 사용한다.
+
+![img_1.png](images/img_2.png)
+
+`@RestController` 애노테이션도 `ResponseBody` 애노테이션을 포함한다.
+
+![img.png](images/img_4.png)
+
+그래서 내부적으로 `HttpMessageConverter`의 구현체를 통해 사용자에게 JSON / String / ByteArray 등 다양한 형태로 나갈 수 있게 된다.
+
+
 ## 참고
 - https://mangkyu.tistory.com/173
 - https://javannspring.tistory.com/231
