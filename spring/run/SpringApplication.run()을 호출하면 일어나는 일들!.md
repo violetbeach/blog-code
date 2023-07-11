@@ -18,7 +18,7 @@
 
 
 그러면 일반 Spring Legacy 에서는 어떻게 사용할까? Spring Legacy는 SpringApplication을 직접 실행하지 않는다.
-빌드를 한 후에 WAS에 `jar`를 내장시켜서 돌리는 방식이다. 
+빌드를 한 후에 WAS에 `war`를 내장시켜서 돌리는 방식이다. 
 
 ## 코드
 
