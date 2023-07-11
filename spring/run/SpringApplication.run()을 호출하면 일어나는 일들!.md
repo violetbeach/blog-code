@@ -12,6 +12,15 @@
 
 ## SpringApplication.run()
 
+가장 먼저 알아야할 것은 해당 코드는 `SpringApplication` 클래스는 SpringBoot에서**만** 사용한다는 점이다.
+
+그러면 일반 Spring Legacy 에서는 어떻게 사용할까? Spring Legacy는 SpringApplication을 직접 실행하지 않는다.
+빌드를 한 후에 WAS에 `jar`를 내장시켜서 돌리는 방식이다. 
+
+## 코드
+
+![img_8.png](img_8.png)
+
 ```java
 public ConfigurableApplicationContext run(String... args) {
     // 1. SpringApplication 전체 실행 시간 측정 시작
