@@ -20,3 +20,5 @@ Rancher를 확인한 결과 실제로 메모리가 들쑥날쑥했다.
 
 ![img_3.png](img_3.png)
 
+![img_4.png](img_4.png)
+
