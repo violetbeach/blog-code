@@ -102,7 +102,7 @@ Metaspace의 경우 메모리가 눈에 띄게 쌓이지 않고 일정했다.
 
 Number of Threads (users): 550
 
-![img.png](img.png)
+![img.png](img/img.png)
 
 - TPS: 967.7
 - 평균 소요 시간 : 544ms
