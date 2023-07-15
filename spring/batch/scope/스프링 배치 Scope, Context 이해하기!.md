@@ -93,9 +93,9 @@ SpEL에서는 `#{target}`을 사용하면 target이라는 이름의 빈을 꺼�
 
 ![img_12.png](images/img_12.png)
 
-지금까지의 내용을 정리하면 아래와 같다.
+포스팅 내용을 마무리하면 아래와 같다.
 - Spring Batch에서는 Scope를 사용해서 Bean의 생명주기를 관리하고 있다.
-  - "job"/"step" 이라는 Scope의 value를 새로 만들어서 프록시 빈을 여러개 띄울 수 있다.
+  - "job"/"step" 이라는 Scope의 value를 정의했고, 실행 시마다 프록시 빈을 새로 띄우고 있다.
 - ThreadLocal로 JobContext/StepContext를 공유하고 있다.
 - 각 배치의 동작시점에 SpEL을 통해 JobContext/StepContext에서 프로퍼티를 조회해서 필드에 주입할 수 있다.
 
@@ -103,6 +103,4 @@ SpEL에서는 `#{target}`을 사용하면 target이라는 이름의 빈을 꺼�
 ## 참고
 - https://docs.spring.io/spring-batch/docs/4.1.x/reference/html/jsr-352.html
 - https://docs.spring.io/spring-batch/trunk_bkp/apidocs/org/springframework/batch/core/jsr/launch/support/BatchPropertyBeanPostProcessor.html
-
-
 
