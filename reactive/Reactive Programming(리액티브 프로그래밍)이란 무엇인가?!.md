@@ -17,7 +17,7 @@ Reactive Programming은 아래의 이점이 있다.
 - 간단한 비동기 연산
 - 콜백 지옥의 제거
 
-## Webflux
+## Spring Webflux
 
 Webflux는 **비동기 + 리액티브 프로그래밍**에 사용하고, Sprinb WebMvc를 대체하는 라이브러리이다.
 - 요청을 Event-Driven 방식으로 해결한다.
@@ -29,7 +29,8 @@ Webflux는 **비동기 + 리액티브 프로그래밍**에 사용하고, Sprinb 
 
 ## Netty
 
-Netty는 프로토콜 서버 및 클라이언트와 같은 네트워크 응용 프로그램을 쉽게 개발할 수 있는 NIO (Non-Blocking Input/Output) 클라이언트 서버 프레임 워크이다. TCP 및 UDP 소켓 서버와 같은 네트워크 프로그래밍을 크게 단순화하는 기능을 제공한다.
+Netty는 프로토콜 서버 및 클라이언트와 같은 네트워크 응용 프로그램을 쉽게 개발할 수 있는 NIO (Non-Blocking Input/Output) 클라이언트 서버 프레임 워크이다.
+TCP 및 UDP 소켓 서버와 같은 네트워크 프로그래밍을 크게 단순화하는 기능을 제공한다.
 
 [Netty의 장점]
 - 비동기 이벤트 기반 네트워킹(Event Driven)을 지원
