@@ -1,7 +1,6 @@
-## Spring Framework의 실행 순서 정리
+Spring Legacy 프레임워크가 실행되는 순서는 다음과 같다.
 
-Spring Framkework가 실행되는 순서는 다음과 같다.
-![img.png](img.png)
+![img](img.png)
 
 위 동작을 단계별로 정리해보자.
 
@@ -101,6 +100,7 @@ Spring MVC에서는 `web.xml`에 등록된 정보를 가지고 `ContextLoaderLis
 ```
 
 `DispatcherServlet`이 `servlet-context.xml`을 로드하여 필요한 빈들을 등록한다.
+- `servlet-context.xml`로 정의된 빈은 `root-context.xml`로 정의된 빈을 사용할 수 있다.
 
 결과적으로 스프링 컨테이너(ApplicationContext)가 구동되었으며, `DispatcherServlet`이 빈으로 등록되어 스프링 컨테이너 안에서 실행되고 있다.
 
@@ -108,7 +108,11 @@ Spring MVC에서는 `web.xml`에 등록된 정보를 가지고 `ContextLoaderLis
 
 SpringBoot 개발 환경에서는 `web.xml`, `root-context.xml`, `servlet-context.xml` 어느 것도 신경쓰지 않는다. 어떻게 가능할까?
 
+![img_1](img_1.png)
 
+SpringBoot에서는 이러한 설정파일 없이도 **AutoConfiguration**으로 해결하고 있다.
+- `web.xml`을 를 사용하지 않고도 `DispatcherServletAutoConfiguration`에서 Import한 `DispatcherServletConfiguration`에서 직접 `DispatcherServlet`을 생성한다.
+- `xml` 기반의 빈 구성이 아닌 애노테이션 기반의 빈 구성을 사용(`@ComponentScan`으로 탐색)
 
 ## 참고
 
