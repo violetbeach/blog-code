@@ -24,7 +24,7 @@ Reactive Programming은 아래의 이점이 있다.
 
 ## Spring Webflux
 
-![i_1.png](img_1.png)
+![i_1.png](images/img_1.png)
 
 Webflux는 **비동기 + 리액티브 프로그래밍**에 사용하고, Sprinb WebMvc를 대체하는 라이브러리이다.
 - 요청을 Event-Driven 방식으로 해결한다.
@@ -37,7 +37,7 @@ Webflux는 **비동기 + 리액티브 프로그래밍**에 사용하고, Sprinb 
 
 ## Netty
 
-![i_2.png](img_2.png)
+![i_2.png](images/img_2.png)
 
 Spring Webflux를 사용하면 요청을 받는 내장 서버로 기본적으로 **Netty**를 사용한다.
 
@@ -54,7 +54,7 @@ Netty의 장점은 아래와 같다.
 
 Netty에서 핵심은 Event Loop이다.
 
-![i.png](img.png)
+![i.png](images/img.png)
 
 - Channel은 하나의 이벤트 루프에 등록된다.
 - Channel에서 이벤트가 발생하면 해당 이벤트 루프의 이벤트 큐에 등록된다.
