@@ -103,27 +103,15 @@ Memory 급증 원인을 찾기 위해 `MimeMessage`를 생성하는 테스트 �
 
 **메모리 사용량**의 경우 **기존 38MB에서 수정 후 거의 사용하지 않았다.**
 
-![img_15.png](images/img_15.png)
+![img_15.png](images/img_28.png)
 
-`MimeMessageParser.parse()`에서는 메모리 할당이 **331MB -> 113 MB**으로 줄어들었고,
+`MimeMessageParser.parse()`에서는 메모리 할당이 **301MB -> 32MB**으로 줄어들었고,
 
-![img_21.png](images/img_21.png)
+![img_21.png](images/img_27.png)
 
-**메모리 사용량**도 **70MB -> 27MB** 정도로 줄었다.
+**메모리 사용량**도 **70MB에서 수정 후 거의 사용하지 않는다.**
 
-![img_23.png](images/img_23.png)
-
-메모리 사용량을 더 줄이고 싶었지만, `base64`로 인코딩된 첨부파일에 대해서는 byte[]를 저장해야 했다.
-1. `MimePartDataSource` 에서 `encoding`여부가 true라면 DecoderStream을 반환한다. (`BASE64DecoderStream`, `QPDecoderStream`, `UUDecoderStream`)
-2. `Base64DecoderStream, ...`은 `SharedInputStream`을 상속하지 않으므로 `is InstanceOf SharedInputStream`에서 false 반환
-3. `content`(byte[]) 저장
-
-여기서 '조금 더 튜닝이 필요하진 않을까..?' 고민했지만, 지속적으로 계속 시도해왔던 부분이고,
-사실 방금 테스트한 부분 **모두 라이브러리(JavaMailAPI, Apache Commons Mail)를 활용한 부분**이고, **내부 구현은 전혀 없다.**
-
-eml 파일에서 메일과 첨부파일을 따로 분리하여 저장하면 좋을 것 같다고 피드백을 드렸었는데, 고칠 부분이 너무 많고 마이그레이션도 어려워서 현실적으로 어렵다고 한다 ㅠ
-
-그래서 우선 해당 부분까지만 해도 개선은 충분히 있으니 적용해보기로 하자.
+그래서 해당 부분까지 적용해보기로 했다.
 
 ## 테스트 실패..
 
@@ -280,19 +268,29 @@ public class SharedMimeMessage extends MimeMessage {
 
 - **메모리 할당**:
   - `new MimeMessage()`: 186 MB -> 22MB
-  - `MimeMessageParser.parse()`: 301 MB -> 113MB
+  - `MimeMessageParser.parse()`: 301 MB -> 32MB
 - **메모리 사용량**:
-  - `new MimeMessage()`: 38MB -> 0 MB (근삿값. 첨부파일의 경우 RandomAccessFile 레퍼런스만 가지고 있다.)
-  - `MimeMessageParser.parse()`: 70MB -> 27 MB
+  - `new MimeMessage()`: 38MB -> 0 MB (근삿값)
+  - `MimeMessageParser.parse()`: 70MB -> 0 MB (근삿값)
 
 반영 결과 Client의 조회 1건으로 메모리 사용량이 **312MB 정도 튀고 OOM이 터지던 것**이
-**수정 후에는 48MB 정도** 튀는 것을 확인했다.
+**수정 후에는 30MB 정도** 튀는 것을 확인했다.
 
-**아쉬운 점**은 여전히 첨부파일 단건 조회 시 **MimeMessageParser에서 필요없는 첨부파일을 ByteArrayInputStream을 가지고 있는 문제**가 있다.
+이제 **실서버에 적용**하자.
 
-그래서 첨부파일 단건 조회의 경우 eml 파일의 다른 첨부파일은 메모리를 할당하지 않도록 **프로세스 개선이 필요할 것 같다.** 
+## 실서버 적용
 
-이제 **실서버에 적용**하고 후기를 남겨야겠다. 👍👍
+아래와 같이 적용 이전에 렌더링 한 번에 메모리가 300 정도가 튀던 것들이
+- (스테이징 서버의 자원 부족으로 OOM이 터져서 첨부파일 4개는 응답도 못받았다.)
+
+![metric.png](images/metric.PNG)
+
+아래와 같이 50MB 정도 메모리만 튀도록 개선되었다.
+
+> TODO
+
+추가로 실서버 메모리도 훨씬 안정적으로 운영되고 있다.
+
 
 ## 참고
 - https://aroundck.tistory.com/4551
