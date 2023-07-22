@@ -15,7 +15,7 @@
 복잡한 원인을 확인하려니까 어려워서 새로 Github Repository를 파서 빈 프로젝트에서 재현을 해보기로 했다.
 - Repository: https://github.com/violetbeach/embedded-kafka-nested
 
-## 1. WireMock으로 재현
+## 1. WireMock 문제
 
 아래는 실무에서 발생한 이슈와 동일하게 개인 Repository에서 재현한 부분이다. 
 
@@ -75,7 +75,7 @@ class WireMockEmbeddedKafkaTest extends WireMockBased {
 - WireMockServer의 port를 0(dynamic)으로 하면 통과한다.
   - 2번 뜨지만 dynamic 이므로 충돌이 발생하지 않아서 통과
 
-## 2. RestDocs로 재현
+## 2. RestDocs 문제
 
 ```java
 @EmbeddedKafka
@@ -146,25 +146,24 @@ class RestDocsEmbeddedKafkaTest extends RestDocsBased {
 ![img_7.png](img_7.png)
 
 두 번째 컨텍스트 로딩 때는 EmbeddedKafkaContextCustomizer를 제외한 10개만 존재했다.
+- ContextCustomizer 관련 내용은 아래 포스팅을 참고해주세요!
+- [https://jaehoney.tistory.com/357](https://jaehoney.tistory.com/357)
 
 즉, EmbeddedKafka를 포함한 Context 1개와, 테스트 환경을 위한 Context 1개 총 2개가 뜨고 있었다.
 
-그래서 아래의 방법을 떠올렸다.
-- 2개의 Context가 충돌이 발생하지 않도록 처리
-  - WireMock 등은 EmbeddedKafka Context에서도 뜨지 않도록 처리
-  - RestDocs를 적용한 MockMvc도 충돌하지 않도록 처리
-- 1개의 Context 언애서 모두 수행하도록 처리
+### @Nested의 동작 원리
 
-그런데 두 가지 모두 정답이 아니었다.
+JUnit 코드를 읽고 디버깅을 하면서 알게 된 사실은 SpringBootTestContextBootstrapper 클래스의 buildTestContext()는 @EmbeddedKafka 애노테이션이랑 관계 없이 @Nested의 테스트라면 반드시 두 번 호출된다.
 
-### @Nested의 동작 원리와 Test Context
+즉, Context가 두 번 빌드되는 것까지는 맞는 것이었다.
 
-처음 안 사실은 SpringBootTestContextBootstrapper 클래스의 buildTestContext()는 @EmbeddedKafka 애노테이션이랑 관계 없이 @Nested의 테스트라면 반드시 두 번 호출되었다.
 
-즉, Context를 두 번 빌드하지만, 한번은 캐싱되어서 동일한 컨텍스트를 사용해야 맞는 것이었고, 실제로 @SpringBootTest 애노테이션의 경우 그렇게 동작하고 있었다.
+그러나 두 번째 Context를 로드할 때는 캐싱되어서 동일한 컨텍스트를 사용해야 맞는 것이었고,
+실제로 @SpringBootTest 애노테이션의 경우 그렇게 동작하고 있었다.
 
-그런데 @EmbeddedKafka를 사용하면 두 번째 컨텍스트에는 EmbeddKafkaCustomizer가 없어서 캐싱이 실패하고 컨텍스트가 중복으로 뜨고 있다.
-- 즉, NestedClass에서는 EmbeddedKafka가 Context에 적용이 안되는 것이 문제이다.
+
+@EmbeddedKafka를 사용하면 두 번째 컨텍스트에는 EmbeddKafkaCustomizer가 없어서 캐싱이 실패하고 컨텍스트가 중복으로 뜨고 있다.
+- @Nested Class의 테스트에서는 EmbeddKafkaCustomizer가 Context에 적용이 안되는 것이 문제인 것이다.
 
 ## 해결 방법
 
@@ -181,17 +180,18 @@ class RestDocsEmbeddedKafkaTest extends RestDocsBased {
 
 그래도 여전히 문제가 발생했다. 결국 해결 방법이 아니었다. ㅠ
 
-### 2. 테스트 내에서 Context를 동일하게 처리
+### 2. Test Context를 캐싱 가능하도록 처리
 
 앞서 언급했듯 @Nested가 붙은 클래스의 테스트에서 SpringBootTestContextBootstrapper 클래스의 buildTestContext()는 @EmbeddedKafka 애노테이션이랑 관계 없이 반드시 두 번 수행되었다.
 
 그말은 즉슨, @Nested Class 테스트를 실행할 때 MergedContextConfiguration의 contextCustomizer에 왜 EmbeddedKafka가 없는 지 알아내면 될 것 같다.
 
-돌고 돌아 맨 처음 의심했었던 EmbeddedKafkaContextCustomizerFactory 클래스를 봤다.
+맨 처음 의심했었던 EmbeddedKafkaContextCustomizerFactory 클래스를 봤다.
 
 ![img_11.png](img_11.png)
 
-대상 클래스에 애노테이션이 붙지 않았다면 null을 반환하고 있다. @Nested의 클래스 테스트에서는 Customizer로 등록되지 못하고 null을 반환한다.
+createContextCustomizer()는 대상 클래스에 애노테이션이 붙지 않았다면 null을 반환하고 있다. @Nested의 클래스 테스트에서는 Customizer로 등록되지 못하고 null을 반환한다.
+- @Inherited로 인해 상속한 애노테이션은 찾을 수 있지만, Outer Class의 애노테이션은 찾을 수 없었다.
 
 #### InnerClass에 애노테이션 추가 
 
@@ -199,7 +199,7 @@ class RestDocsEmbeddedKafkaTest extends RestDocsBased {
 
 @Nested 클래스에도 @EmbeddedKafka의 ContextCustomizer를 적용해줘야 겠다고 생각했다. 그래서 @EmbeddedKafka 어노테이션을 @Nested 클래스에 추가했더니 테스트가 통과한다.
 
-### InnerClass에 상속 추가
+#### InnerClass에 상속 추가
 
 ![img_12.png](img_12.png)
 
@@ -207,10 +207,10 @@ class RestDocsEmbeddedKafkaTest extends RestDocsBased {
 
 문제는 이렇게 수동으로 모든 @Nested 클래스에 반영을 해주면 한도 끝도 없고, 실수하기도 쉬워진다. 조금 더 근본적인 해결책이 필요하다.
 
-### 더 근본적으로 해결 (Spring-kafka PR)
+### OuterClass도 서치하도록 수정
 
 EmbeddedKafka 애노테이션을 검색할 때 아래의 코드를 사용한다.
-- AnnotatedElementUtils.findMergedAnnotation(testClass, EmbeddedKafka.class);
+- `AnnotatedElementUtils.findMergedAnnotation(testClass, EmbeddedKafka.class)`;
 
 문제는 해당 코드는 OuterClass의 애노테이션까지 찾지는 못한다. 그래서 아래와 같이 수정했다.
 
