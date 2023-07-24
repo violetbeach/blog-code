@@ -234,22 +234,22 @@ private void prepareContext(DefaultBootstrapContext bootstrapContext, Configurab
 
 내부적으로는 아래의 동작을 수행한다.
 
-[Context에 주입]
+**[Context에 특정 인스턴스를 주입]**
 - 생성한 Environment를 주입
 - beanNameGenerator 주입
 - classLoader, resourceLoader 주입
 - ApplicationContextInitializer 주입
 - BeanFactoryPostProcessor 주입
 
-[Context를 주입]
+**[Context를 특정 인스턴스에 주입]**
 - SpringApplicationRunListeners에 Context 주입
 - StartupInfoLogger에 Context 주입
 
-[나머지]
+**[그 밖에..]**
 - beanFactory에 사용자 설정 적용
   - 순환 참조 허용 (allow_circular_references - default: false)
   - 빈 오버라이딩(allow_bean_definition_overriding - default: false)
-- BootStrapContext 종료
+- BootstrapContext 종료
 - ...
 
 #### 10. Context Refersh
@@ -263,20 +263,26 @@ refreshContext(context);
 
 ![img_9.png](images/img_9.png)
 
+처음엔 메서드 명이 `refresh()`라서 다소 이상하게 생각했었다. (뭔가 동작 -> refresh를 하는 게 절차지향적인 느낌이 들었었다.)
+
 하는 일을 정리해보면 아래와 같다.
 
 - 빈 팩토리 프로세서 허용
 - 빈 팩토리 프로세서 호출
 - 메시지 소스 초기화
+  - 다국어 처리를 위해 사용된다.
 - 이벤트 멀티캐스터 초기화
+  - 여러 `ApplicationListener`를 관리한다.
+  - ApplicationEvent도 내부적으로 이벤트 멀티캐스터를 통해 동작한다.
 - 리스너 빈 확인 및 등록
 - 나머지 싱글톤 빈 인스턴스화
 - ...
 
-메서드 명이 `refresh()`라서 다소 이상하게 생각했었다. (뭔가 동작 -> refresh를 하는 게 절차지향적인 느낌이 들었었다.)
 그런데 내부 동작을 보니까 이해가 된다. 모든 빈 팩토리가 생성되고 Context가 설정되고 나서야 할 수 있는 처리들을 한다.
 
 우리가 `@Bean`, `@Component` 등으로 등록한 클래스나 인스턴스를 반환하는 메서드도 `refresh()`에 있는 `finishBeanFactoryInitialization(beanfactory)`에서 호출되거나 생성되고 조립되어서 빈으로 등록된다.
+
+`SpringApplication.run()`에서 가장 중요하고, 개발하면서 필요한 부분이라고 한다.
 
 #### 11. Context Refresh 후처리
 
@@ -286,7 +292,7 @@ afterRefresh(context, applicationArguments);
 
 ![img_10.png](images/img_10.png)
 
-현재 해당 메서드가 비어있으며, Refresh 이후 동작이 필요할 때 SpringApplication을 상속해서 Overriding할 수 있다.
+현재 해당 메서드가 비어있다. Custom하게 Refresh 이후 동작이 필요할 때 SpringApplication을 상속해서 Overriding할 수 있다.
 
 #### 12. 실행 시간 출력 및 리스너 구독 시작
 
@@ -308,11 +314,11 @@ callRunners(context, applicationArguments);
 
 ![img_11.png](images/img_11.png)
 
-여기서 Runner란 뭘까..? DemoProject로 돌려보면 Runners 개수가 0이 나온다.
+여기서 Runner란 뭘까..? DemoProject를 실행해봤지만 Runners 개수가 0이 나온다.
 
 Spring Batch를 사용하면 기본적으로 Job을 바로 실행한다. 그때 사용되는 `JobLauncherApplicationRunner`가 `ApplicationRunner`의 구현체이다.
 
-이렇게 앱이 실행되었을 때 즉시 실행되어야 하는 것들을 등록할 수 있다.
+**앱이 실행되었을 때 즉시 실행**되어야 하는 **작업**들을 등록할 수 있다.
 
 ## 참고
 - https://mangkyu.tistory.com/213

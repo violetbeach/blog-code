@@ -1,61 +1,64 @@
-## 메일 발송 시 메모리 문제해결하기! (with. FilterOutputStream)
+평화롭던 어느날 메일 API에서 OOM이 터졌다.
 
 ![img.png](images/img.png)
 
-어느날 메일 발송을 할 때 OOM이 터졌다.
+발생한 End-point는 메일 발송으로 확인했다.
 
-해당 원문은 40MB였고, 개발 서버에서 테스트를 해봤다.
+메일 원문은 40MB였고 개발 서버에서 테스트를 해봤다.
 
 ![img_13.png](images/img_13.png)
 
-결과 메모리 사용량이 117 MB 정도 늘고 있었다. 세부적으로는 2단계 메모리가 튀는 것으로 확인된다.
+동일 본문으로 메일 발송 요청 1번에 결과 메모리 사용량이 117MB 정도 급증했다. 세부적으로는 2단계 메모리가 튀는 것으로 확인된다.
 - 1차: 724MB -> 761MB
 - 2차: 761 MB -> 841MB
 
 바로 의심했던 것이 발송 이벤트였다. 비동기 이벤트가 두 건 발행되고 있었다.
-- 포워드 이벤트
-- 아카이브 이벤트
+- Forward Event
+- Archive Event
 
 ## Line Separator
 
-확인 결과 발송, 포워드 이벤트 핸들러, 아카이브 이벤트 핸들러에서 아래 로직을 호출한다.
+확인 결과 1. 발송, 2. 포워드 이벤트 핸들러, 3. 아카이브 이벤트 핸들러에서 아래 로직을 수행한다.
 
 ![img_3.png](images/img_3.png)
 
-코드를 보면 ByteArrayOutputStream에 저장한 eml 파일을 담고있다.
+코드를 보면 **ByteArrayOutputStream**에 eml 파일 내용을 저장한다.
+- 바로 파일에 쓰는 것이 아니므로 `byte[]`가 메모리에 올라간다.
 
-즉, 동기에서 1번 호출, 비동기에서 2번 호출이 일어나고 있었고, 해당 부분이 메모리 급증의 원인인 것 같다.
+그 다음에 `FileOutputStream`으로 다시 데이터를 옮긴다.
 
-그럼 왜 이처럼 처리되고 있을까..?
+해당 로직이 메인 스레드에서 1번 호출, 비동기 스레드에서 2번 호출한다.
 
-### 레거시..
+해당 부분이 메모리 급증의 원인인 것 같다. 그럼 왜 이처럼 비효율적으로 처리되고 있을까..?
 
-메일 서비스의 수 많은 Cron, Script 프로젝트에서 원문의 Part를 `\n`으로 구분한다. 즉, 모든 eml 파일은 저장될 때 `\n`으로만 저장되어야 한다.
+### 레거시
 
-문제는 `JavaMailAPI`에서 메시지를 저장할 때 사용하는 `LineOutputStream`은 아래와 같이 OS 환경변수의 `lineSeparator`를 무시하고 `\r\n`으로 저장한다.
+저렇게 처리해야만 하는 이유가 있었다.
+
+메일 서비스의 수 많은 Cron, Script 프로젝트에서 원문의 Part를 `\n`으로 구분한다. 즉, 모든 eml 파일은 저장될 때 `\n`으로만 저장되어야 했다.
+
+`JavaMailAPI`에서 메시지를 저장할 때 사용하는 `LineOutputStream`은 아래와 같이 OS 환경변수의 `lineSeparator`를 무시하고 `\r\n`으로 저장한다.
 
 ![img_6.png](images/img_6.png)
 
-그래서 처음에는 아래와 같이 기존 Legacy 코드를 수정하고자 했으나, 영향 범위 파악이 너무 어렵고 광범위해서 현실적으로 불가능하다고 한다.
+처음에는 아래와 같이 기존 Legacy 코드를 수정하고자 했으나, 영향 범위 파악이 너무 어렵고 광범위해서 현실적으로 불가능하다고 한다.
 
 ![img_4.png](images/img_4.png)
 
 ![img_5.png](images/img_5.png)
 
+그래서 API 서버 단에서 처리를 해주고 있던 것이다.
+
 ### ReplacingInputStream
 
-그래서 처음에는 `ReplacingInputStream`을 사용해서 `\r\n`을 `\n`으로 처리해주면 되지 않을까..? 하는 생각을 가졌다.
+`ReplacingInputStream`을 사용해서 `\r\n`을 `\n`으로 처리해주면 되지 않을까..? 하는 생각을 가졌었다.
 - `MimeMessage`에서 `IntputStream`을 꺼낸다.
 - `InputStream`을 `ReplacingInputStream`으로 래핑한다.
 - `InputStream`을 `FileOutputStream`에 저장한다.
 
 여기서 문제가 발생했는 데 `MimeMessage`에서 `getInputStream()` 메서드로 꺼낸 것에는 **Header를 포함하지 않는다.** 즉, 반드시 `MimeMessage.write()`를 사용해야 했다.
 
-### 그래서
-어쩔 수 없이 아래와 같이 처리한 부분이라고 한다.
-- `MimeMessage.write()`를 `ByteArrayOutputStream`에 옮겨 닮는다.
-- `ByteArrayOutputStream`을 `ByteArrayInputStream`에 옮겨 닮는다.
-- `ByteArrayInputStream`을 `FileOutputStream`에 저장한다.
+그래서 `ReplacingInputStream`은 사용할 수 없는 상황이었다.
 
 ## FilterOutputStream ?
 
@@ -161,17 +164,17 @@ public class LFOutputStream extends FilterOutputStream {
 
 ![img_8.png](images/img_8.png)
 
-이때 기존 로직의 경우 아래와 같이 동작을 수행한다.
+이때 **기존 로직**의 경우 아래와 같이 동작을 수행하고 있었다.
 - 1byte 검사
 - 1byte write - I/O 발생!
 
 String 문자열 크기가 n일 때 **Read -> O(n), Write -> O(n)**
 
-수정 후 아래와 같이 동작한다.
+**수정 후**에는 아래와 같이 동작한다.
 - buffer 단위의 `byte[]`를 순회
 - 줄바꿈 발생 시 1 Line write
 
-String 문자열 크기가 n일 때 **Read -> O(n), Write -> O(n)** 이지만 Write의 경우 **N/8192(Buffer 크기) + Line 수** 에 근사
+String 문자열 크기가 n일 때 **Read -> O(n), Write -> O(n)** 이지만 Write의 경우 **N/8192(Buffer 크기) + Line 수**에 근사
 
 #### 테스트 코드
 
@@ -240,16 +243,15 @@ class LFOutputStreamTest {
 
 ![img_12.png](images/img_12.png)
 
-프로젝트의 기존 테스트도 모두 잘 통과한다.
+모듈을 사용하는 서버의 테스트도 모두 잘 통과한다.
 
 ### 결과
 
-수정 이후 `GateTimeout`이 발생하지 않았고, 메모리 사용량도 원래 117MB 급증하던 것이
+수정 이후 `GateTimeout`이 발생하지 않았고, 
 
 ![img_14.png](images/img_14.png)
 
-594MB -> 621MB 총 27MB만 튀도록 메모리 사용량이 개선되었다! 추가로 두 번에 걸쳐서 메모리가 튀던 것도 수정 후 1번인 것처럼 보인다. 
-- (비동기 이벤트 때 증가하는 부분은 1MB 정도로 확인된다.)
+메모리 사용량도 원래 **117MB** 급증하던 것이 594MB -> 621MB **총 27MB**만 튀도록 메모리 사용량이 개선되었다! 추가로 두 번에 걸쳐서 메모리가 튀던 것도 수정 후 1번인 것처럼 보인다.
 
 ## 참고
 - https://github.com/javaee/javamail/blob/master/demo/src/main/java/NewlineOutputStream.java
