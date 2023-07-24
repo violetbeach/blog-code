@@ -163,7 +163,7 @@ public class LFOutputStream extends FilterOutputStream {
 
 이때 기존 로직의 경우 아래와 같이 동작을 수행한다.
 - 1byte 검사
-- 1byte write - Disk I/O 발생!
+- 1byte write - I/O 발생!
 
 String 문자열 크기가 n일 때 **Read -> O(n), Write -> O(n)**
 
