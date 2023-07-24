@@ -165,13 +165,13 @@ public class LFOutputStream extends FilterOutputStream {
 - 1byte 검사
 - 1byte write - Disk I/O 발생!
 
-**Read -> O(n), Write -> O(n)**
+String 문자열 크기가 n일 때 **Read -> O(n), Write -> O(n)**
 
 수정 후 아래와 같이 동작한다.
 - buffer 단위의 `byte[]`를 순회
 - 줄바꿈 발생 시 1 Line write
 
-**Read -> O(n), Write -> O(1)**
+String 문자열 크기가 n일 때 **Read -> O(n), Write -> O(n)** 이지만 Write의 경우 **N/8192(Buffer 크기) + Line 수** 에 근사
 
 #### 테스트 코드
 
