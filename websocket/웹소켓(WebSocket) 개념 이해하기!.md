@@ -81,17 +81,20 @@ Sec-WebSocket-Accept: HSmrc0sMlYUkAGmm5OPpG2HaGWk=
 Sec-WebSocket-Protocol: chat
 ```
 
-## 단점은..?
+## 단점?
 
-이제 WebSocket 방식이 어떤 문제를 해결하기 위한 것인지 알았다.
+ WebSocket 방식이 어떤 문제를 해결하기 위한 것인지 알았다.
 - 커넥션을 한 번만 맺으므로 HTTP 요청 및 응답으로 인한 오버헤드를 줄일 수 있다.
 - 실시간으로 양방향 통신이 가능하다.
 
-즉, WebSocket에는 아래의 단점이 있다.
+WebSocket에는 아래의 단점도 있다.
 - 연결이 끊어졌을 때의 처리를 직접 구현해야 한다.
 - 브라우저 별로 지원하는 웹소켓 버전이 다르며, 모든 브라우저가 WebSocket을 지원하지는 않는다.
 - 서버는 수많은 커넥션을 유지해야 하므로 자원을 많이 사용할 수 있다.
   - 실시간으로 많은 데이터가 오가지 않는다면 필요 시 연결을 하는 게 비용적으로 이득
+
+예제 코드는 아래 Repository에서 확인할 수 있습니다.
+- https://github.com/violetbeach/websocket-server
 
 ## 참고
 - https://yuricoding.tistory.com/134
