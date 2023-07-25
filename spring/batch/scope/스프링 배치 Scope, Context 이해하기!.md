@@ -61,11 +61,17 @@ Step이 생성될 때 `doExecutionRegistration(stepExecution)`을 호출한다.
 
 ![img_7.png](images/img_7.png)
 
-해당 메서드는 내부적으로 `StepSynchronizationManager.crateNewContext()`를 통해 `StepContext`를 만든다.
+해당 메서드는 내부적으로 `StepSynchronizationManager.crateNewContext()` 메서드를 재정의해서 `StepContext`를 등록한다.
 
-저장된 `StepContext`는 `SynchronizationManagerSupport` ThreadLocal에 저장하고 있다.
+![img_13.png](images/img_13.png)
 
-즉, Flow를 요약하면 아래와 같다.
+그리고 `SynchronizationManagerSupport`를 통해 `StepContext`를 꺼낼 수 있다.
+
+해당 클래스는 내부적으로 ThreadLocal을 사용하기 때문이다.
+- ThreadLocal에 대해서는 이전 포스팅에서 다뤘다.
+- ([https://jaehoney.tistory.com/302](https://jaehoney.tistory.com/302))
+
+Flow를 요약하면 아래와 같다.
 - Job은 Step을 실행시킨다.
 - Step은 실행될 때 ThreadLocal에 StepContext를 등록한다.
 - 각 @StepScope의 빈들은 ThreadLocal에서 StepContext를 참조하여 사용한다.
@@ -87,7 +93,48 @@ SpEL에서는 `#{target}`을 사용하면 target이라는 이름의 빈을 꺼�
 
 ![img_10.png](images/img_10.png)
 
-결과적으로 아래와 같이 `SpelExpression`의 결과 값(value)인 **293780(stepExecution.stockCode)**가 반환되어 프록시 빈에 주입된다.
+`resolveContextualContext()`는 `Scope` 애노테이션이 가진 메서드로 컨텍스트에서 특정 객체를 찾는 메서드이다.
+
+### resolveContextualContext
+
+`resolveContextualContext()`는 컨텍스트에서 특정 객체를 찾는 메서드이다. 예시 코드를 보자.
+
+```java
+public class JerryScope implements Scope {
+    
+    private Map<String, String> map;
+  
+    public JerryScope() {
+        this.map = new HashMap<>();
+        this.map.put("red", "apple");
+    }
+  
+  
+    @Override
+    public Object resolveContextualObject(String key) {
+        return map.get(key);
+    }
+}
+
+@Configuration
+public class BeanFactoryConfig {
+
+    @Bean
+    public BeanFactoryPostProcessor beanFactoryPostProcessor() {
+        return beanFactory -> beanFactory.registerScope(
+            "jerry", new JerryScope()); 
+    }
+}
+```
+
+위 처럼 `beanFactory.registerScope`로 `jerry`라는 이름의 `JerryScope`를 등록했다고 하자.
+
+그러면 `@Scope("jerry")`가 붙은 클래스나 메서드에서 SpEL로 아래와 같은 코드를 사용하는 것이 가능해진다.
+- `@Value("#{red}")`
+
+### SpelExpression
+
+즉, 결과적으로 아래와 같이 `SpelExpression`의 결과 값(value)인 **293780(stepExecution.stockCode)** 가 반환되어 프록시 빈에 주입된다.
 
 ![img_11.png](images/img_11.png)
 
