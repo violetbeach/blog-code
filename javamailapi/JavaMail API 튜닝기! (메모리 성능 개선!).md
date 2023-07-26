@@ -280,16 +280,34 @@ public class SharedMimeMessage extends MimeMessage {
 
 ## 실서버 적용
 
-아래와 같이 적용 이전에 렌더링 한 번에 메모리가 300 정도가 튀던 것들이
+
+개선 전 아래와 같이 적용 이전에 렌더링 한 번에 메모리가 312MB 정도가 튀던 것들이
 - (스테이징 서버의 자원 부족으로 OOM이 터져서 첨부파일 4개는 응답도 못받았다.)
 
 ![metric.png](images/metric.PNG)
 
-아래와 같이 50MB 정도 메모리만 튀도록 개선되었다.
+아래와 같은 동일한 요청에
 
-> TODO
+```
+2023-07-26 10:00:23.956 DEBUG 28 --- [io-8080-exec-16] o.s.w.f.CommonsRequestLoggingFilter      : Incoming Request: GET /v2/mails/826122601]
+2023-07-26 10:00:24.507 DEBUG 28 --- [io-8080-exec-21] o.s.w.f.CommonsRequestLoggingFilter      : Incoming Request: GET /v2/mails/826122601/attachments/1.4]
+2023-07-26 10:00:24.519 DEBUG 28 --- [io-8080-exec-15] o.s.w.f.CommonsRequestLoggingFilter      : Incoming Request: GET /v2/mails/826122601/attachments/1.9]
+2023-07-26 10:00:24.525 DEBUG 28 --- [io-8080-exec-20] o.s.w.f.CommonsRequestLoggingFilter      : Incoming Request: GET /v2/mails/826122601/attachments/1.11]
+2023-07-26 10:00:24.527 DEBUG 28 --- [io-8080-exec-10] o.s.w.f.CommonsRequestLoggingFilter      : Incoming Request: GET /v2/mails/826122601/attachments/1.8]
+2023-07-26 10:00:24.531 DEBUG 28 --- [io-8080-exec-19] o.s.w.f.CommonsRequestLoggingFilter      : Incoming Request: GET /v2/mails/826122601/attachments/1.10]
+2023-07-26 10:00:24.712 DEBUG 28 --- [io-8080-exec-11] o.s.w.f.CommonsRequestLoggingFilter      : Incoming Request: GET /v2/mails/826122601/attachments/1.5]
+2023-07-26 10:00:25.259 DEBUG 28 --- [nio-8080-exec-6] o.s.w.f.CommonsRequestLoggingFilter      : Incoming Request: GET /v2/mails/826122601/attachments/1.6] 
+2023-07-26 10:00:26.041 DEBUG 28 --- [nio-8080-exec-3] o.s.w.f.CommonsRequestLoggingFilter      : Incoming Request: GET /v2/mails/826122601/attachments/1.3]
+2023-07-26 10:00:26.051 DEBUG 28 --- [io-8080-exec-13] o.s.w.f.CommonsRequestLoggingFilter      : Incoming Request: GET /v2/mails/826122601/attachments/1.7]
+2023-07-26 10:00:26.061 DEBUG 28 --- [io-8080-exec-13] o.s.w.f.CommonsRequestLoggingFilter      : Incoming Request: GET /v2/mails/826122601/attachments/1.12]
+2023-07-26 10:00:26.078 DEBUG 28 --- [io-8080-exec-16] o.s.w.f.CommonsRequestLoggingFilter      : Incoming Request: GET /v2/mails/826122601/attachments/1.2]
+```
 
-추가로 실서버 메모리도 훨씬 안정적으로 운영되고 있다.
+아래와 같이 메모리가 튀지 않는다! (1MB~2MB만 움직인다.)
+
+![metric_2.png](images/metric_2.PNG)
+
+이제 실서버에 배포해야곘다!
 
 
 ## 참고
