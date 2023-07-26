@@ -22,12 +22,12 @@
 ## 순서 정리
 
 1. 클라이언트가 요청을 보낸다.
-2. 클라이언트의 요청을 DispatcherServlet이 가로챈다.
-3. HandlerMapping에게 보내 해당 요청을 처리할 Controller를 찾는다.
-4. Controller는 비즈니스 로직을 거쳐 기능을 처리한다.
-   1. (DispatcherServlet은 ModelAndView밖에 다룰 수 없기 때문에 ControllerAdapter가 DispatchServlet과 Controller간 모델 변환 과정을 수행한다.)
-5. ViewResolver를 통해 view 화면을 찾는다.
-6. 클라이언트에게 응답을 반환한다.
+2. Servlet Container(Tomcat, ...)가 요청을 수신하고 web.xml의 Servlet(`DispatcherServlet`)에 전달한다.
+4. HandlerMapping에게 보내 해당 요청을 처리할 Controller를 찾는다.
+5. Controller는 비즈니스 로직을 거쳐 기능을 처리한다.
+    - (DispatcherServlet은 ModelAndView밖에 다룰 수 없기 때문에 ControllerAdapter가 DispatchServlet과 Controller간 모델 변환 과정을 수행한다.)
+6. ViewResolver를 통해 view 화면을 찾는다.
+7. 클라이언트에게 응답을 반환한다.
 
 ## RestController에서는..?
 

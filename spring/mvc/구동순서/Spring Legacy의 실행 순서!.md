@@ -47,14 +47,14 @@ web.xml은 WAS가 최초 구동될 때 사용하는 웹 애플리케이션 설�
 
 각 태그는 크게 4가지로 분류할 수 있다.
 
-- <context-param>: 모든 서블릿과 필터가 공유하는 스프링 컨테이너 정의
-- <listener>: 모든 서블릿 및 필터가 공유하는 스프링 컨테이너 리스너 정의
-- <servlet>: DispatcherServlet의 구현 관련 정보(구현체, 파라미터 등) 
-    - <servlet-name>: 서블릿 이름
-    - <servlet-class>: 서블릿 구현체 클래스
-    - <init-param>: 생성 시 필요한 파라미터 정보 
-    - <load-on-startup>: 로딩 순서. 우선순위가 높은 서블릿부터 구동할 때 쓰이는 값이다.
-- <servlet-mapping>: uri 패턴을 각 Servlet에 매칭
+- `<context-param>`: 모든 서블릿과 필터가 공유하는 스프링 컨테이너 정의
+- `<listener>`: 모든 서블릿 및 필터가 공유하는 스프링 컨테이너 리스너 정의
+- `<servlet>`: DispatcherServlet의 구현 관련 정보(구현체, 파라미터 등) 
+    - `<servlet-name>`: 서블릿 이름
+    - `<servlet-class>`: 서블릿 구현체 클래스
+    - `<init-param>`: 생성 시 필요한 파라미터 정보 
+    - `<load-on-startup>`: 로딩 순서. 우선순위가 높은 서블릿부터 구동할 때 쓰이는 값이다.
+- `<servlet-mapping>`: uri 패턴을 각 Servlet에 매칭
 
 Spring MVC에서는 `web.xml`에 등록된 정보를 가지고 `ContextLoaderListener`를 생성한다.
 
@@ -64,7 +64,27 @@ Spring MVC에서는 `web.xml`에 등록된 정보를 가지고 `ContextLoaderLis
 
 `root-context.xml`에는 등록한 빈들(Service, Repository, ...)에 대한 정보가 명시되어 있다.
 
-`ContextLoaderListener`는 `root-context.xml`을 보고 `ApplicationContext`가 구동된다.
+```java
+public class ContextLoaderListener extends ContextLoader implements ServletContextListener {
+
+    public ContextLoaderListener(WebApplicationContext context) {
+        super(context);
+    }
+
+    public void contextInitialized(ServletContextEvent event) {
+        this.initWebApplicationContext(event.getServletContext());
+    }
+
+    public void contextDestroyed(ServletContextEvent event) {
+        this.closeWebApplicationContext(event.getServletContext());
+        ContextCleanupListener.cleanupAttributes(event.getServletContext());
+    }
+}
+```
+
+`ContextLoaderListener`는 `ApplicationContext`를 구동한다.
+
+`this.initWebApplicationContext()`에서 내부적으로 `root-context.xml`을 사용하여 빈들을 등록한다. 
 
 ## 3. **DispatcherServlet**은 **servlet-context.xml**을 로드 
 
