@@ -353,11 +353,16 @@ where
 
 (이상하게도 포스트맨 한번 요청할 시 0.3s밖에 안걸리는데 TPS가 12정도 밖에 안나왔다..)
 
-원인은 SQL 실행 순서에 있었다. mail_content와 personal_mailb리x는 1대 0~1 관계임에도 불구하고 Left Outer Join을 사용하면서 문제가 생겼다.
-- Where 절로 필터링을 하기 전에 LeftOuterJoin으로 모든 mailbox를 불러온 후 매칭시켜야 하는 점
-- Disk I/O 발생으로 많은 사용자 환경에서 TPS가 상당히 저하
+원인은 LEFT OUTER JOIN에 있다. mail_content와 personal_mailbox는 1대 0~1 관계임에도 불구하고 Left Outer Join을 사용하면서 문제가 생겼다.
+- 잠금 편지함 필터링 과정이 복잡해진다.
+  - 가상 테이블을 사용해서 매칭시키는 과정이 필요
+- Optimizer가 최적의 경로를 찾기 어려워진다.
+- 다루는 데이터의 크기가 커진다.
+- 캐시를 활용할 수 없다.
 
-INNER JOIN을 사용한다면 나쁘지 않은 결과가 나오곘지만, 기본 편지함은 mailbox와 매칭을 하지 않으므로 사용할 수 없었다.
+그 밖에도 `COUNT`문도 위와 동일한 쿼리를 태워야 해서 TPS가 많이 낮았던 것이다.
+
+INNER JOIN을 사용한다면 나쁘지 않은 결과가 나오곘지만, 기본 편지함은 mailbox 테이블에 저장하지 않으므로 Join 결과가 나오지 않아 사용할 수 없었다.
 
 ### 쿼리 분리
 
@@ -408,24 +413,6 @@ where
 - [ ] sentry 이슈 발생
 
 참고로 HTTP 트랜잭션 시간은 320ms -> 120ms 정도로 개선되었다!
-
-(사실 아래와 같이 SubQuery를 사용해도 되었다.)
-
-```sql
-SELECT COUNT(mail0_.no) AS col_0_0_
-    FROM mail_01.mail_content mail0_
-    WHERE mail0_.del_flag = 'N'
-    AND mail0_.basic_info_no=1994
-    AND mail0_.fk_user_info_no=1
-    AND NOT EXISTS (
-        SELECT 1 FROM mail_01.personal_mailbox personalma1_
-        WHERE personalma1_.no=mail0_.mbox_no
-    AND mail0_.basic_info_no=personalma1_.basic_info_no
-AND personalma1_.lockinfo_type IN ('B','A')
-)
-```
-
-하지만 QueryDsl에서 Exists를 사용하기 어려울 뿐 아니라 유지보수 관점에서 쿼리를 분리하는 것이 낫다고 판단했다.
 
 ### /mails with Params
 
