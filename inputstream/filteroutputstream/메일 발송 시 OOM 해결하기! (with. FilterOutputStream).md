@@ -106,8 +106,6 @@ public class LFOutputStream extends FilterOutputStream {
 
 ![img_9.png](images/img_9.png)
 
-결과 아래와 같이 117MB 메모리가 튀던 요청이 안정화될 수 있었고,
-
 ## 처리량
 
 코드 수정을 완료했지만, 내가 작성한 `LFOutputStream`은 파일을 1byte씩 쓰기 때문에 처리량이 낮은 문제가 생길 수도 있을 것 같다.
