@@ -92,13 +92,17 @@ mailSendProcessor.send(processCommand);
 
 그래서 기존 Transfer의 메서드를 하나 빼고 싹다 제거했다.
 
-![img_2.png](images/img_2.png)
+![img_4.png](images/img_4.png)
 
-해당 메서드에서 하는 역할(MimeMessage를 만드는 부분)은 MailSendProcessor가 담당하는 것이 맞다고 판단했다.
+그래서 코드가 아래와 같이 변경되었다.
+
+![img_5.png](images/img_5.png)
+
+기존에 `transfer()`에서 하던 역할(MimeMessage를 조작하 부분)은 MailSendProcessor가 담당하는 것이 맞다고 판단했다.
 
 - SendProcessor에서 너무 책임이 많아지면 Util 클래스나 하위 모듈을 DI로 주입받아서 책임을 덜어준다고 생각
 
-## 아직이다!
+## SendProcessor
 
 아래는 MailSendProcessor의 기존의 로직이다.
 
@@ -308,7 +312,7 @@ private void individualSend(MimeMessage message, MailSendCommand sendCommand) {
     - Applier에서 RequestPayload와 Office 설정, User 설정을 조회해서 조합한 후 암호 메일 여부나 승인 메일 여부를 파악함
         - sendCommand를 반환 (isRequired, ...를 소유)
     - SendProcessor에서는 비즈니스 로직을 모르는 채 isRequired...만 보고 절차적으로 작업을 진행
-- 해당 부분의 경우 팀 내부적으로 크게 문제가 되는 부분이 아니라서 우선 보류하기로 했다!
+- 해당 부분의 경우 나중에 리팩토링을 해봐야겠다! 
 
 ### 참고
 
