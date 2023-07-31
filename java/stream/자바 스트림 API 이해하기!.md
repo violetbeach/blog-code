@@ -32,5 +32,21 @@ Stream은 Collection, Array, File, Thrid-party 라이브러리 등 에서 생성
 
 최종 연산자는 collect, findAny, findFirst, forEach, ...을 말한다.
 
+최종 연산자가 수행되고 나면 Stream Pipeline은 처리된 것으로 간주한다.
 
-## https://www.youtube.com/watch?v=rbm87IFpwvQ
+## 단순 반복 vs Stream
+
+### 장점
+- 가독성이 좋다.
+- 유연하다.
+- 병렬처리를 간단하게 해결할 수 있다.
+  - parallelStream을 사용하면 된다.
+
+### 단점
+- 느리다.
+- 내부 반복
+
+
+## 참고
+
+- https://www.youtube.com/watch?v=rbm87IFpwvQ
