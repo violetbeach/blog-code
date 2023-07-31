@@ -245,11 +245,11 @@ class LFOutputStreamTest {
 
 ### 결과
 
-수정 이후 `GateTimeout`이 발생하지 않았고, 
+수정 이후 `GateTimeout`이 발생하지 않았고
 
-![img_14.png](images/img_14.png)
+![img_15.png](images/img_15.png)
 
-메모리 사용량도 원래 **117MB** 급증하던 것이 594MB -> 621MB **총 27MB**만 튀도록 메모리 사용량이 개선되었다! 추가로 두 번에 걸쳐서 메모리가 튀던 것도 수정 후 1번인 것처럼 보인다.
+메모리 사용량도 원래 **117MB** 급증하던 것이 768MB -> 776MB **총 8MB**정도만 튀는 것으로 보아 메모리 사용량 문제도 해결되었다!
 
 ## 참고
 - https://github.com/javaee/javamail/blob/master/demo/src/main/java/NewlineOutputStream.java
