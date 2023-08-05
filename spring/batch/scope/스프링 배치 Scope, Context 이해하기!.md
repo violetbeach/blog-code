@@ -74,7 +74,7 @@ Step이 생성될 때 `doExecutionRegistration(stepExecution)`을 호출한다.
 Flow를 요약하면 아래와 같다.
 - Job은 Step을 실행시킨다.
 - Step은 실행될 때 ThreadLocal에 StepContext를 등록한다.
-- 각 @StepScope의 빈들은 ThreadLocal에서 StepContext를 참조하여 사용한다.
+- 각 `@StepScope`의 빈들은 ThreadLocal에서 StepContext를 참조하여 사용한다.
 
 ## SpEL
 

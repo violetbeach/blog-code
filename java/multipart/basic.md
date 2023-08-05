@@ -28,7 +28,7 @@
 
 ![img_4.png](img_4.png)
 
-1.26GB는 dev 서버 자원의 한계를 돌파한 수치이다.
+1.26GB는 dev 서버 자원의 한계를 돌파한 수치입니다.
 - Heap: 410m
 - Metaspace: 150m
 
@@ -68,11 +68,76 @@ Grafana에서는 메모리 사용량이 거의 없었습니다.
 
 그래도 메모리가 튀네요!
 
+## 힙덤프
+
+Grafana로 붙여봤지만, 자세한 메모리 상황은 볼 수 없으니 dev 서버의 Heap dump를 떴습니다.
+- 요청 수신 전 (Rancher Memory 사용량: 670MB)
+- 동시 요청 6개 직후 (Rancher Memory 사용량: 1.39GB)
+
+![img_21.png](img_21.png)
+
+왼쪽은 요청을 보내기 전 상태이고 오른쪽은 요청을 보낸 후 상태입니다.
+
+내부도 확인해봤지만, 특이점은 없었습니다.
+
+
 ## 중간 정산
 
-- Filter 내부로 요청이 들어온 이후 메모리가 튄다.
+- Filter 내부로 요청이 들어온 이후 메모리가 튀고 있습니다.
   - 요청 직후 Filter 로그가 찍히고 있다.
 - `/health`로 요청이 들어오더라도 첨부파일이 포함되면 수행 시간이 매우 길다.
-- 자원은 **JVM 자원이 아닌 서버 자원**인 것 같습니다.
+- 자원은 **JVM 자원이 아닌 서버 자원**으로 예상된다.
 
-// TODO Tomcat 의심
+## 디버깅
+
+처리 소요 시간이 가장 긴 부분은 `StandardMultipartHttpServletRequest.parseRequest()`입니다.
+
+![img_16.png](img_16.png)
+
+그 안에서도 `Streams.copy()` 부분에서 대부분의 처리 시간을 사용합니다.
+
+![img_17.png](img_17.png)
+
+처리 시간은 이해가 되었습니다.
+
+내부 코드를 본 결과 동작은 아래와 같습니다.
+- 요청 본문 크기가 `spring.servlet.multipart.max-request-size`보다 크면 예외를 발생한다.
+- 요청 파일이 `spring.servlet.multipart.max-file-size`보다 크면 예외를 발생한다.
+- 요청 파일 크기가 `spring.servlet.multipart.file-size-threshold`보다 클 경우 메모리에서 그대로 Stream을 반환한다.
+- 요청 파일 크기가 `spring.servlet.multipart.file-size-threshold`보다 작을 경우 임시 경로(Disk)에 파일을 저장한 후 사용한다.
+
+application.yml 설정은 아래와 같습니다.
+
+```yaml
+spring:
+  servlet:
+    multipart:
+      max-file-size: 2536MB
+      file-size-threshold: 1MB
+      max-request-size: 2536MB
+```
+
+파일은 디스크에 저장되었고, 위에서 언급했듯 JVM 메모리도 튀지 않았습니다.
+
+결과적으로 **임시 파일을 디스크에 저장하는 과정에서 서버의 메모리가 튀었다..!** 인 것 같습니다.
+
+## 개발 서버 확인
+
+그래서 서버 자원이라고 확신하고 아래와 같이 개발 서버에서 `ps -o`로 메모리를 확인해봤는데
+
+아래는 요청을 보내기 전 메모리 상태이고,
+
+![img_19.png](img_19.png)
+
+아래는 요청을 보낸 후 메모리 상태입니다.
+
+![img_20.png](img_20.png)
+
+해당 부분 확인 결과 Java Application은 물론이고, 다른 프로그램도 크게 메모리를 사용하는 부분이 없었습니다.
+
+즉, 서버 내부에서 사용하는 메모리 공간도 아닌 것을 확인하실 수 있습니다.
+
+## 미궁속으로..
+
+Rancher의 메모리 급증 원인은 무엇일까요..
+
