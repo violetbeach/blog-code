@@ -8,8 +8,8 @@ the last packet successfully received from the server was 30,035 milliseconds ag
 
 조금더 로그를 올라가보니 이런 경고가 뜨고있었다. 아래와 같이 모든 커넥션으로 연결을 시도하다가 모두 실패했다.
 
-```java
-023-04-18 08:01:12.345  WARN 20 --- [nio-8080-exec-9] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@1d5d809b (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
+```
+2023-04-18 08:01:12.345  WARN 20 --- [nio-8080-exec-9] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@1d5d809b (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
 2023-04-18 08:01:12.346  WARN 20 --- [nio-8080-exec-2] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@656228eb (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
 2023-04-18 08:01:12.346  WARN 20 --- [nio-8080-exec-2] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@1ee6e7a8 (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
 2023-04-18 08:01:12.347  WARN 20 --- [nio-8080-exec-9] com.zaxxer.hikari.pool.PoolBase          : HikariPool-3 - Failed to validate connection com.mysql.cj.jdbc.ConnectionImpl@100d934e (No operations allowed after connection closed.). Possibly consider using a shorter maxLifetime value. 
@@ -30,9 +30,9 @@ App단의 HikariCP의 maxTimeOut으로 인해 커넥션 연결을 끊기도 전�
   - HikariCP는 Tomcat-dbcp와 달리 사용하지 않는 Connection을 빠르게 회수하도록 설계
   - Tomcat-dbcp는 지속적으로 DB에 Validation Query를 보내서 커넥션이 끊어지지 않도록 설계
   
-## 해결 방법 (잘 알려진 솔루션)
+## 해결 방법 (알려진 솔루션)
 
-![img.png](img.png)
+![img.png](images/img.png)
 
 위는 PoolBase.isConnectionAlive() 메서드이다. HikariCP는 이미 닫힌 커넥션으로 어떤 행위도 할 수 없다. 로그만 찍어준다.
 
@@ -92,13 +92,13 @@ hikari:
   connection-timeout: 10000
   validation-timeout: 10000
   max-lifetime: 580000
-  # 여기
+  # Session wait_timeout 수정
   connection-init-sql: set wait_timeout = 600
 ```
 
 spring.datasource.hikari.connection-init-sql을 사용하면 Connection 객체가 생성될 때 init SQL을 실행해서 세션 wait_timeout을 수정할 수 있다.
 
-나의 경우에는 다중 데이터 소스를 사용하고 있고, 각 DB마다 maxTimeOut이 달랐기 때문에 아래와 같이 설정할 수 있었다.
+나의 경우에는 다중 데이터 소스를 사용하고 있고 아래와 같이 설정할 수 있었다.
 
 ```java
 if(hikariConfig.getDriverClassName().equals("com.mysql.cj.jdbc.Driver")) {
@@ -109,7 +109,7 @@ if(hikariConfig.getDriverClassName().equals("com.mysql.cj.jdbc.Driver")) {
 
 위 코드는 세션의 wait_timeout을 HikariPool의 maxLifeTime보다 5초 더 높게  설정한다.
 
-결과적으로 더 이상 메모리 누수가 발생하지 않았고, maxLifeTime을 늘리라는 경고가 나타나지 않았다. 즉, 성공적으로 적용을 완료할 수 있었다!
+결과적으로 더 이상 메모리 누수가 발생하지 않았고 maxLifeTime을 늘리라는 경고가 나타나지 않았다. 성공적으로 적용을 완료할 수 있었고 현재도 문제 없이 운영중이다!
 
 ## 참고
 - https://jaehun2841.github.io/2020/01/08/2020-01-08-hikari-pool-validate-connection/#maxLifetime-wait-timeout-%EC%96%B4%EB%96%BB%EA%B2%8C-%EC%84%A4%EC%A0%95%ED%95%B4%EC%95%BC-%ED%95%98%EB%82%98%EC%9A%94
