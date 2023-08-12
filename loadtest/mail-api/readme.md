@@ -437,7 +437,13 @@ Number of Threads (users): 200
 
 ### 1. 예상대로 서비스 단위에서 Transaction이 열려서 DB 트랜잭션 안에서 스토리지에 저장하고 있었다.
 
-그래서 Service 단위의 트랜잭션을 제거했다. (Reader에서 트랜잭션을 가지고 있다.)
+그래서 Service 단위의 트랜잭션을 제거했다.
+
+![img_53.png](img/img_53.png)
+
+현재 코드 아키텍처에서 implementation Layer를 사용하고 있다. 해당 패키지에는 Reader, Writer, ...가 있었다.
+
+`Business`인 Service의 트랜잭션을 제거하고 `Implementation` Layer에서만 트랜잭션을 사용했다. 
 
 아래의 에러는 이제 나타나지 않았고,
 - HikariPool-4 - Connection is not available, request timed out after 30201ms.
