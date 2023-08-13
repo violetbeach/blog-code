@@ -52,8 +52,8 @@ Jackson2HttpMessageConverter는 Reflection으로 동작하기에 기본 생성�
 
 필드 값도 리플렉션을 통해 생성한 DTO에 Request Body의 값들을 할당한다.
 
-관련 commit은 아래에서 [확인할 수 있다.](https://github.com/verby-korea/verby-rest-api/commit/6fcf2f96b94d522bda69332b46e0e6b52341c84b)
-- https://github.com/verby-korea/verby-rest-api/commit/6fcf2f96b94d522bda69332b46e0e6b52341c84b
+관련 commit은 아래에서 확인할 수 있다.
+- https://github.com/violetbeach/verby-rest-api/commit/6fcf2f96b94d522bda69332b46e0e6b52341c84b
 
 
 ## 참고

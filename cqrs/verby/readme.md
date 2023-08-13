@@ -70,7 +70,7 @@ CQRS에서 조회 모델 생성을 비 관심사로 볼 지는 프로젝트의 �
 각 요소에 대한 설명을 담기에는 포스팅이 너무 커질 수 있어서 아래에서 링크를 첨부했다.
 
 각 모듈에 대한 의존성은 아래 Repository에서 확인할 수 있다. (Gradle 7.5 기반)
-- https://github.com/verby-korea/verby-server
+- https://github.com/violetbeach/verby-server
 
 ## 문제 해결
 
