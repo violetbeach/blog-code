@@ -295,7 +295,7 @@ public class ErrorCodeDocumentationTest extends BaseControllerTest {
 추가로 ErrorCode가 추가될 때마다 자동으로 문서에 반영되게 하여, 앞으로의 수고로움을 덜을 수 있을 것 같다.
 
 작성한 코드는 아래에서 확인할 수 있다.
-> https://github.com/verby-korea/verby-rest-api
+> https://github.com/violetbeach/verby-rest-api
 
 문서화한 결과는 아래와 같다.
 > https://api.verby.co.kr/docs/api-docs.html

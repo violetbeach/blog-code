@@ -351,7 +351,7 @@ where
 
 구간별로 로직을 제거하고 TPS 확인을 반복한 결과 TPS 병목 구간은 해당 구간이었다.
 
-(이상하게도 포스트맨 한번 요청할 시 0.3s밖에 안걸리는데 TPS가 12정도 밖에 안나왔다..)
+(이상하게도 포스트맨 한번 요청할 시 0.3s밖에 안걸리는데 TPS가 10.8 정도 밖에 안나왔다..)
 
 원인은 LEFT OUTER JOIN에 있다. mail_content와 personal_mailbox는 1대 0~1 관계임에도 불구하고 Left Outer Join을 사용하면서 문제가 생겼다.
 - 잠금 편지함 필터링 과정이 복잡해진다.
@@ -437,7 +437,13 @@ Number of Threads (users): 200
 
 ### 1. 예상대로 서비스 단위에서 Transaction이 열려서 DB 트랜잭션 안에서 스토리지에 저장하고 있었다.
 
-그래서 Service 단위의 트랜잭션을 제거했다. (Reader에서 트랜잭션을 가지고 있다.)
+그래서 Service 단위의 트랜잭션을 제거했다.
+
+![img_53.png](img/img_53.png)
+
+현재 코드 아키텍처에서 implementation Layer를 사용하고 있다. 해당 패키지에는 Reader, Writer, ...가 있었다.
+
+`Business`인 Service의 트랜잭션을 제거하고 `Implementation` Layer에서만 트랜잭션을 사용했다. 
 
 아래의 에러는 이제 나타나지 않았고,
 - HikariPool-4 - Connection is not available, request timed out after 30201ms.
