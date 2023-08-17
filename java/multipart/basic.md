@@ -167,6 +167,22 @@ POD 1개당 성능은 아래와 같습니다.
 
 ---
 
+## vfs_cache_pressure
+
+아래 블로그에 따르면 파일 입출력을 할때도 페이지 캐시라는 이유로 메모리를 사용합니다.
+- https://help.iwinv.kr/manual/read.html?idx=464
+
+위 지표에서도 해당 부분인 Active(file), Inactive(file) 때문에 Cached를 많이 사용하고 있습니다.
+
+`/proc/sys/vm/vfs_cache_pressure`를 수정하면 이러한 캐시의 사용량을 튜닝할 수 있습니다.
+- 숫자가 높을 수록 buffer의 비율을 높이고, cache의 비율을 낮춘다.
+
+기본 값은 100이지만, 파일 시스템을 많이 사용하는 서버에서 일반적으로 10000정도로 설정하여 문제를 해소한 사례가 많이 보입니다.
+
+자세한 설정은 아래 설명을 참고해주세요. 
+- https://www.baeldung.com/linux/file-system-caching
+
+
 ### ...
 
 
@@ -178,5 +194,9 @@ POD 1개당 성능은 아래와 같습니다.
 
 > 힙 덤프를 뜰 수 없어서 아쉬운 상황입니다..
 > 의견을 구하고 싶습니다..!
+
+
+## 참고
+- https://www.baeldung.com/linux/file-system-caching
 
 
