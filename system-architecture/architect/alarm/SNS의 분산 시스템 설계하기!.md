@@ -1,4 +1,4 @@
-## 2-3. 알림 서비스
+## 알림 시스템 설계
 
 하루에 백만 건 이상의 알림을 처리하는 시스템을 구축하는 게 쉬운 과제는 아니다. 먼저 아래의 가정이 추가로 필요할 수 있다.
 - 알림의 종류 (푸시 알림 / SMS / 이메일)
@@ -14,7 +14,7 @@ SMS나 EMAIL은 상용 서비스를 이용하면 된다.
 
 개략적 설계는 다음과 같다.
 
-![img_5.png](img_5.png)
+![img_5.png](images/img_5.png)
 
 여기서 문제를 몇가지 발견할 수 있다.
 - SPOF(Single-Point-Of-Failure): 단일 장애 포인트가 존재
@@ -28,7 +28,7 @@ SMS나 EMAIL은 상용 서비스를 이용하면 된다.
 
 아래는 해당 개선안을 반영한 것이다.
 
-![img_3.png](img_3.png)
+![img_3.png](images/img_3.png)
 
 각 컴포넌트의 역할은 아래와 같다.
 - 알림 서버
@@ -97,8 +97,14 @@ SMS나 EMAIL은 상용 서비스를 이용하면 된다.
 
 아래는 해당 고민들을 반영한 최종 설계안이다.
 
-![img_4.png](img_4.png)
+![img_4.png](images/img_4.png)
 
 이제 규모 확장(Scale out)이 가능하고 푸시 알림, SMS 메시지 알림, 이메일 등 다양한 정보 전달 방식을 지원하는 알림 시스템을 만들었다.
 
 시스템 컴포넌트 사이의 결합도를 낮추기 위해 Message Queue를 활용했고 안정성, 보안, 이벤트 추적, 사용자 설정, 전송률 제한, 실패 시 재시도 등의 처리까지 고려할 수 있었다.
+
+## 참고
+
+- https://product.kyobobook.co.kr/detail/S000001033116
+- https://smpark1020.tistory.com/401
+- https://thalals.tistory.com/441
