@@ -98,6 +98,54 @@ SNS 분산 아키텍처에서 사용할 채팅 시스템을 설계해보자. 아
 - 키-값 저장소: 채팅 이력(Chat history)를 보관
 
 
+#### 데이터 저장소
+
+이제 데이터 저장소를 선택해보자.
+
+발생할 데이터는 아래의 특징을 가진다.
+- 매일 600억 개의 메시지가 발생한다.
+- 대부분 사용자는 최근에 받은 메시지만을 사용한다.
+- 검색 기능을 이용하거나 특정 사용자가 언급된 메시지를 볼 수 있다.
+  - 특정 메시지로 점프(Jump)하여 데이터에 접근할 수도 있다.
+- 메시지를 수정할 수 없다.
+- 1:1 채팅의 경우 읽기와 쓰기 비율은 약 1:1이다.
+
+그래서 Key-Value 데이터베이스를 선택했다.
+- 수평적 규모확장이 쉽다.
+- 매우 낮은 Latency
+- 관계형 DB는 롱 테일(Long tail)에 대한 접근 비용이 크고 질의가 어렵다.
+- 많은 안정적인 채팅 시스템이 Key-Value DB를 사용한다. 페이스북 메신저는 HBase를 사용하고 디스코드는 Cassandra를 사용한다.
+
+테이블 설계는 아래와 같다.
+
+**message 테이블**
+
+기본 키는 message_id로 하고 순서를 정하는 역할도 담당한다. 
+
+| Json key     | Json value |
+|--------------|------------|
+| message_id   | bigint     |
+| message_from | bigint     |
+| message_to   | bigint     |
+| content      | text       |
+| created_at   | timestamp  |
+
+**group message 테이블**
+
+| Json key     | Json value |
+|--------------|------------|
+| channel_id   | bigint     |
+| message_id   | bigint     |
+| message_from | bigint     |
+| message_to   | bigint     |
+| content      | text       |
+| created_at   | timestamp  |
+
+
+
+
+
+
 
 
 ## 참고
