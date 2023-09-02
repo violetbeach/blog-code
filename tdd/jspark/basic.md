@@ -1,6 +1,6 @@
 ## 객체지향 생활 체조 원칙 9가지 이해하기!
 
-![img_1.png](img_1.png)
+![img_1.png](images/img_1.png)
 
 최근에 코드 리뷰를 <code>객체지향 생활 체조 원칙</code>를 기반으로 한다는 얘기를 처음 접했다.
 
@@ -298,7 +298,7 @@ public void validUnlock() {
 
 이 원칙은 객체지향 생활 체조 원칙 중에 가장 어려운 원칙으로 설명한다. 최대한 클래스를 많이 분리하게 강제하여 높은 응집도를 유지할 수 있게 한다.
 
-![img.png](img.png)
+![img.png](images/img.png)
 
 #### 기존 코드
 
