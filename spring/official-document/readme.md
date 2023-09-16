@@ -32,8 +32,10 @@ Spring 동작 방식은 아래와 같다.
 - RequestScope Bean을 사용하면 Spring MVC에서 ThreadLocal을 대체할 수 있다.
   - `SpringContext.getBean(T)`에서 리플렉션을 사용하므로 훨씬 느리다. 
   - Context Switching 비용은 줄일 수 있다.
+- AOP에서 빈을 프록시로 래핑하는 것은 BeanPostProcessor이다.
+- BeanPostPrecssor는 빈 초기화 콜백 메서드가 호출된 후, `InitializingBean.afterPropertiesSet()` 같은 컨테이너 초기화 메서드가 실행되기 전에 콜백을 받게 된다.
 
-> https://docs.spring.io/spring-framework/reference/core/beans/factory-nature.html
+> https://docs.spring.io/spring-framework/reference/core/beans/factory-extension.html
 
 ## 참고
 - https://docs.spring.io/spring-framework/reference
