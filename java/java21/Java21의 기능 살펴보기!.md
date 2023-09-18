@@ -160,6 +160,58 @@ String s = switch (score) {
 
 누락된 케이스가 넣으면 Java에서 컴파일 에러를 내기 때문에 안전하게 사용할 수 있다.
 
+## 가상 쓰레드
+
+트래픽이 많고, I/O가 자주 발생하는 요청 당 쓰레드 모델의 경우 많은 메모리를 사용하고 CPU를 낭비하게 된다.
+- 쓰레드당 메모리 사용
+- I/O 응답 대기, 컨텍스트 스위칭에 따른 CPU 낭비
+
+일반적인 해결 방법은 아래와 같다.
+- 비동기 I/O + 적은 쓰레드
+- **경량 쓰레드 + I/O 연동**
+
+가상 쓰레드란 I/O 중심 작업에서 처리량(성능)을 늘리기 위한 기능이다.
+- 대표적인 예: DB나 파일 시스템을 사용하는 웹 서버
+
+Java 19에 요청 당 쓰레드 모델 구조에서의 HW 최적화를 목적으로 preview로 추가된 가상 쓰레드가 **Java 21부터 정식으로 포함**된다.
+
+```java
+Thread virtual = Thread.ofVirtual()
+        .name("virtual")
+        .start(() -> {
+            callMethod();
+        });
+
+virtual.join
+```
+
+```java
+try (ExecutorService executor = Executors.newVirtualThreadperTaskExecutor()) {
+    executor.submit(() -> someCode())
+}
+```
+
+쓰레드 간 구조는 아래와 같다.
+
+![img_1.png](images/img_1.png)
+
+각 쓰레드의 동작은 아래와 같다.
+- PlatformThread는 Virtual Thread를 실행해서 작업 수행을 시킨다.
+- Virtual Thread에서 **Blocking**이 발생하면 PlatformThread는 **다른 VirtualThread에게 다른 작업을 시킨다.**
+- PlatformThread는 Blocking된 Virtual Thread의 블로킹이 해제되면 해당 쓰레드의 작업을 이어서 수행시킨다.
+
+성능 상 이점은 아래와 같다.
+- 스케줄링(Context Switching) 부하: Virtual Thread < Platform Thread
+- 메모리 사용: Virtual Thread < Platform Thread
+- I/O 블로키엥 따른 대기시간 낭비: Virtual Thread < Platform Thread
+
+문제는 **Pinned**가 발생할 수 있다는 점이 있다.
+- Platform Thread가 다른 Virtual Thread를 실행할 수 없게되는 현상
+- ex. synchronized 블록에서 I/O 블로킹이 발생할 경우, Native method나 foreign function을 사용할 경우
+
+VirtualThread의 경우 **기존 코드를 수정할 필요가 없으며** 풀링할 필요 없이 **필요할 때 생성**하면 된다.
+
+
 ## 정리
 
 Java 21에서는 `SequencedCollection`를 통해 `Collection`을 사용할 때 index를 사용해서 구현을 밖으로 노출하는 것이 아니라 가독성 좋은 코드와 자율적인 객체를 통해 더 객체지향적으로 프로그래밍을 할 수 있게 된 것 같다.
@@ -168,8 +220,13 @@ Java 21에서는 `SequencedCollection`를 통해 `Collection`을 사용할 때 i
 
 그래도 충분히 좋아진 것 같다는 생각이 든다. `record`와 `switch` 문의 패치도 유용하다고 생각되는 부분이 많다.
 
-빨리 POC 후 적용해보고 싶다.
+**Virtual thread**를 통해 코드 수정 없이 성능을 늘릴 수 있다. 사내 코드의 경우에도 파일 시스템이나 RDB에 많이 접근하기 때문에 꽤 유용할 수 있을 것 같다는 생각이 든다.
+
+빨리 충분한 POC 후 적용하고 싶다.
 
 ## 참고
 - https://www.youtube.com/watch?v=EUDnGF6mHjE&t
 - https://www.youtube.com/watch?v=8rVhPMEr2zQ
+- https://www.youtube.com/watch?v=srpOD6WIasM&t=36s
+- https://medium.com/javarevisited/how-to-use-java-19-virtual-threads-c16a32bad5f7
+- https://findstar.pe.kr/2023/04/17/java-virtual-threads-1/
