@@ -34,16 +34,30 @@ Spring 동작 방식은 아래와 같다.
   - Context Switching 비용은 줄일 수 있다.
 - AOP에서 빈을 프록시로 래핑하는 것은 BeanPostProcessor이다.
 - BeanPostPrecssor는 빈 초기화 콜백 메서드가 호출된 후, `InitializingBean.afterPropertiesSet()` 같은 컨테이너 초기화 메서드가 실행되기 전에 콜백을 받게 된다.
-- 스프링은 `JSR-250` 기반의 `@Resource` 애노테이션을 제공한다.
+- 스프링은 `JSR-250` 기반의 `@Resource` 등을 지원한다. (`@PostConstruct`, `@PreDestroy`)도 JSR-250 이다.
   - `@Autowired`는 필드 타입을 기준으로, `@Resource`는 필드 이름을 기준으로 빈을 찾는다.
+- 스프링은 `JSR-330` 기반의 `@Inject`, `@Named`, `@Singleton` 등을 지원한다.
 - `@Qualifier`는 빈의 이름과 다르다.
 - `@Qualifier`를 상속하면 카테고리 문제를 푸는 데 도움이 된다. [Link](https://docs.spring.io/spring-framework/reference/core/beans/annotation-config/autowired-qualifiers.html)
 - `@Qualifier`는 `@Primary`보다 우선권이 높다.
-- `@PostConstruct`, `@PreDestroy`는 Spring 기술이 아닌 `JSR-250` 스펙에서 지원하는 기술이다.
 - `@Controller`, `@Repository`, `@Service` 등의 애노테이션은 `@Component` 애노테이션 이외에도 예외 자동 변환 등의 기능을 제공한다.
 - `@Lazy`는 제한적이기 때문에 `ObjectProvider<Bean>` 방식을 권장한다.
+- `@Bean` 애노테이션은 `@Component` 애노테이션과 다르게 `CGLIB` 프록시를 생성한다.
+  - 그래서 `private` 또는 `final` 메서드를 사용할 수 없다.
+- `@Component` 애노테이션 표준 자바 시멘틱을 가진다.
+- `lite mode`란 CGLib 방식이 아닌 방식을 말한다. 스프링 빈의 싱글톤을 보장하지 않는다. [Link](https://hyojabal.tistory.com/25)
+- `AnnotationConfigApplicationContext` 구현으로 `@Bean`, `@Compoennt`, `@Configuration`, `JSR-330` 등의 애노테이션을 인식한다.
+- `@Configuration` 애노테이션도 `@Component`를 포함한다.
+- `@Profile`, `@ActiveProfiles` 애노테이션에서는 `!`, `&`, `|` 등을 활용한 복잡한 표현식을 지원한다.
 
-> https://docs.spring.io/spring-framework/reference/core/beans/factory-extension.html
+> https://docs.spring.io/spring-framework/reference/core/beans/java/bean-annotation.html
+
+## 소감
+
+정독을 하면서 모르는 걸 하나씩 알게 되고 메모했고, 그것들이 합쳐져서 스프링에 대한 지식이 더 깊어짐을 느꼈다.
+
+입문자..(?)는 조금 어려울 수 있지만, 스프링에 대해 더 깊게 이해하고 싶은 사람이 있다면 꼭 추천한다!
+
 
 ## 기타
 
