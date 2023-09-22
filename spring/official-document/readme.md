@@ -50,6 +50,29 @@ Spring 동작 방식은 아래와 같다.
 - `@Configuration` 애노테이션도 `@Component`를 포함한다.
 - `@Profile`, `@ActiveProfiles` 애노테이션에서는 `!`, `&`, `|` 등을 활용한 복잡한 표현식을 지원한다.
 
+## Template Method 패턴
+
+공식 레퍼런스를 보면서 스스로 생각하는 스프링 프레임워크가 지금까지도 잘 유지되고 있는 이유를 찾았다.
+
+바로 `Template Method` 패턴이다.
+
+공식문서를 보면서 `Scope` 인터페이스를 구현할 수도 있지만, `ScopeMetadataResolver`와 같은 해당 인터페이스를 사용하는 쪽도 모두 인터페이스로 되어있다.
+
+작업 A를 하기 위해서 A -> B -> C -> D Task로 나눈다고 봤을 때 A, B, C, D 모두 인터페이스로 되어 있고 템플릿 메서드패턴으로 설계되어 있다.
+
+예를 들면 아래의 것들이 전부 인터페이스인 것과 같다.
+- Servlet
+- HandlerMapping
+- HandlerAdapter
+- ViewResolver
+- ExceptionHandler
+- ThemeResolver
+- ...
+
+즉, Task 자체를 Interface로 나타내고 구현은 절대 담지 않는 것이다.
+
+이 방법의 장점은 초기 설계만 잘하면 무수한 기능의 확장과 기술의 발전이 가능하다. 설령 초기 설계를 못했더라도 특정 Task 들을 묶어서 인터페이스를 교체하면 된다.
+
 > https://docs.spring.io/spring-framework/reference/core/beans/java/bean-annotation.html
 
 ## 소감
