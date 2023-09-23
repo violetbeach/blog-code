@@ -49,6 +49,10 @@ Spring 동작 방식은 아래와 같다.
 - `AnnotationConfigApplicationContext` 구현으로 `@Bean`, `@Compoennt`, `@Configuration`, `JSR-330` 등의 애노테이션을 인식한다.
 - `@Configuration` 애노테이션도 `@Component`를 포함한다.
 - `@Profile`, `@ActiveProfiles` 애노테이션에서는 `!`, `&`, `|` 등을 활용한 복잡한 표현식을 지원한다.
+- `MessageCodesResolver`를  구현하면 단계적인 검증 에러 메시지를 사용할 수 있다.
+- `BeanWrapper`를 사용하면 빈을 조작할 수 있다.
+- `TypeDescriptor`를 활용하면 제너릭을 추출할 수 있다. [Link](https://docs.spring.io/spring-framework/reference/core/validation/convert.html)
+- `Formatter`를 사용하면 Date 등과 String 사이를 변환하는 것을 전역적으로 적용할 수 있다.
 
 ## Template Method 패턴
 
@@ -73,7 +77,7 @@ Spring 동작 방식은 아래와 같다.
 
 이 방법의 장점은 초기 설계만 잘하면 무수한 기능의 확장과 기술의 발전이 가능하다. 설령 초기 설계를 못했더라도 특정 Task 들을 묶어서 인터페이스를 교체하면 된다.
 
-> https://docs.spring.io/spring-framework/reference/core/beans/java/bean-annotation.html
+> https://docs.spring.io/spring-framework/reference/core/validation/beanvalidation.html
 
 ## 소감
 
