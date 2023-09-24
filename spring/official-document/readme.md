@@ -53,6 +53,9 @@ Spring 동작 방식은 아래와 같다.
 - `BeanWrapper`를 사용하면 빈을 조작할 수 있다.
 - `TypeDescriptor`를 활용하면 제너릭을 추출할 수 있다. [Link](https://docs.spring.io/spring-framework/reference/core/validation/convert.html)
 - `Formatter`를 사용하면 Date 등과 String 사이를 변환하는 것을 전역적으로 적용할 수 있다.
+- `SpEL`은 수식 및 메서드 등 생각하는 대부분의 표현이 전부 가능하다.
+- `EvaluationContext`를 사용하면 `Context`에 변수를 생하는 등 표현식을 더 폭넓게 사용할 수 있다.
+  - `student?.name`과 같은 훨씬 다양한 처리가 가능하다.
 
 ## Template Method 패턴
 
@@ -77,7 +80,7 @@ Spring 동작 방식은 아래와 같다.
 
 이 방법의 장점은 초기 설계만 잘하면 무수한 기능의 확장과 기술의 발전이 가능하다. 설령 초기 설계를 못했더라도 특정 Task 들을 묶어서 인터페이스를 교체하면 된다.
 
-> https://docs.spring.io/spring-framework/reference/core/validation/beanvalidation.html
+> https://docs.spring.io/spring-framework/reference/core/aop.html
 
 ## 소감
 
