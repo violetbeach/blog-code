@@ -109,7 +109,7 @@ if(hikariConfig.getDriverClassName().equals("com.mysql.cj.jdbc.Driver")) {
 
 위 코드는 세션의 wait_timeout을 HikariPool의 maxLifeTime보다 5초 더 높게  설정한다.
 
-결과적으로 더 이상 메모리 누수가 발생하지 않았고 maxLifeTime을 늘리라는 경고가 나타나지 않았다. 성공적으로 적용을 완료할 수 있었고 현재도 문제 없이 운영중이다!
+결과적으로 더 이상 커넥션 누수가 발생하지 않았고 maxLifeTime을 늘리라는 경고가 나타나지 않았다. 성공적으로 적용을 완료할 수 있었고 현재도 문제 없이 운영중이다!
 
 ## 참고
 - https://jaehun2841.github.io/2020/01/08/2020-01-08-hikari-pool-validate-connection/#maxLifetime-wait-timeout-%EC%96%B4%EB%96%BB%EA%B2%8C-%EC%84%A4%EC%A0%95%ED%95%B4%EC%95%BC-%ED%95%98%EB%82%98%EC%9A%94
