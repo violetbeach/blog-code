@@ -59,6 +59,7 @@ Spring 동작 방식은 아래와 같다.
 - Spring AOP는 순수 java로 구현된다.
 - Spring은 `AspectJ`를 비롯한 대부분의 프레임워크가 비즈니스 및 도메인 모델에 침해하지 않도록 구현되었다.
 - `Spring AOP`는 여러 개를 사용하고 우선 순위를 지정할 수 있다.
+- Spring은 Proxy 매커니즘에서 자체 호출 문제에 대한 방향을 제시하고 있다. [Link](https://docs.spring.io/spring-framework/reference/core/aop/proxying.html)
 
 ## Template Method 패턴
 
