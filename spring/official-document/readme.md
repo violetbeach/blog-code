@@ -64,6 +64,7 @@ Spring 동작 방식은 아래와 같다.
 - Spring은 Java에서 NIO를 위해 지원하는 `ByteBuffer` 외에도 버퍼 재사용 및 성능에 도움되는 `DataBuffer`를 제공한다.
 - Spring은 `AOT` 최적화를 지원한다.
   - 정확한 빈 타입 노출 등을 통해 `AOT`를 잘 제공할 수 있는 예시를 제공한다. ([Best Practices](https://docs.spring.io/spring-framework/reference/core/aot.html#aot.bestpractices)를 제공한다.)
+- `META-INF`는 `spring.factories` 이외에도 `spring.handlers`, `spring.schemas` 등을 사용해서 문제를 풀거나 최적화할 수 있다.
 
 ## Template Method 패턴
 
@@ -88,7 +89,7 @@ Spring 동작 방식은 아래와 같다.
 
 이 방법의 장점은 초기 설계만 잘하면 무수한 기능의 확장과 기술의 발전이 가능하다. 설령 초기 설계를 못했더라도 특정 Task 들을 묶어서 인터페이스를 교체하면 된다.
 
-> https://docs.spring.io/spring-framework/reference/core/databuffer-codec.html
+> https://docs.spring.io/spring-framework/reference/core/appendix/application-startup-steps.html
 
 ## 소감
 
