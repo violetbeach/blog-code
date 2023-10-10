@@ -65,6 +65,11 @@ Spring 동작 방식은 아래와 같다.
 - Spring은 `AOT` 최적화를 지원한다.
   - 정확한 빈 타입 노출 등을 통해 `AOT`를 잘 제공할 수 있는 예시를 제공한다. ([Best Practices](https://docs.spring.io/spring-framework/reference/core/aot.html#aot.bestpractices)를 제공한다.)
 - `META-INF`는 `spring.factories` 이외에도 `spring.handlers`, `spring.schemas` 등을 사용해서 문제를 풀거나 최적화할 수 있다.
+- Spring 팀도 공식적으로 TDD를 지지한다. (IoC를 제대로 사용하면 단위 테스트와 통합 테스트가 용이하다고 한다.)
+  - `org.springframework.mock`, `org.springframework.test` 패키지에서 매우 다양하면서 **충분한 지원**을 하고 있다.
+- `TestExecutionListener`를 사용하면 테스트를 격리 시키기 용이하다.
+- `TestContext`에 대해서도 매우 자세히 다루고 있다.
+  - `TestContext`는 static 변수에 저장된다. 최대 크기는 32이고 LRU를 사용한다.
 
 ## Template Method 패턴
 
