@@ -67,9 +67,15 @@ Spring 동작 방식은 아래와 같다.
 - `META-INF`는 `spring.factories` 이외에도 `spring.handlers`, `spring.schemas` 등을 사용해서 문제를 풀거나 최적화할 수 있다.
 - Spring 팀도 공식적으로 TDD를 지지한다. (IoC를 제대로 사용하면 단위 테스트와 통합 테스트가 용이하다고 한다.)
   - `org.springframework.mock`, `org.springframework.test` 패키지에서 매우 다양하면서 **충분한 지원**을 하고 있다.
+- Spring은 단위 테스트 뿐만 아니라 End-to-End 통합 테스트의 필요성도 지지한다.
 - `TestExecutionListener`를 사용하면 테스트를 격리 시키기 용이하다.
 - `TestContext`에 대해서도 매우 자세히 다루고 있다.
   - `TestContext`는 static 변수에 저장된다. 최대 크기는 32이고 LRU를 사용한다.
+- `MockRestServiceServer`를 사용해서 특정 endpoint에 대한 API를 Mocking할 수 있다.
+- `HtmlUnit`을 사용하면 js문법으로 뷰도 검증할 수 있다.
+- 테스트의 트랜잭션은 `TransactionalTestExecutionListener`에 의해 롤백된다.
+  - `ThreadLocal`에 현재 트랜잭션 상태를 관리한다.
+- JPAEntity를 안전하게 테스트하려면 명시적인 `flush()`를 호출해야 한다.
 
 ## Template Method 패턴
 
@@ -94,7 +100,7 @@ Spring 동작 방식은 아래와 같다.
 
 이 방법의 장점은 초기 설계만 잘하면 무수한 기능의 확장과 기술의 발전이 가능하다. 설령 초기 설계를 못했더라도 특정 Task 들을 묶어서 인터페이스를 교체하면 된다.
 
-> https://docs.spring.io/spring-framework/reference/core/appendix/application-startup-steps.html
+> https://docs.spring.io/spring-framework/reference/data-access/transaction.html
 
 ## 소감
 
