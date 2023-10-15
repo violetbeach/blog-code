@@ -1,31 +1,15 @@
-최근에 AOP를 비롯해서 Spring 기술을 정확하게 모른다는 생각이 들었다.
-
-실무만 장애없이 처리할 수 있는 수준으로 구사할 수 있다.
+최근에 Spring 기술을 정확하게 모른다는 생각이 들었다.  (실무만 장애없이 처리할 수 있는 수준으로 구사할 수 있다.)
 
 그래서 Spring에 대해 더 자세히 알고 사용하고 싶고 더 깊은 레벨로 문제를 근본적으로 해결하고 싶어서 공식 문서를 정독하기로 했다.
 
 아래는 Spring 공식 문서를 정독한 것을 기록한 것이다.
 
-## 핵심 기술
+> 이번 게시글은 **공유**보다는 **기록**이 목적이라 가독성이 매우 좋지 않아요.. ㅠ 참고부탁드립니다!
 
-> Foremost amongst these is the Spring Framework’s Inversion of Control (IoC) container. A thorough treatment of the Spring Framework’s IoC container is closely followed by comprehensive coverage of Spring’s Aspect-Oriented Programming (AOP) technologies. The Spring Framework has its own AOP framework, which is conceptually easy to understand and which successfully addresses the 80% sweet spot of AOP requirements in Java enterprise programming.
+## 새롭게 알게 되었거나 정확히 모르던 것 정리
 
-스프링의 수 많은 핵심 기술 중 가장 중요한 것은 `IOC Container`라고 소개한다. 그 뒤에 `AOP` 기술에 대한 내용이 밀접하게 관련되어 있다.
-
-## Container
-
-`ApplicationContext`는 `Spring IOC 컨테이너`를 의미하며 Bean의 인스턴스화, 구성 및 어셈블을 담당한다.
-
-과거에는 `ClassPathXmlApplicationContext`나 `FileSystemXmlApplicationContext`의 인스턴스를 생성했지만 지금은 `Java 기반 구성`이나 `Groovy` 기반 구성을 사용하도록 컨테이너에 지시할 수 있다.
-
-Spring 동작 방식은 아래와 같다.
-
-![img.png](img.png)
-
-## 새롭게 알게 되었거나 정확히 모르던 것
-
-- 빈은 2개 이상의 이름을 가질 수 있다. `@Bean` 애노테이션을 사용할 경우 `name` 옵션을 `,`로 연결하면 된다.
 - 빈은 정적 팩토리 메서드로도 생성할 수 있다.
+- 빈은 2개 이상의 이름을 가질 수 있다. `@Bean` 애노테이션을 사용할 경우 `name` 옵션을 `,`로 연결하면 된다.
 - 지연 초기화를 사용하면 특수한 경우 성능을 Safe 할 수 있다. (DI도 지연이 가능하다.)
 - final class는 CGLib 기반 프록시를 생성할 수 없다. (final method가 있어서도 안된다.)
 - Lookup Method Injection을 사용하면 싱글톤 Bean에서 프로토타입 범위의 Bean을 사용할 수 있다.
@@ -76,16 +60,23 @@ Spring 동작 방식은 아래와 같다.
 - 테스트의 트랜잭션은 `TransactionalTestExecutionListener`에 의해 롤백된다.
   - `ThreadLocal`에 현재 트랜잭션 상태를 관리한다.
 - JPAEntity를 안전하게 테스트하려면 명시적인 `flush()`를 호출해야 한다.
+- Spring Transaction에서도 `Mono`와 `Flux` 같은 Reactor는 메이저하게 다루고 있다.
+- 여러 개의 TransactionManager를 사용할 수 있다. (eg. `@Transactional("order")`)
+  - label을 붙여서 공통적인 처리도 할 수 있다.
+- `Spring R2DBC` 종류도 이미 `JDBC`와 동급으로 메이저한 스택으로 작성되어 있다.
+- `Transactional`의 `isolation` 중 `REQUIRES_NEW`의 데드락 이슈는 공식문서에서도 다루고 있다.
+- Spring Jdbc는 `Stored Procedure`를 위한 `SimpleJdbcCall` 클래스를 지원한다.
+- Context의 Layer를 설정하는 것도 공식적으로 제공한다. [Link](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-servlet/context-hierarchy.html) 
 
 ## Template Method 패턴
 
-공식 레퍼런스를 보면서 스스로 생각하는 스프링 프레임워크가 지금까지도 잘 유지되고 있는 이유를 찾았다.
+공식 레퍼런스를 보면서 스스로 생각하는 스프링 프레임워크가 지금까지도 잘 유지되고 있는 이유를 나름대로 찾을 수 있었다.
 
 바로 `Template Method` 패턴이다.
 
 공식문서를 보면서 `Scope` 인터페이스를 구현할 수도 있지만, `ScopeMetadataResolver`와 같은 해당 인터페이스를 사용하는 쪽도 모두 인터페이스로 되어있다.
 
-작업 A를 하기 위해서 A -> B -> C -> D Task로 나눈다고 봤을 때 A, B, C, D 모두 인터페이스로 되어 있고 템플릿 메서드패턴으로 설계되어 있다.
+작업 A를 하기 위해서 A -> B -> C -> D Task로 나눈다고 봤을 때 A, B, C, D 모두 인터페이스로 추상화해서 템플릿 메서드 패턴으로 설계되어 있다.
 
 예를 들면 아래의 것들이 전부 인터페이스인 것과 같다.
 - Servlet
@@ -100,11 +91,11 @@ Spring 동작 방식은 아래와 같다.
 
 이 방법의 장점은 초기 설계만 잘하면 무수한 기능의 확장과 기술의 발전이 가능하다. 설령 초기 설계를 못했더라도 특정 Task 들을 묶어서 인터페이스를 교체하면 된다.
 
-> https://docs.spring.io/spring-framework/reference/data-access/transaction.html
-
 ## 소감
 
 정독을 하면서 모르는 걸 하나씩 알게 되고 메모했고, 그것들이 합쳐져서 스프링에 대한 지식이 더 깊어짐을 느꼈다.
+
+작성한 부분 이외에도 많은 부분들에 대한 다양한 지식이 생기는 것을 느꼈다.
 
 입문자..(?)는 조금 어려울 수 있지만, 스프링에 대해 더 깊게 이해하고 싶은 사람이 있다면 꼭 추천한다!
 
