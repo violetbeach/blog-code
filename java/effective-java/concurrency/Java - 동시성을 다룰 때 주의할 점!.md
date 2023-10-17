@@ -101,32 +101,32 @@ public static String intern(String s) {
 ```java
 public static long time(Executor executor, int concurrency,
                             Runnable action) throws InterruptedException {
-        CountDownLatch ready = new CountDownLatch(concurrency);
-        CountDownLatch start = new CountDownLatch(1);
-        CountDownLatch done = new CountDownLatch(concurrency);
+    CountDownLatch ready = new CountDownLatch(concurrency);
+    CountDownLatch start = new CountDownLatch(1);
+    CountDownLatch done = new CountDownLatch(concurrency);
 
-        for (int i = 0; i < concurrency; i++) {
-            executor.execute(() -> {
-                // 타이머에게 준비가 됐음을 알린다.
-                ready.countDown();
-                try {
-                    // 모든 작업자 스레드가 준비될 때까지 기다린다.
-                    start.await();
-                    action.run();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } finally {
-                    // 타이머에게 작업을 마쳤음을 알린다.
-                    done.countDown();
-                }
-            });
-        }
+    for (int i = 0; i < concurrency; i++) {
+        executor.execute(() -> {
+            // 타이머에게 준비가 됐음을 알린다.
+            ready.countDown();
+            try {
+                // 모든 작업자 스레드가 준비될 때까지 기다린다.
+                start.await();
+                action.run();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } finally {
+                // 타이머에게 작업을 마쳤음을 알린다.
+                done.countDown();
+            }
+        });
+    }
 
-        ready.await(); // 모든 작업자가 준비될 때까지 기다린다.
-        long startNanos = System.nanoTime();
-        start.countDown(); // 작업자들을 깨운다.
-        done.await(); // 모든 작업자가 일을 끝마치기를 기다린다.
-        return System.nanoTime() - startNanos;
+    ready.await(); // 모든 작업자가 준비될 때까지 기다린다.
+    long startNanos = System.nanoTime();
+    start.countDown(); // 작업자들을 깨운다.
+    done.await(); // 모든 작업자가 일을 끝마치기를 기다린다.
+    return System.nanoTime() - startNanos;
 }
 ```
 
@@ -145,11 +145,9 @@ API 문서에 `synchronized`가 보인다고 스레드가 안전하다는 말은
 - 스레드 안전하지 않음: 이 클래스의 인스턴스는 수정될 수 있다. 동기화가 필요하다면 외부에서 직접 수행해야 한다.
 - 스레드 적대적: 이 클래스는 외부에서 동기화가 불가능하다. (정적 데이터를 내부에서 마음대로 수정하는 경우)
 
-멀티스레드 환경에서도 API를 안전하게 사용하려면 반드시 **스레드 안전성 수준**을 명시해야 한다.
-
 예시로 `Collections.synchronizedMap()`을 살펴보자.
 
-![img.png](img.png)
+![img.png](images/img.png)
 
 설명에는 아래 내용이 기술되어 있다.
 
@@ -157,13 +155,52 @@ API 문서에 `synchronized`가 보인다고 스레드가 안전하다는 말은
 > 
 > 코드대로 따르지 않으면 동작을 예측할 수 없다.
 
+멀티스레드 환경에서 API를 안전하게 사용하려면 반드시 **스레드 안전성 수준**을 명시해야 한다.
+
 #### 번외 - final
 
 만약 멀티쓰레드 환경에서 공유하는 객체를 사용하고자 한다면 final 키워드를 반드시 사용해야 한다.
 
-Spring MVC에서 Singleton을 사용하는 경우에서 우리는 에러를 조기에 확인하기 위해 **생성자 주입**과 **final 키워드**를 활용한다.
+예시로 Singleton을 사용하는 경우에서 우리는 에러를 조기에 확인하기 위해 **생성자 주입**과 **final 키워드**를 활용한다.
 
 에러 조기 확인뿐 아니라 **final 키워드**를 사용해야 공유하는 **인스턴스가 교체되는 것을 막을 수 있다.**
+
+## 스케줄러에 기대지 않기
+
+아래는 busy waiting을 하는 좋지 않은 예시이다.
+
+```java
+public class SlowCountDownLatch {
+    private int count;
+
+    public SlowCountDownLatch(int count) {
+        if (count < 0)
+            throw new IllegalArgumentException(count + " < 0");
+        
+        this.count = count;
+    }
+
+    public void await() {
+        while (true) {
+            synchronized(this) {
+                if (count == 0)
+                    return;
+            }
+        }
+    }
+    
+    public synchronized void countDown() {
+        if (count != 0)
+            count--;
+    }
+}
+```
+
+해당 코드에서는 공유 객체의 상태가 바뀔 때까지 쉬지 않고 검사를 한다. 개발자는 '스케줄러가 어떻게든 최적화 해주지 않을까..?' 기대하지만 실상은 자바의 `CountDownLatch`보다 1000배 가량 느리다.
+
+스레드가 당장 처리할 작업이 없다면 실행하지 않는 매커니즘으로 구현해야하고, 스레드 우선순위는 자바에서 이식성이 가장 나쁜 특성이므로 바꾸려 해서는 안된다.
+
+잘 모른다면 그냥 공식적으로 제공하는 API를 사용하는 것이 바람직하다.
 
 ## 참고
 
