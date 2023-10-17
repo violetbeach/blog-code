@@ -60,13 +60,16 @@
 - 테스트의 트랜잭션은 `TransactionalTestExecutionListener`에 의해 롤백된다.
   - `ThreadLocal`에 현재 트랜잭션 상태를 관리한다.
 - JPAEntity를 안전하게 테스트하려면 명시적인 `flush()`를 호출해야 한다.
-- Spring Transaction에서도 `Mono`와 `Flux` 같은 Reactor는 메이저하게 다루고 있다.
+- Spring은 `WebFlux`도 그렇고 `Mono`와 `Flux` 같은 Reactor는 메이저하게 다루고 있다.
 - 여러 개의 TransactionManager를 사용할 수 있다. (eg. `@Transactional("order")`)
   - label을 붙여서 공통적인 처리도 할 수 있다.
 - `Spring R2DBC` 종류도 이미 `JDBC`와 동급으로 메이저한 스택으로 작성되어 있다.
 - `Transactional`의 `isolation` 중 `REQUIRES_NEW`의 데드락 이슈는 공식문서에서도 다루고 있다.
 - Spring Jdbc는 `Stored Procedure`를 위한 `SimpleJdbcCall` 클래스를 지원한다.
-- Context의 Layer를 설정하는 것도 공식적으로 제공한다. [Link](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-servlet/context-hierarchy.html) 
+- Context의 Layer를 설정하는 것도 공식적으로 제공한다. [Link](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-servlet/context-hierarchy.html)
+- WebSocket 방식도 공식적으로 지원한다.
+- `Reactor Netty`, `Undertow`, `Tomcat`, `Jetty`와 같은 것들을 **ServletContainer**라고 명칭나다.
+- `@CrossOrigin` 애노테이션으로 특정 Controller 혹은 Controller 메서드에만 모든 origins, headers, http methods를 허용하는 등의 처리를 할 수 있다.
 
 ## Template Method 패턴
 
@@ -101,3 +104,6 @@
 
 ## 참고
 - https://docs.spring.io/spring-framework/reference
+
+진행상황
+- https://docs.spring.io/spring-framework/reference/web/webflux-webclient.html
