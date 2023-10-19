@@ -85,6 +85,47 @@ PostMan의 문제가 아닐까..? 생각했지만 아래와 같이 서버에서 
 
 ![img_7.png](img_7.png)
 
+## AbstractMessageConverterMethodProcessor
+
+위 두 가지 동작을 디버깅해본 결과 아래 사실을 알 수 있었다.
+
+`Accept`가 `*/*` 또는 `application/json`으로 보낸 경우에는 `AbstractMessageConverterMethodProcessor`의 `writeWithMessageConverters` 동작 중 `compatibleMediaTypes`의 size가 2가 나왔고, 예외가 터지지 않았다.
+
+![img_12.png](img_12.png)
+
+`compatibleMediaTypes`는 아래와 같았다.
+
+![img_13.png](img_13.png)
+
+결과적으로 아래와 같이 Body에 에러 메시지를 쓰고 **flush** 할 수 있었다.
+
+![img_11.png](img_11.png)
+
+## Accept: application/octet-stream
+
+`Accept: application/octet-stream`으로 요청을 보낸 것을 디버깅 한 결과 `compatibleMediaTypes`가 비어있어서 예외가 터지고 Body에 데이터를 쓰지 못했다.
+
+![img_14.png](img_14.png)
+
+`compatibleMediaTypes`는 `Accept`로 들어왔던 `application/octet-stream`이 **Body 데이터를 표현할 수 있는 타입과 호환 되는 타입**들을 반환한다. 
+
+![img_15.png](img_15.png)
+
+즉, `application/octet-stream`으로 Body를 나타낼 수 없다고 판단했기에 Spring이 데이터를 내려주지 않은 것이다.
+
+## application/problem+json를 추가
+
+`Accept` 헤더는 복수 개를 명시할 수 있다. 여기서 `application/problem+json`을 사용한다면 이를 해결할 수 있다.
+- `problem` 뿐 아니라 Custom한 다른 용어를 사용해도 정상적으로 동작한다.
+
+![img_17.png](img_17.png)
+
+![img_16.png](img_16.png)
+
+
+
+
+
 
 
 ## 참고
