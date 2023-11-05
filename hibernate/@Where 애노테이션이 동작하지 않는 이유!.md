@@ -1,6 +1,6 @@
-## @Where 애노테이션이 동작하지 않는 이유
+## \@Where 애노테이션이 동작하지 않는 이유
 
-실무에서 Mail에 인덱스가 안타는 문제가 발생했다.
+실무에서 Mail 일괄 수정 시  인덱스가 안타는 문제가 발생했다.
 
 이유는 `@Where(clause = "del_flag = 'N'")`을 했는데, QueryDsl을 사용한 조회에서는 **해당 조건을 수행하지 않아서** 인덱스를 탈 수 없었다.
 
@@ -78,11 +78,11 @@ Select는 예상대로 잘 실행 되었다. `@Where`애노테이션의 `clause`
 
 ![img_1.png](images/img_1.png)
 
-그러나 Where절은 테스트가 실패했다. 조건이 들어갔다면 1개만 변경되었을 텐데 2개 모두 영향을 받았다. 
+그러나 Update는 테스트가 실패했다. 조건이 들어갔다면 1개만 변경되었을 텐데 2개 row가 모두 영향을 받았다. 
 
 ![img_2.png](images/img_2.png)
 
-역시나 조건이 수행되지 않았다.
+`@Where`의 조건이 수행되지 않았다.
 
 ![img_3.png](images/img_3.png)
 
@@ -96,13 +96,13 @@ Select는 예상대로 잘 실행 되었다. `@Where`애노테이션의 `clause`
 
 ![img_6.png](images/img_6.png)
 
-즉, `Persist(조회 및 영속화)`에서만 `Where` 조건이 사용된다.
+해당 부분은 `Persist(조회 및 영속화)`에서만 사용되고 있었다.
 
 `Querydsl`의 `update()`는 영속화한 후 `save`하는 방식이 아니라, 영속성과 관계없이 바로 `Update`를 날려버린다.
 
-그래서 동작할 수가 없는 것이다.
+그래서 동작하지 않았다.
 
-## @Modifying
+## \@Modifying
 
 한 가지 의문이 들었다.
 
@@ -135,11 +135,11 @@ class LearningRepositoryTest {
 }
 ```
 
-`Querydsl`로 조회했을 때와 마찬가지로 `@Where` 애노테이션이 동작하지 않는다.
+`Querydsl`로 Update할 때와 마찬가지로 `@Where` 애노테이션이 동작하지 않는다.
 
 ![img_4.png](images/img_4.png)
 
-즉, `JPA`에서도 `Modifying`을 사용한 쿼리에서는 `@Where`이 동작하지 않는다. 
+즉, `JPA`에서도 `@Modifying`을 사용한 쿼리에서는 `@Where`이 동작하지 않았다.
 
 ## 그럼 어떻게 할까?
 
@@ -171,20 +171,20 @@ class LearningRepositoryTest {
 
 ![img_16.png](images/img_16.png)
 
+정리하면 Hibernate 6.0 버전 이후에서는 `@Where` 애노테이션의 내용이 적용된 `UpdateState`를 생성해서 `AST`를 생성하고 실행한다. 그래서 `@Where` 애노테이션이 정상적으로 적용된다.
+
 6.0 버전 이전에는 이러한 과정이 없으며 Update에서는 인자로 들어온 주어진 JPQL만 실행했다.
 
-즉, Hibernate를 6.0 이후로 업그레이드하면 `@Where` 애노테이션이 정상적으로 동작한다.
-
-(참고로 `@Where` 애노테이션은 6.3 부터 Deprecated되고 `@SQLRestriction`를 사용하라고 권장한다.)
+(참고로 `@Where` 애노테이션은 6.3 부터 **Deprecated**되고 `@SQLRestriction`를 사용하라고 권장한다.)
 
 ## 마무리
 
-6.0 이전 버전의 `@Where`의 버그는 `release notes`에서 찾지는 못했다. 
+6.0 이전 버전의 `@Where`의 버그에 대한 내용은 `release notes`에서 찾지는 못했다. 
 
-이러한 변경사항은 `6.0.0`에 적용되었다. 버그에 대해 직접적으로 언급하거나 다루지는 않았지만 `HQL`에서 `SQM`을 지원하게 되었다. `SQM`에 대해서는 아래에서 기술하고 있다.
+변경사항은 `6.0.0`에 적용되었다. 버그에 대해 직접적으로 언급하거나 다루지는 않았지만 `HQL`에서 `SQM`을 지원하게 되었다. `SQM`에 대해서는 아래에서 기술하고 있다.
 - https://github.com/hibernate/hibernate-orm/blob/main/design/sqm.adoc
 
-`SQM`의 지원과 `AST`가 개선되고 `SQL` 과의 변환도 가능하게 되면서 `@Where` 애노테이션이 동작하지 않는 문제도 해결된 것으로 보인다.
+`SQM`의 지원과 `AST`가 개선되고 `SQL` 과의 변환도 가능하게 되면서 `@Where` 애노테이션이 동작하지 않는 문제도 **해결**된 것으로 보인다.
 
 ## 참고
 - https://github.com/hibernate/hibernate-orm/blob/main/changelog.txt
