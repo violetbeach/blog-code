@@ -287,7 +287,7 @@ public void validUnlock() {
 - 실제로는 관리가 꽤 어려웠다.
 
 클래스의 접근 제한자는 public, package-private(default)밖에 없다.
-- 그래서 팀바팀이겠지만 public으로 두고 패키지를 분리하는 것이 더 합리적일 수 있따.
+- 그래서 팀바팀이겠지만 public으로 두고 패키지를 분리하는 것이 더 합리적일 수 있다.
 - Mapper, JPA Entity 정도만 public으로 사용하고 Adapter 등은 패키지에 맞게 분리하는 방법도 좋을 것 같다.
 
 ## 8. 3개 이상의 인스턴스 변수를 가진 클래스를 쓰지 않는다.

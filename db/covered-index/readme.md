@@ -221,7 +221,7 @@ return new PageImpl<>(result, idsPage.getPageable(), idsPage.getTotalElements())
 - `@QueryProjection` 생성자의 인수로 필요한 컬럼만을 넘겨야 한다.
   - 기존 코드에서는 엔터티를 넘겨서 의미 없는 컬럼까지 모두 조회하고 있었다.
 
-그래서 아래와 같이 필요한 필드만 조회하도록 수정했따.
+그래서 아래와 같이 필요한 필드만 조회하도록 수정했다.
 
 ```java
 JPAQuery<MailDto.ListInfo> query = subJpaQueryFactory.select(
