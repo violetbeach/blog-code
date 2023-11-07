@@ -325,25 +325,17 @@ Number of Threads (users): 50
 
 ```sql
 select
-  count(mail0_.no) as col_0_0_
+  mail0_.no as col_0_0_
+  # ..
 from
   mail_01.mail_content mail0_
-    left outer join
-  mail_01.personal_mailbox personalma1_
-  on (
-        personalma1_.no=mail0_.mbox_no
-      and mail0_.basic_info_no=personalma1_.basic_info_no
-    )
-where
-  (
-    mail0_.del_flag = 'N'
-    )
+left outer joinmail_01.personal_mailbox personalma1_
+  on personalma1_.no=mail0_.mbox_no
+  and mail0_.basic_info_no=personalma1_.basic_info_no
+where mail0_.del_flag = 'N'
   and mail0_.basic_info_no=1994
   and mail0_.fk_user_info_no=1
-  and (
-      personalma1_.lockinfo_type not in  (
-                                          'B' , 'A'
-      )
+  and (personalma1_.lockinfo_type not in  ('B' , 'A')
     or personalma1_.no is null
   )
 ;
@@ -355,14 +347,10 @@ where
 
 원인은 LEFT OUTER JOIN에 있다. mail_content와 personal_mailbox는 1대 0~1 관계임에도 불구하고 Left Outer Join을 사용하면서 문제가 생겼다.
 - 잠금 편지함 필터링 과정이 복잡해진다.
-  - 가상 테이블을 사용해서 매칭시키는 과정이 필요
+  - 가상 테이블으로 전체 메일과 메일함을 매칭시키는 과정이 필요
 - Optimizer가 최적의 경로를 찾기 어려워진다.
 - 다루는 데이터의 크기가 커진다.
 - 캐시를 활용할 수 없다.
-
-그 밖에도 `COUNT`문도 위와 동일한 쿼리를 태워야 해서 TPS가 많이 낮았던 것이다.
-
-INNER JOIN을 사용한다면 나쁘지 않은 결과가 나오곘지만, 기본 편지함은 mailbox 테이블에 저장하지 않으므로 Join 결과가 나오지 않아 사용할 수 없었다.
 
 ### 쿼리 분리
 
