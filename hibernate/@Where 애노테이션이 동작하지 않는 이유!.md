@@ -184,7 +184,7 @@ class LearningRepositoryTest {
 변경사항은 `6.0.0`에 적용되었다. 버그에 대해 직접적으로 언급하거나 다루지는 않았지만 `HQL`에서 `SQM`을 지원하게 되었다. `SQM`에 대해서는 아래에서 기술하고 있다.
 - https://github.com/hibernate/hibernate-orm/blob/main/design/sqm.adoc
 
-`SQM`의 지원과 `AST`가 개선되고 `SQL` 과의 변환도 가능하게 되면서 `@Where` 애노테이션이 동작하지 않는 문제도 **해결**된 것으로 보인다.
+`SQM`의 지원과 `AST`가 개선 되면서 `@Where` 애노테이션이 동작하지 않는 문제도 **해결**된 것으로 보인다.
 
 ## 참고
 - https://github.com/hibernate/hibernate-orm/blob/main/changelog.txt
