@@ -87,7 +87,7 @@ org.springframework.beans.factory.UnsatisfiedDependencyException:Error creating 
 
 **Spring AOP**는 기본적으로 **JDK Dynamic Proxy**를 사용한다.
 
-즉, `MemberRepositoryImpl`의 `@Transactional` 어노테이션으로 인해서 `Jdk Dynamic Proxy`가 빈으로 등록되었다.
+`MemberRepositoryImpl`의 `@Transactional` 어노테이션으로 인해서 `Jdk Dynamic Proxy`가 빈으로 등록되었다.
 
 `JDK Dynamic Proxy`는 다음의 특징을 가진다.
 - 인터페이스를 구현한 클래스가 아니면 프록시 객체를 생성할 수 없다.
