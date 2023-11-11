@@ -23,7 +23,7 @@
 ![img_3.png](images/img_3.png)
 
 코드를 보면 **ByteArrayOutputStream**에 eml 파일 내용을 저장한다.
-- 바로 파일에 쓰는 것이 아니므로 `byte[]`가 메모리에 올라간다.
+- 즉, 파일 데이터 전체를 메모리에 올려버린다.
 
 그 다음에 `FileOutputStream`으로 다시 데이터를 옮긴다.
 
@@ -47,7 +47,7 @@
 
 ![img_5.png](images/img_5.png)
 
-그래서 API 서버 단에서 처리를 해주고 있던 것이다.
+그래서 레거시 소스에 위 MR을 반영할 수 없었고, API 서버 단에서 처리를 해주고 있던 것이다.
 
 ### ReplacingInputStream
 
@@ -56,9 +56,9 @@
 - `InputStream`을 `ReplacingInputStream`으로 래핑한다.
 - `InputStream`을 `FileOutputStream`에 저장한다.
 
-여기서 문제가 발생했는 데 `MimeMessage`에서 `getInputStream()` 메서드로 꺼낸 것에는 **Header를 포함하지 않는다.** 즉, 반드시 `MimeMessage.write()`를 사용해야 했다.
+여기서 문제가 발생했는 데 `MimeMessage`에서 `getInputStream()` 메서드로 꺼낸 것에는 **Header를 포함하지 않는다.** 반드시 `MimeMessage.write()`를 사용해야 했다.
 
-그래서 `ReplacingInputStream`은 사용할 수 없는 상황이었다.
+`ReplacingInputStream`은 사용할 수 없는 상황이었다.
 
 ## FilterOutputStream ?
 
