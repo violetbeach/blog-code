@@ -348,6 +348,7 @@ where mail0_.del_flag = 'N'
 원인은 LEFT OUTER JOIN에 있다. mail_content와 personal_mailbox는 1대 0~1 관계임에도 불구하고 Left Outer Join을 사용하면서 문제가 생겼다.
 - 잠금 편지함 필터링 과정이 복잡해진다.
   - 가상 테이블으로 전체 메일과 메일함을 매칭시키는 과정이 필요
+  - LIKE 서치 기반이므로 인덱스 활용도가 떨어져 더 안좋은 결과 초래 
 - Optimizer가 최적의 경로를 찾기 어려워진다.
 - 다루는 데이터의 크기가 커진다.
 - 캐시를 활용할 수 없다.
