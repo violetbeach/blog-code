@@ -1,0 +1,21 @@
+spring:
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        default_batch_fetch_size: 500
+        show_sql: true
+        format_sql: true
+    hibernate:
+      ddl-auto: none
+
+  aop:
+    proxy-target-class: false
+
+db-properties:
+  default-host-ip: 127.0.0.1
+  default-partition: '01'
+  default-schema: member_01
+  driver: com.mysql.cj.jdbc.Driver
+  username: root
+  password: root
