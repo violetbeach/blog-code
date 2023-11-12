@@ -107,11 +107,11 @@ if(attachmentId.isEquals("1")) {
 
 ![img_14.png](images/img_14.png)
 
-`compatibleMediaTypes`는 `Accept` 헤더로 들어온 값 (`application/octet-stream`)이 **Body 데이터와 호환 되는 타입**의 리스트ㅎ 반환한다. 
+`compatibleMediaTypes`는 `Accept` 헤더로 들어온 값 (`application/octet-stream`)이 **Body 데이터와 호환 되는 타입**의 리스트를 반환한다. 
 
 ![img_15.png](images/img_15.png)
 
-즉, `application/octet-stream`으로 **Body를 나타낼 수 없다고 판단**했기에 Spring이 데이터를 내려주지 않은 것이다.
+반환된 결과로 `application/octet-stream`으로 **Body를 나타낼 수 없다고 판단**했기에 Spring이 데이터를 내려주지 않은 것이다.
 
 ## 해결 - application/problem+json를 추가
 
