@@ -2,9 +2,7 @@ package com.violetbeach.sharding.hibernate;
 
 import com.violetbeach.sharding.database.DBContextHolder;
 import org.hibernate.resource.jdbc.spi.StatementInspector;
-import org.springframework.stereotype.Component;
 
-@Component
 public class PartitionInspector implements StatementInspector {
 
     @Override
@@ -12,5 +10,4 @@ public class PartitionInspector implements StatementInspector {
         String partition = DBContextHolder.getPartition();
         return sql.replaceAll("#partition#", partition);
     }
-
 }

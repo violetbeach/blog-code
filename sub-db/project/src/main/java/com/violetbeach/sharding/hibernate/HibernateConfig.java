@@ -6,14 +6,17 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomi
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import javax.xml.validation.Schema;
+
 @Configuration
 @RequiredArgsConstructor
 public class HibernateConfig {
-    private final PartitionInspector partitionInspector;
-
     @Bean
-    public HibernatePropertiesCustomizer configureStatementInspector() {
-        return (properties) -> properties.put(AvailableSettings.STATEMENT_INSPECTOR, partitionInspector);
+    public HibernatePropertiesCustomizer hibernatePropertiesCustomizer() {
+        return (properties) -> {
+            properties.put(AvailableSettings.STATEMENT_INSPECTOR, new PartitionInspector());
+            properties.put(AvailableSettings.PHYSICAL_NAMING_STRATEGY, new SchemaNamingStrategy());
+        };
     }
 
 }

@@ -166,6 +166,6 @@ Spring은 기본적으로 Interface가 있는 경우  `JDK Dynamic Proxy`를 만
 
 ![img_7.png](img_7.png)
 
-Advisor는 Advice, Pointcut을 가진다. 실제 동작은 Advice에서 하므로 프록시를 Advisor 수 만큼 생성할 이유가 없어지는 것이다.
+Advisor는 1개의 Advice, 1개의 Pointcut을 가진다. 실제 동작은 Advisor의 Advice에서 하므로 프록시를 Advisor 수 만큼 생성할 이유가 없다.
 
-
+그래서 스프링에서는 일반적으로 대상 클래스 1개당 1개의 프록시만 만들어서 사용한다.

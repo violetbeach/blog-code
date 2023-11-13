@@ -19,7 +19,7 @@ hibernate:
 db-properties:
   default-host-ip: 127.0.0.1
   default-partition: '01'
-  default-schema: member_01
+  default-schema: mail_01
   driver: com.mysql.cj.jdbc.Driver
   username: root
   password: root

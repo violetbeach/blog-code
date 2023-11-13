@@ -12,6 +12,10 @@
 데이터를 저장할 때 유저가 속한 **그룹별**로 데이터를 **특정 DB서버**의 **특정 스키마**에 저장해서 사용한다.
 - 사내에서는 `mail_01`에서 `01`을 파티션이라는 용어로 사용한다.
 
+구조를 정리하면 아래와 같다. (사내 기술 세미나에서 발표한 내용의 일부이다.)
+
+![img_3.png](img_3.png)
+
 해당 유저가 찾는 테이블이 **어느 DB**의 **몇 번째 스키마**에 저장되어 있는지는 MasterDB라고 부르는 DB 서버에 저장되어 있고, 매번 DB 질의가 비효율적이므로 JWT에 발급해서 사용한다.
 
 #### 정리하자면
@@ -284,174 +288,158 @@ public class ShardingFilter extends OncePerRequestFilter {
 
 이러면 꿈에 그리던 샤딩 문제가 해결되었다!
 
-### Multi Schema Name
+## 2. Dynamic Schema Name
 
-한가지 문제가 남아있다. 스키마명도 jwt에 있는 partition을 사용해서 바꿔야 한다.
+한가지 문제가 남아있다. 스키마명을 jwt에 있는 partition을 사용해서 바꿔야 한다.
 
 `org.hibernate.resource.jdbc.spi.StatementInspector`를 구현하면 됩니다.
 
-```sql
-public class HibernateInterceptor extends EmptyInterceptor {
+```java
+public class PartitionInspector implements StatementInspector {
+
+  @Override
+  public String inspect(String sql) {
+    String partition = DBContextHolder.getPartition();
+    return sql.replaceAll("#partition#", partition);
+  }
+}
+```
+
+`org.hibernate.boot.model.naming.PhysicalNamingStrategy`도 구현한다.
+
+해당 클래스는 Schema 명과 Table 명명 전략을 적용하는 클래스이다. 해당 클래스가 없으면 `@Table(name = "member_#partition#.member")`에서 `name`이 전부 테이블 명으로 인식하고 `JdbcUrl`의 `defaultDatabase`를 **Schema로 사용**한다.
+
+```java
+public class SchemaNamingStrategy implements PhysicalNamingStrategy {
+    @Override
+    public Identifier toPhysicalCatalogName(Identifier name, JdbcEnvironment jdbcEnvironment) {
+        return apply(name, jdbcEnvironment);
+    }
 
     @Override
-    public String onPrepareStatement(String sql) {
-        String partition = ThreadLocalStorage.getDbInfo() != null ?
-                ThreadLocalStorage.getDbInfo().getPartition() : "";
-        sql = sql.replaceAll("##part_no##", partition);
-        return super.onPrepareStatement(sql);
+    public Identifier toPhysicalSchemaName(Identifier name, JdbcEnvironment jdbcEnvironment) {
+        return apply(name, jdbcEnvironment);
+    }
+
+    @Override
+    public Identifier toPhysicalTableName(Identifier name, JdbcEnvironment jdbcEnvironment) {
+        return apply(name, jdbcEnvironment);
+    }
+
+    @Override
+    public Identifier toPhysicalSequenceName(Identifier name, JdbcEnvironment jdbcEnvironment) {
+        return apply(name, jdbcEnvironment);
+    }
+
+    @Override
+    public Identifier toPhysicalColumnName(Identifier name, JdbcEnvironment jdbcEnvironment) {
+        return apply(name, jdbcEnvironment);
+    }
+
+    private Identifier apply(Identifier name, JdbcEnvironment jdbcEnvironment) {
+        if (name == null) {
+            return null;
+        }
+        StringBuilder builder = new StringBuilder(name.getText());
+        for (int i = 1; i < builder.length() - 1; i++) {
+            if (isUnderscoreRequired(builder.charAt(i - 1), builder.charAt(i), builder.charAt(i + 1))) {
+                builder.insert(i++, '_');
+            }
+        }
+        return getIdentifier(builder.toString(), name.isQuoted(), jdbcEnvironment);
+    }
+
+    protected Identifier getIdentifier(String name, boolean quoted, JdbcEnvironment jdbcEnvironment) {
+        name = name.toLowerCase(Locale.ROOT);
+        return new Identifier(name, quoted);
+    }
+
+    private boolean isUnderscoreRequired(char before, char current, char after) {
+        return Character.isLowerCase(before) && Character.isUpperCase(current) && Character.isLowerCase(after);
     }
 }
 ```
 
-**해당 인터셉터를 등록하면 쿼리가 나갈 때 엔터티의 ##part\_no## 대신에 ThreadLocalStorage의 partition이 삽입되어 나간다**.
+이제 아래와 같이 적용하면 된다.
 
+```java
+@Configuration
+@RequiredArgsConstructor
+public class HibernateConfig {
+    @Bean
+    public HibernatePropertiesCustomizer hibernatePropertiesCustomizer() {
+        return (properties) -> {
+            properties.put(AvailableSettings.STATEMENT_INSPECTOR, new PartitionInspector());
+            properties.put(AvailableSettings.PHYSICAL_NAMING_STRATEGY, new SchemaNamingStrategy());
+        };
+    }
+
+}
 ```
+
+Entity는 아래와 같이 설정하면 된다.
+
+```java
 @Entity
-@Table(name = "user", schema = "database_##part_no##")
-@Getter
+@Table(name = "member_#partition#.member")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class User {
+public class Member {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String username;
 
-    @Column
-    private String name;
-
-    public void setName(String name) {
-        this.name = name;
-    }
-    
-    public User (String name) {
-        this.name = name;
+    public Member(String username) {
+        this.username = username;
     }
 
 }
 ```
 
-즉, User Entity에 대해 쿼리가 나갈 때 "database\_##part\_no##.user"가 아니라 jwt에서 꺼낸 partition이 03이었다면 "database\_03.user"이 된다.
+이로써 Dyanmic Schema name 문제도 해결되었다.
 
-이로써 Multi schema name 설정도 끝났다.
+## 결과
 
-### DataSourceConfiguration
+다음은 통합 테스트의 결과이다. 전부 성공했다.
 
-이제 DataSourceConfiguration 클래스를 작성한다. 특이점은 아까 만든 AbstractRoutingDataSource 구현체로 **LazyConnectionDataSourceProxy**를 만들어서 사용해야 한다.
+![img_4.png](img_4.png)
 
-스프링은 트랜잭션이 시작되는 시점부터 DataSource를 가져오게 된다. 그 결과 **데이터 소스가 정해지기 전에 @Transaction에 의해 데이터 소스를 불러오다가 예외가 터지게 된다.**
+트랜잭션 결과도 아래와 같이 잘 나왔다.
 
-LazyConnectionProxy를 사용하면 실제 커넥션 이용시간이 줄어든다는 장점도 있다.
+![img_5.png](img_5.png)
 
-```
-@Configuration
-@EnableJpaRepositories(basePackageClasses = UserRepository.class, entityManagerFactoryRef = "userDBEntityManager", transactionManagerRef = "userDBTransactionManager")
-@EnableTransactionManagement
-public class DatasourceConfiguration {
-
-    @Bean
-    public DataSource multiDataSource(DatabaseManager databaseManager) throws SQLException {
-        return databaseManager.createMultiDataSource();
-    }
-
-    @Bean
-    @Primary
-    public DataSource lazyDataSource(@Qualifier("multiDataSource") DataSource dataSource) {
-        return new LazyConnectionDataSourceProxy(dataSource);
-    }
-
-    @Bean
-    @Primary
-    public LocalContainerEntityManagerFactoryBean userDBEntityManager(final JpaProperties customerJpaProperties, @Qualifier("lazyDataSource") DataSource dataSource) {
-        EntityManagerFactoryBuilder builder =
-                new EntityManagerFactoryBuilder(new HibernateJpaVendorAdapter(), customerJpaProperties.getProperties(), null);
-
-        return builder.dataSource(dataSource).packages(User.class)
-                .persistenceUnit("userDBEntityManager").build();
-    }
-
-    @Bean
-    @Primary
-    public PlatformTransactionManager userDBTransactionManager(@Qualifier("userDBEntityManager") final EntityManagerFactory factory) {
-        return new JpaTransactionManager(factory);
-    }
-
-}
-```
-
-### JpaProperties
-
-마지막으로 application.yml 에서 JpaProperties를 등록하면 된다. 여기서 아까 생성한 인터셉터를 등록한다. hibernate.ejb.interceptor에서 경로를 명시하면 된다.
-
-```
-app:
-  customer:
-    jpa:
-      properties:
-        hibernate:
-          ejb.interceptor: com.violetbeach.dynamicdatabase.config.hibernate.HibernateInterceptor
-          dialect: org.hibernate.dialect.MySQL8Dialect
-          show_sql: true
-          format_sql: true
-          default_batch_fetch_size: 500
-          logging:
-            level:
-              com.zaxxer.hikari.HikariConfig: DEBUG
-              com.zaxxer.hikari: TRACE
-```
-
-### 결과
-
-다음은 테스트코드의 일부로 Mvc 통합 테스트의 결과이다. 전부 성공했다.
-
-[##_Image|kage@qBzZV/btrBaxCJH9l/qle7G59ggqT0bK8CNhITJK/img.png|CDM|1.3|{"originWidth":443,"originHeight":114,"style":"alignLeft","width":610,"height":157}_##]
-
-이제 트랜잭션 결과만 잘나오면 된다.
-
-[##_Image|kage@9caTD/btrBhvZbyr8/gsmg2ut0ejQrgcXk76mrj0/img.png|CDM|1.3|{"originWidth":588,"originHeight":166,"style":"alignLeft","width":503,"height":142}_##][##_Image|kage@bm1izb/btrBcIXhvQV/rqBJuXM13NizVkYpjAaAB0/img.png|CDM|1.3|{"originWidth":453,"originHeight":35,"style":"alignLeft","width":505,"height":39}_##]
+![img_6.png](img_6.png)
 
 쿼리도 문제 없이 나가고 DB 반영도 잘 된다.
 
-[##_Image|kage@bjgJKA/btrBaQverxq/HCTxKIwy4A5rIPfJ2Mvbkk/img.png|CDM|1.3|{"originWidth":734,"originHeight":323,"style":"alignLeft","width":654,"height":288,"filename":"blob"}_##]
+![img_7.png](img_7.png)
 
-> 추가 개선점 고민: [https://jaehoney.tistory.com/296](https://jaehoney.tistory.com/296)
->
+이후 nGrinder로 복잡하게 사용했는데도 잘 통과했고, 지금은 1년도 더 지났는데 문제 없이 잘 사용하고 있다. 
 
-#### **afterPropertiesSet()**
 
-현재 DatabaseManager 클래스에서 데이터소스를 추가할 때마다 AbstractRoutingDataSource의 **afterPropertiesSet()** **메서드**를 호출하고 있다. 원래는 해당 메소드를 사용하지 않고 있다가 해당 데이터소스가 동작하지 않아서 찾아봤다.
+## 번외 - afterPropertiesSet
 
-[##_Image|kage@z9k2J/btrCxGQ4gIY/EsXeI4JqTITErRIfsWvbO1/img.png|CDM|1.3|{"originWidth":848,"originHeight":357,"style":"alignCenter"}_##]
+MultiDataSourceManager에서 데이터소스를 추가할 때마다 AbstractRoutingDataSource의 **afterPropertiesSet()** **메서드**를 호출하고 있다.
 
-해당 메서드는 원래 빈이 등록된 후 실행되는 메서드이다. AbstractRoutingDataSource는 afterPropertiesSet() 메서드를  오버라이딩해서 특별한 기능을 제공한다.
+![img_8.png](img_8.png)
 
-afterPropertiesSet() 메서드는 우리가 설정한 targetDataSources를 resolvedDataSources에 매핑해주는 역할을 수행한다.
+해당 메서드는 아래와 같이 설정한 `targetDataSources`를 실제로 동작할 때 사용하는 `resolvedDataSources`에 반영하는 메서드이다.
+- `resolvedDataSources`에 `DataSource`를 직접 추가할 수 없다. (가시성)
+- 그래서 `targetDataSources`에 `DataSource`를 추가한 후 `afterPropertiesSet()`을 반드시 호출해야 한다.
 
-그렇다면 왜 targetDataSources를 resolvedDataSources에 매핑해야 할까?! 아래는 AbstractRoutingDataSource의 **determineTargetDataSource()** 메서드 로직이다.
+![img_9.png](img_9.png)
 
-```
-protected DataSource determineTargetDataSource() {
-	Assert.notNull(this.resolvedDataSources, "DataSource router not initialized");
-	Object lookupKey = determineCurrentLookupKey();
-	DataSource dataSource = this.resolvedDataSources.get(lookupKey);
-	if (dataSource == null && (this.lenientFallback || lookupKey == null)) {
-		dataSource = this.resolvedDefaultDataSource;
-	}
-	if (dataSource == null) {
-		throw new IllegalStateException("Cannot determine target DataSource for lookup key [" + lookupKey + "]");
-	}
-	return dataSource;
-}
-```
+`afterPropertiesSet()`은 빈이 등록되었을 때 실행하는 `InitializingBean`의 메서드이다. 즉, 런타임 중 DataSource를 추가로 반영하는 상황에서 적절한 의미를 뿜을 수 없었다.
 
-가장 중요한 메서드인 determineTargetDataSource() 메서드(determineCurrentLookupKey로 선택한 key의 데이터 소스를 꺼내는 메서드)가 targetDatasources가 아닌 resolvedDataSources를 기반으로 동작하기 때문이다.
+나는 이부분을 `Spring-jdbc`에 PR을 올려서 이 부분의 가독성 문제를 언급했고 해결방안으로 메서드 추출(~~`refresh`~~  `initialize`)를 제시했다.
+- https://github.com/spring-projects/spring-framework/pull/31248
 
-우리는 targetDataSources를 등록했지만 **resolvedDataSources**를 등록하지 않았다.
-
-즉, AbstractRoutingDataSource의 afterPropertiesSet() 메서드를 통해 **targetDataSources를 이용해서 resolvedDataSources에 DataSource를 추가**하는 과정이 반드시 필요했다.
-
+해당 PR은 main 브랜치로 머지되었고 Spring Framework `6.1.0`부터 반영된다고 한다.
 
 ## 정리
 
-실제 프로젝트에 적용된 코드는 아니고 설명을 위해 간소화한 코드입니다.
+위 코드는 실제 프로젝트에 적용된 코드는 아니고 설명을 위해 간소화된 코드입니다.
 
-혹시나 코드가 필요하시다면 Github(링크) 참고 부탁드리며, 필요에 맞게 수정하셔서 사용하시길 권장드립니다.
+코드는 아래에서 확인할 수 있습니다.
+- https://github.com/violetbeach/blog-code/tree/master/sub-db/project
