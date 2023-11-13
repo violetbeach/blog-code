@@ -4,21 +4,21 @@
 
 서비스의 DB구조 때문이다. 아래는 운영중인 서비스의 DB 구조와 동일하게 만든 것이다.
 
-![img_2.png](img_2.png)
+![img_2.png](images/img_2.png)
 
 구조를 보면 DB 서버를 여러 대로 **샤딩(Sharding)** 하고 있고, **스키마도 분산**되어 있다.
 - 사내에서는 아주 오래 전부터 해당과 같은 구조라고 했다.
 
-데이터를 저장할 때 유저가 속한 **그룹별**로 데이터를 **특정 DB서버**의 **특정 스키마**에 저장해서 사용한다.
-- 사내에서는 `mail_01`에서 `01`을 파티션이라는 용어로 사용한다.
+데이터를 저장할 때 유저가 속한 **회사별**로 데이터를 **특정 DB서버**의 **특정 스키마**에 저장해서 사용한다.
+- `mail_01`에서 `01`을 파티션이라는 용어로 사용한다.
 
-구조를 정리하면 아래와 같다. (사내 기술 세미나에서 발표한 내용의 일부이다.)
+구조를 정리하면 아래와 같다. (사내 기술 세미나에서 내가 발표한 내용의 일부이다.)
 
-![img_3.png](img_3.png)
+![img_3.png](images/img_3.png)
 
-해당 유저가 찾는 테이블이 **어느 DB**의 **몇 번째 스키마**에 저장되어 있는지는 MasterDB라고 부르는 DB 서버에 저장되어 있고, 매번 DB 질의가 비효율적이므로 JWT에 발급해서 사용한다.
+해당 유저의 정보가 **어떤 DB 서버**의 **몇 번째 스키마**에 저장되어 있는지는 MasterDB라고 부르는 DB 서버에 저장되어 있고, DB를 조회할 때마다 매번 Master DB를 질의하면 비효율적이므로 **JWT**에 발급해서 사용한다.
 
-#### 요약하면
+#### 요약
 
 DB 서버가 샤딩(Sharding)된 구조를 가진다.
 
@@ -28,7 +28,9 @@ DB 서버가 샤딩(Sharding)된 구조를 가진다.
 
 ### 그럼 뭐가 문제일까?
 
-기존에 사용하던 NodeJS의 Sequelize나 PHP의 Laravel의 경우에는 모델(Entity)을 **런타임 중에 동적으로 생성**할 수 있었다.
+기존에 사용하던 NodeJS의 Sequelize나 PHP의 Laravel의 경우에는 모델(Entity)을 **런타임 중 동적으로 생성**할 수 있었다.
+
+아래의 예시를 보자.
 
 ```typescript
 class UserModelFactory {
@@ -53,21 +55,21 @@ class UserModelFactory {
 }
 ```
 
-모델의 정의를 `host, partition`을 key로 해서 맵에 찾는 모델이 없을 경우 생성해서 사용하면 된다.
+key를 `${host}_${partition}`로 해시 맵에 찾는 모델이 없을 경우 새로 생성해서 사용한다.
 
-정리하면 **모델을 사용할 때마다 매번 jwt에서 꺼낸 host, partition으로 특정 DB의 특정 스키마와 매핑되는 모델을 만든다**고 생각하면된다.
+즉, **모델을 사용할 때마다 매번 jwt에서 꺼낸 host, partition으로 특정 DB의 특정 스키마와 매핑되는 모델을 만든다**.
 
-### JPA에서는 못하는 이유
+### JPA를 사용할 수 없는 이유
 
-JPA에서는 기존에 DB 정보와 함께 모델을 생성하는 게 불가능했다.
+JPA에서는 위 예시처럼 DB 정보와 함께 **모델을 매번 생성**하는 게 **불가능**하다.
 
-JPA에서는 1개의 EntityModel을 사용한다. 기존의 방식으로는 DB 서버와 스키마 명이 여러 개인 문제를 해결할 수 없었다.
+JPA에서는 **1개의 EntityModel**을 사용한다. 그래서 기존 방식으로는 DB 서버와 스키마 명이 여러 개인 문제를 해결할 수 없었다.
 
-팀 내에서 이러한 DB 구조 때문에 Java로 개발을 못하고 있었으며, 자바로 개발된 프로젝트가 1개 있었는데 전부 JdbcTemplate을 사용했다.
+팀에서 이러한 문제 때문에 Java로 개발을 못하고 있었고, 자바로 개발된 프로젝트가 1개 있었는데 전부 JdbcTemplate을 사용했다.
 - DataSource를 DB 서버 개수만큼 생성
 - 파티션을 포함한 스키마명은 `sql`에 명시
 
-JPA와 같은 ORM을 사용할 수 없었고, JdbcTemplate을 사용하더라도 DB 서버가 늘어나면 그것에 맞게 DataSource 개수도 추가해줘야 하는 문제가 있었다.
+즉, **JPA와 같은 ORM을 사용할 수 없는 문제**가 있었고, JdbcTemplate을 사용하더라도 **DB 서버가 늘어나면 그것에 맞게 DataSource 개수도 추가**해줘야 하는 문제가 있었다.
 
 이 문제를 해결해야 했다.
 
@@ -75,7 +77,9 @@ JPA와 같은 ORM을 사용할 수 없었고, JdbcTemplate을 사용하더라도
 
 Spring의 대부분 프로젝트에서 Template Method 패턴과 Strategy 패턴을 충분히 사용한다.
 
-주어진 문제는 2개의 추상화된 문제로 분리할 수 있었다.
+여기서도 추상화된 작은 문제들로 분리를 해야겠다고 생각했다.
+
+주어진 문제는 **2개의 추상화된 문제로 분리**할 수 있었다.
 1. DB Sharding
 2. Schema name 동적 처리
 
@@ -84,28 +88,28 @@ Spring의 대부분 프로젝트에서 Template Method 패턴과 Strategy 패턴
 샤딩의 다양한 기법에 대해서는 아래 포스팅에서 정리했었다.
 - https://jaehoney.tistory.com/296
 
-아래에서 설명할 방법은 **앱 서버** 레벨에서 샤딩된 DB를 매핑하는 방법이다.
+아래에서 설명할 방법은 **앱 서버** 수준에서 **샤딩 DB를 매핑**하는 방법이다.
 
 #### AbstractRoutingDataSource
 
-관련된 정보나 라이브러리를 찾으면서 삽질을 하던 중 `Spring Jdbc`에서 `AbstractRoutingDataSource` 라는 클래스를 확인할 수 있었다.
+정보나 라이브러리를 찾으면서 **삽질**을 하던 중 `Spring Jdbc`에서 **AbstractRoutingDataSource** 라는 클래스를 확인할 수 있었다.
 
-해당 클래스는 여러 개의 `DataSource`를 등록하고 `키`를 통해 동적으로 `DataSource`와 커넥션을 맺을 수 있는 `DataSource` 이다.
+해당 클래스는 여러 개의 `DataSource`를 등록하고 `key`로 특정 `DataSource`와 커넥션을 맺을 수 있는 `DataSource` 이다.
 
 아래는 공식문서이다.
 - https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/jdbc/datasource/lookup/AbstractRoutingDataSource.html
 
-정리하면 Java Application에서 Sharding된 DataSource를 선택해서 접근을 할 수 있는 클래스였다.
+정리하면 Java Application에서 **Sharding된 DataSource를 선택해서 커넥션**을 할 수 있는 클래스였다.
 
 해당 부분을 검토해보기로 했다.
 
 #### ThreadLocal
 
 `AbstractRoutingDataSource`의 Key를 관리하는 방법으로 `ThreadLocal`을 선택하게 되었다.
-- 각 요청마다 파라미터 없이 DB 정보를 구할 수 있어야 함
-- (Request Scope) Bean vs ThreadLocal을 검토 하다가 ThreadLocal을 선택하게 되었다.
+- 해당 유저의 DB 정보를 구할 수 있어야 한다. (인자를 받을 수 없다.)
+- Request Scope Bean vs ThreadLocal을 검토 하다가 ThreadLocal을 선택하게 되었다.
   - Request Scope의 Bean도 내부적으로 ThreadLocal을 사용
-  - ThreadLocal은 이미 많이 사용되고 있음
+  - ThreadLocal은 샤딩 솔루션에 많이 사용되고 있었다.
 
 
 아래는 `AbstractRoutingDataSource`의 구현체이다.
@@ -161,13 +165,13 @@ public record DbInfo(String ip, String partition) {
 }
 ```
 
-이제 DataSource를 선택하는 코드는 작성되었다.
+지금까지 **샤딩된 DataSource를 선택하는 코드**를 작성했다.
 
 #### MultiDataSourceManager
 
 런타임 중에 AbstractRoutingDataSource의 dataSource를 추가할 수 있어야 한다.
 
-AbstractRoutingDataSource를 관리하는 클래스를 하나 만들자.
+**AbstractRoutingDataSource를 관리하는 클래스**를 하나 만들자.
 
 ```java
 @Slf4j
@@ -211,7 +215,9 @@ public class MultiDataSourceManager {
 }
 ```
 
-이제 **최초 JPA EntityLoading** 시 필요한 DataSource를 만들어야 한다.
+이제 **최초 JPA EntityLoading** 시 필요한 `defaultDataSource`를 만들어야 한다.
+
+추가로 `hostIp`를 입력받아서 `DataSource`를 만드는 책임도 아래 클래스에서 수행한다.
 
 ```java
 @Configuration
@@ -255,12 +261,13 @@ public class DataSourceCreator {
 }
 ```
 
-해당 클래스는 `Jwt`에서 얻어온 `hostIp`로 DataSource를 만드는 책임도 진다.
+`AbstractRoutingDataSource`와 관련된 코드는 모두 작성했다.
 
 ### Filter
 
-이제 Filter에서 해당 `ThreadLocal`에 데이터를 넣어주자. 
-- Filter가 아니더라도 AOP나 Interceptor 등의 방식으로 풀면 된다.
+이제 Filter에서 해당 `ThreadLocal`에 DbInfo를 넣어줘야 한다.
+- Filter가 아니더라도 AOP나 Interceptor 등의 방식으로 풀 수 있다.
+- 실제 만든 모듈에서는 AOP 방식도 지원한다.
 
 ```java
 @Component
@@ -282,32 +289,35 @@ public class ShardingFilter extends OncePerRequestFilter {
             DBContextHolder.clear();
         }
     }
-
 }
 ```
 
-이러면 꿈에 그리던 샤딩 문제가 해결되었다!
+해당 필터를 통해 요청이 들어왔을 때 DBInfo를 세팅하고 DataSource를 생성하는 로직을 비즈니스 로직에서 분리할 수 있다.
+
+만약 해당 Filter를 사용하지 않을 시 `clear()`를 반드시 호출해서 ThreadLocal을 재사용할 수 있는 문제를 처리해야 한다
+
+(꿈에 그리던 순간) 이제 **샤딩 문제가 해결**될 것이다.
 
 ## 2. Dynamic Schema Name
 
-한가지 문제가 남아있다. 스키마명을 jwt에 있는 partition을 사용해서 바꿔야 한다.
+1가지 문제가 남아있다. **스키마명**을 jwt에 있는 partition을 사용해서 바꿔야 한다.
 
-`org.hibernate.resource.jdbc.spi.StatementInspector`를 구현하면 됩니다.
+`org.hibernate.resource.jdbc.spi.StatementInspector`를 구현하면 됩니다. `StatementInspector`를 사용하면  **기존 sql의 일부를 변경**하거나 **완전히 대체**할 수 있다.
 
 ```java
 public class PartitionInspector implements StatementInspector {
 
-  @Override
-  public String inspect(String sql) {
-    String partition = DBContextHolder.getPartition();
-    return sql.replaceAll("#partition#", partition);
-  }
+    @Override
+    public String inspect(String sql) {
+        String partition = DBContextHolder.getPartition();
+        return sql.replaceAll("#partition#", partition);
+    }
 }
 ```
 
 `org.hibernate.boot.model.naming.PhysicalNamingStrategy`도 구현한다.
 
-해당 클래스는 Schema 명과 Table 명명 전략을 적용하는 클래스이다. 해당 클래스가 없으면 `@Table(name = "member_#partition#.member")`에서 `name`이 전부 테이블 명으로 인식하고 `JdbcUrl`의 `defaultDatabase`를 **Schema로 사용**한다.
+해당 클래스는 Schema 명과 Table 명명 전략을 적용하는 클래스이다. 해당 클래스가 없으면 `@Table(name = "member_#partition#.member")`에서 `name`이 전부 테이블 명으로 인식하고 `JdbcUrl`의 `defaultDatabase`를 **스키마명으로 사용**한다.
 
 ```java
 public class SchemaNamingStrategy implements PhysicalNamingStrategy {
@@ -360,7 +370,7 @@ public class SchemaNamingStrategy implements PhysicalNamingStrategy {
 }
 ```
 
-이제 아래와 같이 적용하면 된다.
+이제 `HibernatePropertiesCustomizer`를 빈으로 등록하면 된다.
 
 ```java
 @Configuration
@@ -377,7 +387,7 @@ public class HibernateConfig {
 }
 ```
 
-Entity는 아래와 같이 설정하면 된다.
+Entity는 아래와 같이 설정한다.
 
 ```java
 @Entity
@@ -397,45 +407,45 @@ public class Member {
 }
 ```
 
-이로써 Dyanmic Schema name 문제도 해결되었다.
+이제 Dyanmic Schema name 문제까지도  모두 해결되었다.
 
 ## 결과
 
 다음은 통합 테스트의 결과이다. 전부 성공했다.
 
-![img_4.png](img_4.png)
+![img_4.png](images/img_4.png)
 
 트랜잭션 결과도 아래와 같이 잘 나왔다.
 
-![img_5.png](img_5.png)
+![img_5.png](images/img_5.png)
 
-![img_6.png](img_6.png)
+![img_6.png](images/img_6.png)
 
 쿼리도 문제 없이 나가고 DB 반영도 잘 된다.
 
-![img_7.png](img_7.png)
+![img_7.png](images/img_7.png)
 
-이후 nGrinder로 복잡하게 사용했는데도 잘 통과했고, 지금은 1년도 더 지났는데 문제 없이 잘 사용하고 있다. 
+이후 수행한 nGrinder로 운영 환경에서의 테스트도 잘 통과했고, **지금은 1년 넘게 문제 없이 잘 사용하고 있다**. 
 
 
 ## 번외 - afterPropertiesSet
 
 MultiDataSourceManager에서 데이터소스를 추가할 때마다 AbstractRoutingDataSource의 **afterPropertiesSet()** **메서드**를 호출하고 있다.
 
-![img_8.png](img_8.png)
+![img_8.png](images/img_8.png)
 
 해당 메서드는 아래와 같이 설정한 `targetDataSources`를 실제로 동작할 때 사용하는 `resolvedDataSources`에 반영하는 메서드이다.
 - `resolvedDataSources`에 `DataSource`를 직접 추가할 수 없다. (가시성)
-- 그래서 `targetDataSources`에 `DataSource`를 추가한 후 `afterPropertiesSet()`을 반드시 호출해야 한다.
+- 그래서 `targetDataSources`에 `DataSource`를 추가한 후 반드시 `afterPropertiesSet()`을 호출해야 한다.
 
-![img_9.png](img_9.png)
+![img_9.png](images/img_9.png)
 
-`afterPropertiesSet()`은 빈이 등록되었을 때 실행하는 `InitializingBean`의 메서드이다. 즉, 런타임 중 DataSource를 추가로 반영하는 상황에서 적절한 의미를 뿜을 수 없었다.
+`afterPropertiesSet()`은 `InitializingBean`의 빈이 등록되었을 때 실행되는 메서드이다. 런타임 중 DataSource를 추가로 생성하는 상황에서 **적절한 의미를 외부로 뿜을 수 없었다.**
 
-나는 이부분을 `Spring-jdbc`에 PR을 올려서 이 부분의 가독성 문제를 언급했고 해결방안으로 메서드 추출(~~`refresh`~~  `initialize`)를 제시했다.
+나는 이부분을 `Spring-jdbc`에 **PR**을 올려서 이 부분의 **가독성 문제를 언급**했고 해결방안으로 메서드 추출(~~`refresh`~~  `initialize`)을 제시했다.
 - https://github.com/spring-projects/spring-framework/pull/31248
 
-해당 PR은 main 브랜치로 머지되었고 Spring Framework `6.1.0`부터 반영된다고 한다.
+**해당 PR은 main 브랜치로 머지**되었고 Spring Framework `6.1.0`부터 반영된다고 한다.
 
 ## 정리
 
