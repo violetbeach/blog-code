@@ -1,162 +1,121 @@
-## 멀티 모듈을 적용하면서 (+ CQRS 적용)
-
 최근 사이드 프로젝트에서 멀티모듈을 적용하면서 생긴 문제점들과 해결 과정을 공유하고자 한다.
 
-우선 결과를 간단하게 설명하자면 아래와 같이 생긴 싱글 모듈 프로젝트를
+기존의 싱글 모듈 프로젝트를 아래 네 개의 모듈로 분리할 수 있었다.
 
-![img.png](img.png)
+![img_1.png](images/img_1.png)
 
-아래와 같이 네 개의 모듈로 분리할 수 있었다.
-
-![img_1.png](img_1.png)
-
-추가적으로 Common 모듈이나 다른 모듈로 분리를 추가해도 문제가 없다.
+멀티 모듈을 적용한 부분과 이벤트 기반 아키텍처를 적용한 부분에 대해 다룬다.
 
 ## 멀티 모듈
 
-영상 플랫폼을 개발하면서 아래의 두 가지에 대한 해결이 필요했다. 
+아래는 멀티 모듈을 적용해보게 된 이유에 대해 설명한다. 
 
-### 1. 조회수를 캐싱해서 매번 쿼리를 보내는 것이 아닌 시간 단위로 반영해야 한다. (Write Back)
+#### 1. Write Back (주기 반영)
 
-조회 수를 매번 Update문으로 해결하면 DB에 부하가 매우 커질 것이라고 판단했다.
+조회가 1회 발생할 때마다 조회 수를 매번 Update문으로 갱신하면 DB에 부하가 매우 커질 것이라고 판단했다.
 
-시간 단위로 Write Back을 해서 DB에 반영할 수 있도록 작업이 필요했고, 해당 작업을 Scheduler로 반영을 하게 되었다.
+- 쓰기 락으로 인해 처리량 감소 -> DB 커넥션 쌓임
+- TPS 저하 및 DB 서버 부하 상승
 
-그래서 해당 API에 Scheduler를 추가하자니 아래의 문제가 있었다.
+그래서 Write Back을 해서 일정 주기로 DB에 반영할 수 있도록 작업이 필요했다. 즉, **Scheduler가 필요**했다.
 
-- 주 관심사인 메인 API로 성능 및 장애가 전파되어도 되는가?
-- 메인 API에 코드를 작성해서 한 번에 관리해도 되는가? (메인 프로덕션 코드가 지저분해 질 수 있었다.)
+![img_14.png](images/img_14.png)
 
-고민 끝에 별도의 Batch Server 프로그램이 필요하다고 판단했다.
+API에 Scheduler를 추가를 하려고 했다가 아래의 단점 때문에 **별도 프로젝트가 필요**하다고 판단하게 되었다.
+- **메인 코드가 방대**해진다.
+- **주 관심사(API 기능)에 성능 및 장애가 전파**된다.
 
-### 2. 명령 모델이 생성될 시점에 조회 모델도 생성되어야 한다.
+#### 2. 명령 모델이 생성될 시점에 조회 모델도 생성되어야 한다.
 
-CQRS를 적용하면서 발생한 문제이다.
+CQRS를 적용하면서 발생한 이슈로 명령 모델이 생성되면 **이벤트를 전파**해서 **조회 모델을 생성**해야 한다.
 
-명령 모델이 생성되면 이벤트를 전파해서 조회 모델을 생성해야 한다.
+![img_15.png](images/img_15.png)
 
-이때도 아래의 문제가 생길 수 있다.
-- 조회 모델 생성이 주 관심사인 메인 API와 성능을 공유한다.
-- 조회 모델 생성이 실패하면 주 관심사인 명령 모델 생성도 생성이 실패한다.
+API 서버에서 이벤트를 소비하기에는 아래 문제가 있었다.
+- 메인 코드가 방대해진다.
+- 비 관심사(조회 모델 생성)가 **주 관심사(API 기능)와 성능을 공유**한다.
 
-사실 이 점이 가장 고민이 많았다.
+#### 강한 일관성 vs 최종적 일관성
 
-명령 모델이 생성되면 곧바로 조회가 가능해야 하는 것이 아닐까..?! 그렇다면 조회 모델도 동일한 트랜잭션 내에 존재해야 하는 것이 아닌가..? 하는 고민이었다.
+여기서 고민이 1가지 있었는데 '**명령 모델이 생성되면 곧바로 조회가 가능해야 하는 것이 아닐까**'였다.
 
-고민을 해소하기 위해 아래의 자료를 참고했다.
+명령 모델과 조회 모델 생성은 동일 트랜잭션을 보장해야 할까?
 
-- 최범균 - CQRS 아는 척하기 시리즈
-- [우아콘2020] 배민 프론트서버의 사실과 오해
-- [우아한Tech] B마트 전시 도메인 CQRS 적용하기
+![img_16.png](images/img_16.png)
 
-해당 강연들에서 주로 볼 내용은 Eventually Consistency(최종적 일관성)이다. 시스템 간 강결합(코드, 성능, 로직)을 제거하고 MQ를 활용한 이벤트 발행을 통해 최종적 일관성을 비 정규화된 데이터 형태로 조회 모델로서 저장하게 된다.
+프로젝트에서는 영상 플랫폼이라 **조회 모델 생성이 동시에 이뤄지지 않아도 크게 상관이 없었다.** 그래서 MQ를 통해 이벤트를 발행하고, Consumer에서 조회 모델 생성하도록 설계하게 되었다.
 
-CQRS에서 조회 모델 생성을 비 관심사로 볼 지는 프로젝트의 특징에 따라 다를 것 같다.
+즉, **별도의 Consumer 모듈이 필요**하다.
 
-개발중인 프로젝트에서는 조회 모델 생성이 **동시**에 이뤄지지 않아도 크게 상관이 없었다. 그래서 Consumer 모듈을 분리를 하게 되었다.
+## 이벤트 기반 아키텍처
 
-## 모듈 구성
+이벤트를 담을 MQ는 클라우드 비용 문제로 Redis Pub/Sub를 사용하게 되었다.
+- OCI 프리티어를 사용했다.
 
-각 모듈에 대한 빌드는 root 프로젝트를 기준으로 진행한다.
+외부 이벤트는 **발행이 실패할 경우**에 대한 처리가 필요하므로 **Transactional Outbox 패턴**으로 동일 Transaction에서 Event 정보를 DB에 저장한다.
 
-각 모듈은 src 패키지와 build.gradle 파일만 존재해야 한다.
+![img_7.png](images/img_7.png)
 
-![img_2.png](img_2.png)
+발행된 이벤트는 아래와 같이 Redis Pub/Sub을 타고 전파된다.
 
-추가로 멀티 모듈을 (혼자) 처음으로 구성하면서 어려웠던 점이 생각보다 조금 있었던 것 같다.
+![img_9.png](images/img_9.png)
 
-(QueryDSL, Jacoco, Asciidoctor 때문에 Build.gradle을 구성하는 데에만 하루가 걸렸다.. 특히 QueryDSL...)
+`event.publish`는 `isPublished`를 `true`로 처리한다.
 
-각 요소에 대한 설명을 담기에는 포스팅이 너무 커질 수 있어서 아래에서 링크를 첨부했다.
+즉, 실제로 발행되지 않은 이벤트는 여전히 `false`로 남아있으므로 배치로 처리할 수 있게 되었다.
 
-각 모듈에 대한 의존성은 아래 Repository에서 확인할 수 있다. (Gradle 7.5 기반)
-- https://github.com/violetbeach/verby-server
+## CQRS
+
+아래는 이벤트를 구독하는 코드이다. 이벤트를 소비하는 측은 조회 모델을 저장해야 한다.
+
+![img_10.png](images/img_10.png)
+
+배민 B마트 CQRS 강연에서는 조회 모델로 Redis를 사용하고 있다는 것을 보고 적용했었다. 나도 조회 모델 저장소로 **Redis를 선택**했었다.
+문제는 Redis는 Key-Value 기반 데이터이기 때문에 제목, 본문 등으로 질의가 사실상 불가능했다.
+
+![img_11.png](images/img_11.png)
+
+강연에서도 추가 요구사항에 따라서 Mongo나 ES 등으로 교체할 수도 있다고 한다.
+
+배민 가게노출 시스템에서는 아래와 같이 **질의를 위한 DynamoDB**와 **캐싱을 위한 Redis를 각각** 사용하고 있다는 강연을 봤다.
+
+![img_6.png](images/img_6.png)
+
+그래서 복잡한 질의의 경우에는 DynamoDB, MongoDB와 같은 DB에서 처리를 한다고 한다.
+
+#### Mongo + Redis
+
+그래서 CQRS의 이점을 활용하기 위해 MongoDB 처럼 질의가 가능한 DB를 두고, Redis에 간단한 질의에 대한 정보를 캐싱하도록 했다.
+
+API 서버의 전체 아키텍처는 아래와 같다.
+
+![img_12.png](images/img_12.png)
+
+- 명령(Command)은 Maria DB에서 수행한다.
+- 간단한 조회(Query)는 Redis에서 수행한다.
+  - Redis는 MongoDB의 데이터를 캐싱한다.
+- 복잡한 조회(Query)는 MongoDB에서 수행한다.
+
+#### EventHandler
+
+아래는 최종적으로 반영된 코드이다. Cover가 생성 및 수정될 때 아래 코드를 수행한다.
+
+![img.png](images/img_17.png)
+
+1. 명령 모델 및 부속 데이터를 조회해서 **조회 모델로 변환**한다.
+2. 조회 모델을 저장한다.
+3. Redis에 해당 조회 모델을 캐싱한다.
 
 ## 문제 해결
 
-아래는 멀티 모듈을 구성하기 위해 문제를 해결하면서 알게된 사실이다.
+멀티 모듈을 구성하면서 생긴 문제를 해결한 내용에 대해 가볍게 공유한다.
 
-### jar / bootJar
+#### yml
 
-멀티 모듈을 다 구성했고 IntelliJ에서 테스트 및 빌드가 성공하는데 자꾸 CI/CD가 깨지는 현상이 발생했다.
+core 모듈의 프로퍼티가 web-server, batch-server 모듈에도 필요했다. 그래서 사용하는 모듈의 프로퍼티를 읽는 것이 필요했다.
 
-![img_3.png](img_3.png)
+이는 각 profiles에 core를 추가해주면 동작한다.
 
-에러 내용을 보면 Import가 자꾸 실패하거나 NoClassDefFoundError라고면서 테스트가 깨진다.
-
-해당 내용은 IntelliJ에서 Gradle을 Build 할 때는 이상이 없지만, ./gradlew build와 같이 내장 그래들로 빌드할 경우 테스트가 깨지는 현상이 발생한다.
-
-해당 원인은 Gradle에서 Java library plugin 및 Java test fixtures 플러그인을 사용할 때 jar를 수행하지 않으면 프로덕션 클래스가 BOOT_INF/classes 디렉터리 아래에 있어 패키지를 찾을 수 없는 문제가 발생하기 때문이다.
-
-해당 원인을 해결하는 방법은 아래와 같다.
-
-1. 테스트 classpath 명시
-
-```groovy
-test {
-  // Make sure the classes dir is used on the test classpath.
-  // When test fixtures are involved, the JAR is used by default
-  classpath = sourceSets.main.output.classesDirs + classpath - files(jar.archiveFile)
-} 
-```
-
-아래와 같이 테스트 클래스를 조정하면 테스트가 깨지지 않는다. (dir 클래스 추가 + jar 경로 제거)
-
-2. 다른 방법은 jar을 수행하는 것이다.
-
-싱글 모듈 프로젝트에서는 plain-jar가 생기는 것을 방지하기 위해서 jar을 disabled 처리하였다.
-
-아래 처럼 그냥 jar을 허용하면 해당 이슈가 해결된다. (default라서 생략 가능)
-```groovy
-jar {
-    enabled = true
-}
-```
-
-그러면 여전히 plain-jar가 생성되는 문제가 생길 수 있다.
-
-이는 아래와 같이 구성된 빌드 스크립트에서 plain-jar를 인식하기 때문에 생기는 이슈이다.
-
-```
-JAR_NAME=$(ls $REPOSITORY/jar/ |grep 'api-server' | tail -n 1)
-```
-
-해당 부분에서 `tail`을 `head`로 바꾸면 처리가 가능했다.
-
-```
-JAR_NAME=$(ls $REPOSITORY/jar/ |grep 'api-server' | head -n 1)
-```
-
-
-아니면 다른 방법도 있는데 그냥 jar 파일명을 변경하면된다.
-```groovy
-bootJar {
-    archiveFileName = "another-name.jar"
-}
-```
-
-```groovy
-bootJar {
-    archiveClassifier.set("boot")
-}
-```
-
-아래와 같이 bootJar로 인해서 생성되는 파일 명을 새롭게 정의하고, 해당 파일명을 이용해서 빌드스크립트를 구성하면 쉽게 해결이 가능하다.
-```
-JAR_NAME=$(ls $REPOSITORY/jar/ |grep 'another-name' | tail -n 1)
-```
-
-**<참고>**
-- https://github.com/gradle/gradle/issues/11696
-- https://github.com/spring-projects/spring-boot/issues/19380
-
-## yml
-
-모듈을 구성하고 나니 core모듈의 프로퍼티가 web-server, batch-server 모듈에도 필요했다. 그래서 DRY 원칙에 따라 해당 프로퍼티를 한 곳으로 모아주는 처리가 필요했다.
-
-권용근님의 custom-yaml-importer를 적용해봤으나, 프로젝트 버전 기준으로는 빌드가 제대로 동작하지 않았다. (런타임에만 동작함)
-
-그래서 각 profiles에 core를 추가해준다.
 ```yaml
 spring:
   profiles:
@@ -164,49 +123,46 @@ spring:
       - core
 ```
 
-그리고 core모듈에서 application-core.yml을 작성해주면 된다.
+그리고 core 모듈에서 application-core.yml을 작성해주면 된다.
 
-![img_4.png](img_4.png)
-
-그러면 각 실행 application에서 하위 듈의 yml을 가져다가 쓸 수 있게 된다.
+![img_13.png](images/img_13.png)
 
 `application-core.yml`에서 환경 분리를 하고 싶다면 아래와 같이 구성할 수 있다.
 
 ```yaml
 ---
-spring.profiles: local
-spring:
-  datasource:
-    url:  jdbc:h2:mem:multi
-    username: SA
-    password:
-
----
 spring.profiles: dev
 spring:
   datasource:
     url:  jdbc:h2:mem:multi-dev
-    username: dbdev
-    password: dbdevpassword
+    username: dev
+    password: dev
 
 ---
-spring.profiles: stage
+spring.profiles: real
 spring:
   datasource:
-    url:  jdbc:h2:mem:multi-stage
-    username: dbstage
-    password: dbstagepassword
+    url: ${MAIN_DB_URL}
+    username: ${MAIN_DB_USERNAME}
+    password: ${MAIN_DB_PASSWORD}
 ```
 
-물론 DB 설정 부분은 `${MAIN_DB_URL}`처럼 시스템 변수를 받아오도록 사용할 수도 있다.
+다른 방법도 있다. core 모듈의 yml 파일도 환경 별로 분리하고 싶다면 메인 모듈에서 **grouping**을 사용하면 된다.
 
-## TestFixture
+```yaml
+spring:
+  profiles:
+    active: dev
+    group:
+      "dev": "core-dev,common"
+      "prod": "core-prod,common"
+```
 
-jar, bootJar때 TestFixture 때문에 테스트가 깨지는 이슈가 발생했었다. TestFixture란 무엇일까..?
+#### TestFixture
 
-멀티모듈 프로젝트를 진행하더라고 프로덕션 코드는 공유하지만 테스트에서 사용하는 Support 코드는 공유할 수 없다.
+멀티모듈 프로젝트에서 테스트 패키지의 일부 코드를 공유하고 싶을 때 **TestFixture**를 사용할 수 있다.
 
-java-test-fixtures 플러그인을 사용하면 이를 손쉽게 해결할 수 있었다.
+아래와 같이 `java-test-fixtures` 플러그인을 명시하기만 하면 된다.
 
 ```groovy
 plugins {
@@ -214,40 +170,18 @@ plugins {
 }
 ```
 
-java-test-fixtures plugin을 추가하고 아래와 같이 testFixtures 폴더를 만들어서 Support 클래스들을 넣는다.
+`src` 밑에 `testFixtures` 폴더를 만들어서 Support 클래스들을 넣는다.
 
-![img_5.png](img_5.png)
+![img_5.png](images/img_5.png)
 
-그리고 api-server, batch-server 등 core 모듈안의 testFixtures를 사용하려면 아래의 dependency를 추가하기만 하면 된다.
-- testImplementation(testFixtures(project(":core")))
+예를 들어 batch-server 모듈의 테스트에서 core 모듈의 testFixtures를 사용하려면 아래의 dependency를 추가하면 된다.
+- `testImplementation(testFixtures(project(":core")))`
 
-## 추가로 해결할 문제
+#### 배포
 
-위 문제들을 해결하고 멀티 모듈을 구성을 완료했고 배포까지 완료했다.
+멀티 모듈에서 중요한 것은 변경된 모듈만 CI/CD를 실행하는 것이다.
 
-하지만, 추가적으로 아쉬운 부분이 남아있다. 아래에서는 더 필요한 부분을 정리했다.
-
-### 배포
-
-현재 CI/CD가 돌면 모든 프로젝트를 배포해버린다.
-
-```shell
-hooks:
-  ApplicationStart:
-    - location: scripts/deploy-api.sh
-      timeout: 60
-      runas: ec2-user
-
-    - location: scripts/deploy-batch.sh
-      timeout: 60
-      runas: ec2-user
-
-    - location: scripts/deploy-internal-consumer.sh
-      timeout: 60
-      runas: ec2-user
-```
-
-해당 부분은 수정이 이뤄지지 않은 다른 모듈까지 배포 프로세스가 진행된다는 단점이 있다.
+Gitlab CI를 사용하면 아래와 같이 편리하게 사용할 수 있다.
 
 ```yaml
 .api-module:
@@ -259,29 +193,14 @@ hooks:
       - "core/**/*"
 ```
 
-그래서 추후 위(gitlab-ci 예시)와 같이 변경 내역이 있는 모듈만 배포하는 전략 적용이 필요하다.
+CircleCI에서는 많이 복잡했다. 아래 포스팅에서 상세하게 정리했으니 참고하자. (삽질을 많이헀다.)
+- 멀티 모듈 CI/CD 적용: https://jaehoney.tistory.com/253
 
-<참고>
-- https://docs.aws.amazon.com/ko_kr/codebuild/latest/userguide/sample-pipeline-multi-input-output.html
+#### 마무리
 
-### CQRS
+**멀티 모듈**과 **CQRS**, **이벤트 기반 아키텍처**를 처음으로 적용해보는데 엔지니어링 하는 게 너무 재밌었다!
 
-조회 모델을 저장할 저장소로 Redis를 선택하면서 생긴 이슈이다.
-
-Redis는 Key-Value 기반 데이터이기 때문에 Feed(프로젝트 메인 데이터) 목록에서 질의를 할 수 없었다.
-- (제목, 본문, 작성자 등으로 검색)
-
-그래서 findAll(GET /feeds), findById(GET /feeds/{id})의 경우에는 조회 모델을 사용할 수 있지만, QueryString을 사용한 다양한 질의의 경우에서는 Redis를 사용할 수 없었다.
-- (Redis를 사용할 수는 있지만 데이터 중복이 커서 관리하기 힘들다.)
-
-배민 B마트 CQRS 영상에서는 이와 동일하게 조회 모델로서 Redis를 사용하고 있지만, 추가 요구사항에 따라서 Mongo나 ES 등으로 교체할 수도 있다고 한다.
-
-배달의민족 가게노출 시스템에서는 아래와 같이 질의를 위한 DynamoDB와 캐싱을 위해 Redis를 각각 사용하고 있다.
-
-![img_6.png](img_6.png)
-
-그래서 복잡한 질의의 경우에도 조회 모델의 이점을 활용하려면 DynamoDB, MongoDB와 같은 DBMS를 Redis의 앞단에 두는 등의 처리를 하는 것이 필요하다.
-- (AWS 자원 부족으로 보류 한다 ㅠ)
+다음에는 `Axon Framework`로 SAGA 패턴을 진행해보겠다.
 
 ## 참고
 - https://techblog.woowahan.com/2637
@@ -292,5 +211,4 @@ Redis는 Key-Value 기반 데이터이기 때문에 Feed(프로젝트 메인 데
 - https://www.youtube.com/watch?v=38cmd_fYwQk
 - https://www.youtube.com/watch?v=b65zIH7sDug
 - https://techblog.woowahan.com/2667
-
-
+- https://www.cohesity.com/blogs/strict-vs-eventual-consistency/
