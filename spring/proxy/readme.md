@@ -169,3 +169,68 @@ Spring은 기본적으로 Interface가 있는 경우  `JDK Dynamic Proxy`를 만
 Advisor는 1개의 Advice, 1개의 Pointcut을 가진다. 실제 동작은 Advisor의 Advice에서 하므로 프록시를 Advisor 수 만큼 생성할 이유가 없다.
 
 그래서 스프링에서는 일반적으로 대상 클래스 1개당 1개의 프록시만 만들어서 사용한다.
+
+## BeanPostProcessor
+
+설명했듯 Jdk Dynamic Proxy나 CGLib Proxy 모두 1개의 클래스로 여러 프록시를 만들 수 있도록 동작한다.
+
+AOP는 이를 `BeanPostProcessor` 를 사용해서 이를 해결하고 있다.
+
+스프링에서 빈 저장소에 등록할 목적으로 생성한 객체를 **등록 직전**에 **조작하고 싶다면** **BeanPostProcessor**를 사용하면 된다.
+
+**BeanPostProcessor**는 빈을 생성한 후 등록하기 전에 객체를 조작하거나, 완전히 다른 객체로 바꿔치기 하는 등을 할 수 있다.
+
+![img_8.png](img_8.png)
+
+만약 A 객체를 B 객체로 바꿔치기 하면 B 빈이 스프링 컨테이너에 등록된다.
+
+#### \@PostConstruct
+
+우리가 사용하는 `@PostConstruct`도 빈 후처리기를 사용한 기술이다.
+
+스프링은 `CommonAnnotationBeanPostProcessor`를 자동으로 등록한다.
+
+해당 후처리기에서 `@PostConstruct` 애노테이션이 붙은 메서드를 호출해준다.
+
+
+### AOP
+
+AOP에서는 이걸 아래와 같이 해결한다.
+
+아래의 `BeanPostProcessor`를 빈으로 등록한다.
+
+```java
+public class PackageLogTracePostProcessor implements BeanPostProcessor {
+
+    private final String basePackage;
+    private final Advisor advisor;
+
+    public PackageLogTracePostProcessor(String basePackage, Advisor advisor) {
+        this.basePackage = basePackage;
+        this.advisor = advisor;
+    }
+    
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        //프록시 적용 대상이 아니면 원본을 그대로 진행
+        String packageName = bean.getClass().getPackageName();
+        if (!packageName.startsWith(basePackage)) {
+            return bean;
+        }
+
+        //프록시 대상이면 프록시를 만들어서 반환
+        ProxyFactory proxyFactory = new ProxyFactory(bean);
+        proxyFactory.addAdvisor(advisor);
+
+        Object proxy = proxyFactory.getProxy();
+        return proxy;
+    }
+}
+```
+
+그러면 해당 bean을 가져와서 원하는 조건으로 체크를 한 후 **프록시로 Wrapping해서 반환**한다.
+
+등록된 모든 빈 전체에 대해 해당 메서드를 실행하므로 프록시를 일괄적으로 적용할 수 있다.
+
+
+
