@@ -1,6 +1,6 @@
-package com.violetbeach.sharding.web;
+package com.violetbeach.sharding.module.web;
 
-import com.violetbeach.sharding.database.DbInfo;
+import com.violetbeach.sharding.module.database.DbInfo;
 import javax.servlet.http.HttpServletRequest;
 import lombok.experimental.UtilityClass;
 

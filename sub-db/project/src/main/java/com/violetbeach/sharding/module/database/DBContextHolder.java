@@ -1,4 +1,4 @@
-package com.violetbeach.sharding.database;
+package com.violetbeach.sharding.module.database;
 
 public class DBContextHolder {
     private static final ThreadLocal<DbInfo> threadLocal = new ThreadLocal();

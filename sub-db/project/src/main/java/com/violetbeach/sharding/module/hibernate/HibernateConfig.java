@@ -1,12 +1,10 @@
-package com.violetbeach.sharding.hibernate;
+package com.violetbeach.sharding.module.hibernate;
 
 import lombok.RequiredArgsConstructor;
 import org.hibernate.cfg.AvailableSettings;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import javax.xml.validation.Schema;
 
 @Configuration
 @RequiredArgsConstructor

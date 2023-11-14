@@ -1,4 +1,4 @@
-package com.violetbeach.sharding.hibernate;
+package com.violetbeach.sharding.module.hibernate;
 
 import org.hibernate.boot.model.naming.Identifier;
 import org.hibernate.boot.model.naming.PhysicalNamingStrategy;

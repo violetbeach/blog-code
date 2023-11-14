@@ -1,6 +1,7 @@
 package com.violetbeach.sharding;
 
 import com.violetbeach.sharding.entity.Member;
+import com.violetbeach.sharding.module.aop.Sharding;
 import com.violetbeach.sharding.repository.MemberRepository;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -18,6 +19,7 @@ public class Controller {
     private final MemberRepository memberRepository;
 
     @PostMapping("/members")
+    @Sharding
     public ResponseEntity<Member> postMember(@RequestBody PostRequest postRequest) {
         Member member = new Member(postRequest.getUsername());
         memberRepository.save(member);

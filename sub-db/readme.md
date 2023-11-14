@@ -263,14 +263,15 @@ public class DataSourceCreator {
 
 `AbstractRoutingDataSource`와 관련된 코드는 모두 작성했다.
 
-### Filter
+이제 `ThreadLocal`에 DbInfo를 넣어주고, `DataSource`가 없는 경우 생성해줘야 한다. 
 
-이제 Filter에서 해당 `ThreadLocal`에 DbInfo를 넣어줘야 한다.
-- Filter가 아니더라도 AOP나 Interceptor 등의 방식으로 풀 수 있다.
-- 실제 만든 모듈에서는 AOP 방식도 지원한다.
+작성한 코드에서는 Filter, AOP 두 방식을 지원한다.
+
+### Filter로 처리
+
+아래는 **Filter로 처리**를 구현한 코드이다.
 
 ```java
-@Component
 @RequiredArgsConstructor
 public class ShardingFilter extends OncePerRequestFilter {
     private final MultiDataSourceManager multiDataSourceManager;
@@ -292,17 +293,67 @@ public class ShardingFilter extends OncePerRequestFilter {
 }
 ```
 
-해당 필터를 통해 요청이 들어왔을 때 DBInfo를 세팅하고 DataSource를 생성하는 로직을 비즈니스 로직에서 분리할 수 있다.
+해당 필터를 사용해서 요청이 들어왔을 때 **ThreadLocal에 DBInfo를 세팅**하고 **DataSource를 생성**하는 로직을 **비즈니스 로직에서 분리**할 수 있다.
 
-만약 해당 Filter를 사용하지 않을 시 `clear()`를 반드시 호출해서 ThreadLocal을 재사용할 수 있는 문제를 처리해야 한다
+## AOP로 처리
 
-(꿈에 그리던 순간) 이제 **샤딩 문제가 해결**될 것이다.
+Batch 서버와 같이 Web 요청이 없는 경우 **Filter로 처리가 불가능**하다. 그래서 **AOP 방식도 지원**한다.
+
+특정 메서드에 아래 애노테이션만 붙이면 샤딩을 처리할 수 있도록 처리하자.
+
+```java
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Sharding {
+}
+```
+
+아래와 같이 AOP 모듈을 구현한다.
+
+```java
+@Aspect
+@Component
+@ConditionalOnBean(LoadDbInfoProcess.class)
+@RequiredArgsConstructor
+public class DataSourceAdditionAspect {
+    private final LoadDbInfoProcess loadDbInfoProcess;
+    private final MultiDataSourceManager multiDataSourceManager;
+
+    @Around("@annotation(com.violetbeach.sharding.module.aop.Sharding)")
+    public void execute(ProceedingJoinPoint joinPoint) throws Throwable {
+        DbInfo dbInfo = loadDbInfoProcess.loadDbInfo();
+        DBContextHolder.setDbInfo(dbInfo);
+        try {
+            // DataSource가 존재하지 않을 경우에 새로 생성해준다.
+            multiDataSourceManager.addDataSourceIfAbsent(dbInfo.ip());
+            joinPoint.proceed();
+        } finally {
+            DBContextHolder.clear();
+        }
+    }
+
+}
+```
+
+아래는 DBInfo를 가져오는 **인터페이스**이다.
+
+```java
+public interface LoadDbInfoProcess {
+    DbInfo loadDbInfo();
+}
+```
+
+구현체는 사용자가 원하는 방식으로 구현할 수 있다.
+
+**ThreadLocal**을 사용해도 되고, Spring Batch를 사용한다면 **JobScope에서 ip와 partition을 꺼내는 등** 원하는 방식으로 구현하면 된다.
+
+이렇게 해서 **샤딩 문제가 해결**되었다!
 
 ## 2. Dynamic Schema Name
 
 1가지 문제가 남아있다. **스키마명**을 jwt에 있는 partition을 사용해서 바꿔야 한다.
 
-`org.hibernate.resource.jdbc.spi.StatementInspector`를 구현하면 됩니다. `StatementInspector`를 사용하면  **기존 sql의 일부를 변경**하거나 **완전히 대체**할 수 있다.
+`org.hibernate.resource.jdbc.spi.StatementInspector`를 구현하면 된다. `StatementInspector`를 사용하면  **기존 sql의 일부를 변경**하거나 **완전히 대체**할 수 있다.
 
 ```java
 public class PartitionInspector implements StatementInspector {

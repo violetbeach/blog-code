@@ -1,6 +1,6 @@
-package com.violetbeach.sharding.hibernate;
+package com.violetbeach.sharding.module.hibernate;
 
-import com.violetbeach.sharding.database.DBContextHolder;
+import com.violetbeach.sharding.module.database.DBContextHolder;
 import org.hibernate.resource.jdbc.spi.StatementInspector;
 
 public class PartitionInspector implements StatementInspector {

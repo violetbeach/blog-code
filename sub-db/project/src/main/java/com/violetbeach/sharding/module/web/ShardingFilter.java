@@ -1,18 +1,17 @@
-package com.violetbeach.sharding.web;
+package com.violetbeach.sharding.module.web;
 
-import com.violetbeach.sharding.database.DBContextHolder;
-import com.violetbeach.sharding.database.DbInfo;
-import com.violetbeach.sharding.database.MultiDataSourceManager;
-import java.io.IOException;
+import com.violetbeach.sharding.module.database.DBContextHolder;
+import com.violetbeach.sharding.module.database.DbInfo;
+import com.violetbeach.sharding.module.database.MultiDataSourceManager;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.filter.OncePerRequestFilter;
+
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
+import java.io.IOException;
 
-@Component
 @RequiredArgsConstructor
 public class ShardingFilter extends OncePerRequestFilter {
     private final MultiDataSourceManager multiDataSourceManager;

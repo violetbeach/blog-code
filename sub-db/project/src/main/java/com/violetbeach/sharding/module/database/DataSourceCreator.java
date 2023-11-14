@@ -1,4 +1,4 @@
-package com.violetbeach.sharding.database;
+package com.violetbeach.sharding.module.database;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;

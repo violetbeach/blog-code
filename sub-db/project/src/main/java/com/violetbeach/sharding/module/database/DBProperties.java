@@ -1,4 +1,4 @@
-package com.violetbeach.sharding.database;
+package com.violetbeach.sharding.module.database;
 
 import javax.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;

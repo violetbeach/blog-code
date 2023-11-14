@@ -1,4 +1,4 @@
-package com.violetbeach.sharding.database;
+package com.violetbeach.sharding.module.database;
 
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 
