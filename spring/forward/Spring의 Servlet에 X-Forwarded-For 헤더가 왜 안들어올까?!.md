@@ -190,11 +190,11 @@ curl --location --request PATCH 'http://localhost:8080/v2/mails/1241389357' \
 
 결국 내가 예상은 했지만 아닐 것이라고 믿었던 **ServletContainer(Tomcat)**가 문제였고, 거기서 헤더를 지우는 것이 맞았다.
 
-해결은 코드의 `request.getHeader("X-Forwarded-For")`를 `request.getAddr()`로 교체해서 간단하게 해결할 수 있었다.
+해결은 코드의 `request.getHeader("X-Forwarded-For")`를 `request.getRemoteAddr()`로 교체해서 간단하게 해결할 수 있었다.
 
 ```java
-public class HiworksSecurityHelper {
-    
+public class SecurityHelper {
+
     static public HeaderUtil generateHeaderUtilBy(HttpServletRequest request){
         return HeaderUtil.builder()
                 .token(request.getHeader(HeaderUtil.HIWORKS_JWT_HEADER))
