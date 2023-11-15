@@ -1,14 +1,20 @@
-이번 포스팅은 **김영한님의 스프링 핵심 원리 - 고급편**의 프록시 관련 내용을 정리한 것이다.
+지난번 AOP를 적용하면서 생겼던 문제에 대해 소개했다.
+- https://jaehoney.tistory.com/375
 
-## GOF - 프록시 패턴
+이번 포스팅에서는 실무보다는 **기본 개념**에 대해 집중적으로 알아보자.
 
-GOF의 프록시 패턴만을 사용하면 프록시가 너무 많이 생기는 문제가 발생한다.
+해당 포스팅은 **김영한님의 스프링 핵심 원리 - 고급편**의 프록시 관련 내용을 정리한 것이며, **프록시와 AOP의 동작의 기본 개념**이라고 보면 된다.
+
+## 프록시 패턴
+
+GOF의 프록시 패턴에서 프록시가 너무 많이 생기는 문제가 있다..
 
 아래는 GOF 프록시 패턴의 예시이다.
 
-![img.png](img.png)
+![img.png](images/img.png)
 
-저 경우에는 적절할 수 있지만, 만약 트랜잭션을 적용하는 프록시를 예로 들면 `Repository` 1개마다 전부 프록시 클래스를 생성해야 한다. 프록시를 적용할 클래스가 100개라면 100개의 프록시 클래스를 만들어야 한다.
+예로 들면 `Repository` 1개마다 전부 프록시 클래스를 생성해야 한다. 프록시를 적용할 클래스가 100개라면 100개의 프록시를 적용하는 코드를 만들어야 한다.
+- **단일 책임 원칙**에 어긋나게 된다.
 
 이 문제를 해결하기 위한 기술이 **Dynamic proxy** 이다.
 
@@ -16,17 +22,18 @@ GOF의 프록시 패턴만을 사용하면 프록시가 너무 많이 생기는 
 
 프록시 패턴에서는 대상 클래스 1개마다 클래스를 1개 추가해야 한다는 단점이 필요하다.
 
-프록시 1개만 사용해서 모든 클래스에 프록시를 적용할 수 없을까? 이걸 해결하는게 **JDK Dynamic Proxy** 방식이다.
+프록시 1개만 사용해서 모든 클래스에 프록시를 적용할 수 없을까? 이걸 해결하는게 **동적 프록시(Dynamic Proxy)** 방식이다.
 
-먼저 리플렉션에 대해 가볍게만 살펴보자.
+동적 프록시 중에서 JDK 동적 프록시를 이해하기 위해 **리플렉션**에 대해 가볍게 살펴보자.
 
 #### 리플렉션
-리플렉션을 사용하면 프록시를 적용할 코드 1개만 만들면 동적 프록시를 사용해서 프록시 객체를 많이 생성할 수 있다.
 
-가령 아래와 같이 코드를 작성하면 `dynamicCall()`이라는 공통 메서드를 추출할 수 있다.
+리플렉션을 사용하면 **프록시를 적용할 코드 1개로** **프록시 객체를 많이 생성**할 수 있다.
+
+아래와 같이 코드를 작성하면 `dynamicCall()`이라는 공통 메서드를 추출할 수 있다.
 
 ```java
-@Test [20231025_181752_nana(nana@baihong.com)_Re__RE__Re__RE__Re__PET_INQUIRmail.eml](..%2F..%2F..%2F..%2FDownloads%2F20231025_181752_nana%28nana%40baihong.com%29_Re__RE__Re__RE__Re__PET_INQUIRmail.eml)
+@Test
 void reflection() throws Exception {
     Class classHello = Class.forName("jaehoney.proxy.jdkdynamic.ReflectionTest$Hello"); 
     Hello target = new Hello();
@@ -42,13 +49,11 @@ private void dynamicCall(Method method, Object target) throws Exception {
 }
 ```
 
-문제는 리플렉션은 **런타임에 동작**하기 때문에 매우 위험한 문제가 있다. 즉, 실제 메서드가 호출되고 리플렉션이 실패해서 에러가 터질 수 있다. .
-
 ## JDK 다이나믹 프록시
 
 아래는 JDK 다이나믹 프록시를 사용한 예시이다.
 
-`java.lang.reflectInvocationHandler`를 구현한 클래스를 생성한다. 
+`java.lang.reflect.InvocationHandler`를 구현한 클래스를 생성한다. 
 
 ```java
 @Slf4j
@@ -74,7 +79,7 @@ public class TimeInvocationHandler implements InvocationHandler {
 }
 ```
 
-이제 모든 클래스에 아래와 같이 프록시를 적용할 수 있다.
+이제 모든 클래스에 동일한 코드로 프록시를 적용할 수 있다.
 
 ```java
 AInterface target = new AImpl();
@@ -86,9 +91,11 @@ proxy.call();
 
 주의할 점은 이 방식(Jdk Dynamic Proxy)은 **Interface**가 있어야만 사용할 수 있다.
 
-![img_1.png](img_1.png)
+![img_1.png](images/img_1.png)
 
-JDK Dynamic Proxy를 사용하면 필요한 인스턴스 수는 N으로 동일하지만, 클래스는 1개만 만들면 된다. 그래서 부가 기능은 `InvocationHandler`의 구현체에서만 관리해주면 된다.
+JDK Dynamic Proxy를 사용하면 필요한 프록시 인스턴스 수는 N으로 동일하지만, 프록시를 적용할 클래스는 1개만 만들면 된다. 그래서 부가 기능은 `InvocationHandler`의 구현체에서만 관리해주면 된다.
+
+즉, **단일 책임 원칙**을 지킬 수 있게 되었다.
 
 ## CGLib
 
@@ -137,7 +144,7 @@ proxy.call();
 
 `CGLib`에서는 `JDK Dynamic Proxy`와 다르게 구체 클래스를 상속받아서 프록시를 생성한다. 그래서 Interface가 없어도 동작하도록 구현되었다. (스프링 프로퍼티 설정으로 변경할 수 있다.)
 
-![img_2.png](img_2.png)
+![img_2.png](images/img_2.png)
 
 Spring은 기본적으로 Interface가 있는 경우  `JDK Dynamic Proxy`를 만들고, Interface가 없는 경우 `CGLib Proxy`를 만든다. Spring-Boot 2.0 부터는 `CGLib` 기반 프록시가 기본으로 채택되었다.
 
@@ -152,19 +159,19 @@ Spring은 기본적으로 Interface가 있는 경우  `JDK Dynamic Proxy`를 만
 
 스프링은 동적 프록시를 통합해서 편리하게 만들어주는 **프록시 팩토리**를 사용한다.
 
-![img_4.png](img_4.png)
+![img_4.png](images/img_4.png)
 
 스프링은 아래와 같이 `adviceInvocationHandler`나 `adviceMethodInterceptor`는 **Advice**를 호출한다.
 
 그래서 개발자는 프록시 전후에 실행되어야 하는 로직을 가진 **Advice**만 만들면 동적 프록시를 적용할 수 있다.
 
-![img_5.png](img_5.png)
+![img_5.png](images/img_5.png)
 
 프록시 팩토리는 이 뿐만 아니라 **중요한 역할**이 하나 더있다.
 
 인스턴스 1개에 여러 개의 AOP를 적용할 때 프록시는 **1개만 생성**된다. 그 이유는 프록시 팩토리가 여러 개의 Advisor를 가지기 때문이다.
 
-![img_7.png](img_7.png)
+![img_7.png](images/img_7.png)
 
 Advisor는 1개의 Advice, 1개의 Pointcut을 가진다. 실제 동작은 Advisor의 Advice에서 하므로 프록시를 Advisor 수 만큼 생성할 이유가 없다.
 
@@ -180,7 +187,7 @@ AOP는 이를 `BeanPostProcessor` 를 사용해서 이를 해결하고 있다.
 
 **BeanPostProcessor**는 빈을 생성한 후 등록하기 전에 객체를 조작하거나, 완전히 다른 객체로 바꿔치기 하는 등을 할 수 있다.
 
-![img_8.png](img_8.png)
+![img_8.png](images/img_8.png)
 
 만약 A 객체를 B 객체로 바꿔치기 하면 B 빈이 스프링 컨테이너에 등록된다.
 
@@ -195,9 +202,7 @@ AOP는 이를 `BeanPostProcessor` 를 사용해서 이를 해결하고 있다.
 
 ### AOP
 
-AOP에서는 이걸 아래와 같이 해결한다.
-
-아래의 `BeanPostProcessor`를 빈으로 등록한다.
+아래의 `BeanPostProcessor`를 살펴보자.
 
 ```java
 public class PackageLogTracePostProcessor implements BeanPostProcessor {
@@ -228,9 +233,23 @@ public class PackageLogTracePostProcessor implements BeanPostProcessor {
 }
 ```
 
-그러면 해당 bean을 가져와서 원하는 조건으로 체크를 한 후 **프록시로 Wrapping해서 반환**한다.
+bean을 가져와서 원하는 조건으로 체크를 한 후 **프록시로 Wrapping해서 반환**한다. 생성된 모든 빈에 대해 해당 메서드를 실행하므로 프록시를 일괄적으로 적용할 수 있다.
 
-등록된 모든 빈 전체에 대해 해당 메서드를 실행하므로 프록시를 일괄적으로 적용할 수 있다.
+**Spring-AOP**에서도 크게 다르지 않다.
+
+![img_9.png](images/img_9.png)
+
+Spring-AOP는 `@Aspect`를 전부 찾아서 `Advisor`로 변환한다. 찾은 `Adivsor` 하나당 등록된 모든 빈을 대상으로 **Pointcut을 보고 대상을 체크**한다. 대상은 **Advice**를 적용한 프록시로 빈을 **Wrapping**한다. 
+
+그래서 일괄적으로 프록시를 적용할 수 있다.
+
+## 주의 사항
+
+프록시 및 AOP에는 아래의 제약이 있다.
+- JDK Dynamic Proxy, CGLib 둘다 메서드 오버라이딩 방식으로 동작한다.
+  - 생성자, static 메서드, 필드 값 접근 에는 프록시를 상용할 수 없다.
+  - 스프링 AOP의 조인 포인트는 **메서드 실행**으로 제한된다.
+- 프록시 방식을 사용하는 **스프링 AOP**는 **스프링 빈**에만 적용할 수 있다.
 
 
 
