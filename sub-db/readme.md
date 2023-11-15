@@ -366,61 +366,6 @@ public class PartitionInspector implements StatementInspector {
 }
 ```
 
-`org.hibernate.boot.model.naming.PhysicalNamingStrategy`도 구현한다.
-
-해당 클래스는 Schema 명과 Table 명명 전략을 적용하는 클래스이다. 해당 클래스가 없으면 `@Table(name = "member_#partition#.member")`에서 `name`이 전부 테이블 명으로 인식하고 `JdbcUrl`의 `defaultDatabase`를 **스키마명으로 사용**한다.
-
-```java
-public class SchemaNamingStrategy implements PhysicalNamingStrategy {
-    @Override
-    public Identifier toPhysicalCatalogName(Identifier name, JdbcEnvironment jdbcEnvironment) {
-        return apply(name, jdbcEnvironment);
-    }
-
-    @Override
-    public Identifier toPhysicalSchemaName(Identifier name, JdbcEnvironment jdbcEnvironment) {
-        return apply(name, jdbcEnvironment);
-    }
-
-    @Override
-    public Identifier toPhysicalTableName(Identifier name, JdbcEnvironment jdbcEnvironment) {
-        return apply(name, jdbcEnvironment);
-    }
-
-    @Override
-    public Identifier toPhysicalSequenceName(Identifier name, JdbcEnvironment jdbcEnvironment) {
-        return apply(name, jdbcEnvironment);
-    }
-
-    @Override
-    public Identifier toPhysicalColumnName(Identifier name, JdbcEnvironment jdbcEnvironment) {
-        return apply(name, jdbcEnvironment);
-    }
-
-    private Identifier apply(Identifier name, JdbcEnvironment jdbcEnvironment) {
-        if (name == null) {
-            return null;
-        }
-        StringBuilder builder = new StringBuilder(name.getText());
-        for (int i = 1; i < builder.length() - 1; i++) {
-            if (isUnderscoreRequired(builder.charAt(i - 1), builder.charAt(i), builder.charAt(i + 1))) {
-                builder.insert(i++, '_');
-            }
-        }
-        return getIdentifier(builder.toString(), name.isQuoted(), jdbcEnvironment);
-    }
-
-    protected Identifier getIdentifier(String name, boolean quoted, JdbcEnvironment jdbcEnvironment) {
-        name = name.toLowerCase(Locale.ROOT);
-        return new Identifier(name, quoted);
-    }
-
-    private boolean isUnderscoreRequired(char before, char current, char after) {
-        return Character.isLowerCase(before) && Character.isUpperCase(current) && Character.isLowerCase(after);
-    }
-}
-```
-
 이제 `HibernatePropertiesCustomizer`를 빈으로 등록하면 된다.
 
 ```java
@@ -431,7 +376,6 @@ public class HibernateConfig {
     public HibernatePropertiesCustomizer hibernatePropertiesCustomizer() {
         return (properties) -> {
             properties.put(AvailableSettings.STATEMENT_INSPECTOR, new PartitionInspector());
-            properties.put(AvailableSettings.PHYSICAL_NAMING_STRATEGY, new SchemaNamingStrategy());
         };
     }
 
@@ -442,7 +386,7 @@ Entity는 아래와 같이 설정한다.
 
 ```java
 @Entity
-@Table(name = "member_#partition#.member")
+@Table(schema = "member_#partition#", name = "member")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member {
 
@@ -454,11 +398,13 @@ public class Member {
     public Member(String username) {
         this.username = username;
     }
-
 }
 ```
 
-이제 Dyanmic Schema name 문제까지도  모두 해결되었다.
+MySQL에서는 `@Table` 애노테이션의 `schema` 옵션이 동작하지 않는다. 대신 `catalog` 옵션을 사용해야 한다.
+- 참고: https://junhyunny.github.io/spring-boot/jpa/database/connect-multi-schema-in-mysql
+
+이제 Dyanmic Schema name 문제까지도 모두 해결되었다.
 
 ## 결과
 

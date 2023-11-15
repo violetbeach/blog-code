@@ -1,15 +1,12 @@
 package com.violetbeach.sharding.entity;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+import javax.persistence.*;
+
 @Entity
-@Table(name = "member_#partition#.member")
+@Table(schema = "member_#partition#", name = "member")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member {
 

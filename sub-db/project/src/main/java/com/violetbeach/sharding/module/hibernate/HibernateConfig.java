@@ -13,7 +13,6 @@ public class HibernateConfig {
     public HibernatePropertiesCustomizer hibernatePropertiesCustomizer() {
         return (properties) -> {
             properties.put(AvailableSettings.STATEMENT_INSPECTOR, new PartitionInspector());
-            properties.put(AvailableSettings.PHYSICAL_NAMING_STRATEGY, new SchemaNamingStrategy());
         };
     }
 
