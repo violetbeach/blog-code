@@ -44,7 +44,7 @@ public class SecurityUser implements UserDetails {
 
 왜 안되는 지는 모르시지만, 다른 헤더 값을 뒤져서 Ip를 추출하고 있었다고 한다.
 
-그래서 **'다른 사람들이 겪을 불편을 겪기 전에 내가 해결하자!'** 라고 생각을 하게 되었다.
+그래서 **'다른 사람들이 불편을 겪기 전에 내가 해결하자!'** 라고 생각을 하게 되었다.
 
 ![img_2.png](images/img_2.png)
 

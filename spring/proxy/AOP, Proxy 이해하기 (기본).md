@@ -7,7 +7,7 @@
 
 ## 프록시 패턴
 
-GOF의 프록시 패턴에서 프록시가 너무 많이 생기는 문제가 있다..
+프록시 패턴에서는 프록시가 너무 많이 생기는 문제가 있다.
 
 아래는 GOF 프록시 패턴의 예시이다.
 
@@ -38,8 +38,8 @@ void reflection() throws Exception {
     Class classHello = Class.forName("jaehoney.proxy.jdkdynamic.ReflectionTest$Hello"); 
     Hello target = new Hello();
 
-    Method methodA = classHello.getMethod("callA");
-    dynamicCall(methodA, target);
+    Method method = classHello.getMethod("print");
+    dynamicCall(method, target);
 }
 
 private void dynamicCall(Method method, Object target) throws Exception {
