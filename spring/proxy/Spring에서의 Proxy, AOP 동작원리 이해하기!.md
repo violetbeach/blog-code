@@ -1,4 +1,4 @@
-지난번 AOP를 적용하면서 생겼던 문제에 대해 소개했다.
+지난번 Spring AOP를 적용하면서 생겼던 문제에 대해 소개했다.
 - https://jaehoney.tistory.com/375
 
 이번 포스팅에서는 실무보다는 **기본 개념**에 대해 집중적으로 알아보자.
@@ -14,7 +14,7 @@
 ![img.png](images/img.png)
 
 예로 들면 `Repository` 1개마다 전부 프록시 클래스를 생성해야 한다. 프록시를 적용할 클래스가 100개라면 100개의 프록시를 적용하는 코드를 만들어야 한다.
-- **단일 책임 원칙**에 어긋나게 된다.
+- 즉, **단일 책임 원칙**에 어긋나고 기능 변경 시 다수의 클래스에 변경이 전파된다.
 
 이 문제를 해결하기 위한 기술이 **Dynamic proxy** 이다.
 
@@ -142,14 +142,14 @@ AClass proxy = (AClass) enhancer.create();
 proxy.call();
 ```
 
-`CGLib`에서는 `JDK Dynamic Proxy`와 다르게 구체 클래스를 상속받아서 프록시를 생성한다. 그래서 Interface가 없어도 동작하도록 구현되었다. (스프링 프로퍼티 설정으로 변경할 수 있다.)
+`CGLib`에서는 `JDK Dynamic Proxy`와 다르게 **구체 클래스를 상속**받아서 프록시를 생성한다. 그래서 **Interface가 없어도 동작**하도록 구현되었다.
 
 ![img_2.png](images/img_2.png)
 
 Spring은 기본적으로 Interface가 있는 경우  `JDK Dynamic Proxy`를 만들고, Interface가 없는 경우 `CGLib Proxy`를 만든다. Spring-Boot 2.0 부터는 `CGLib` 기반 프록시가 기본으로 채택되었다.
 
-**주의사항**
-- CGLib는 자식 클래스를 동적으로 생성하기 때문에 기본 생성자가 필요하다.
+**CGLib의 주의사항**
+- 자식 클래스를 동적으로 생성하기 때문에 기본 생성자가 필요하다.
 - 클래스에 final 키워드가 붙으면 예외가 발생한다.
 - 메서드에 final 키워드가 붙으면 프록시 로직이 동작하지 않는다.
 
@@ -159,35 +159,35 @@ Spring은 기본적으로 Interface가 있는 경우  `JDK Dynamic Proxy`를 만
 
 스프링은 동적 프록시를 통합해서 편리하게 만들어주는 **프록시 팩토리**를 사용한다.
 
-![img_4.png](images/img_4.png)
+![img_3.png](images/img_3.png)
 
 스프링은 아래와 같이 `adviceInvocationHandler`나 `adviceMethodInterceptor`는 **Advice**를 호출한다.
 
 그래서 개발자는 프록시 전후에 실행되어야 하는 로직을 가진 **Advice**만 만들면 동적 프록시를 적용할 수 있다.
 
-![img_5.png](images/img_5.png)
+![img_4.png](images/img_4.png)
 
 프록시 팩토리는 이 뿐만 아니라 **중요한 역할**이 하나 더있다.
 
 인스턴스 1개에 여러 개의 AOP를 적용할 때 프록시는 **1개만 생성**된다. 그 이유는 프록시 팩토리가 여러 개의 Advisor를 가지기 때문이다.
 
-![img_7.png](images/img_7.png)
+![img_5.png](images/img_5.png)
 
-Advisor는 1개의 Advice, 1개의 Pointcut을 가진다. 실제 동작은 Advisor의 Advice에서 하므로 프록시를 Advisor 수 만큼 생성할 이유가 없다.
+Advisor는 1개의 Advice, 1개의 Pointcut을 가진다. **실제 동작**은 Advisor의 **Advice**에서 하므로 프록시를 Advisor 수 만큼 생성할 이유가 없다. 해당 Advice로의 참조만 가지면 된다.
 
-그래서 스프링에서는 일반적으로 대상 클래스 1개당 1개의 프록시만 만들어서 사용한다.
+그래서 스프링에서는 **대상 클래스 1개당 1개의 프록시**만 만들어서 사용한다.
 
 ## BeanPostProcessor
 
-설명했듯 Jdk Dynamic Proxy나 CGLib Proxy 모두 1개의 클래스로 여러 프록시를 만들 수 있도록 동작한다.
+앞서 설명했듯, Jdk Dynamic Proxy나 CGLib Proxy 모두 **1개의 클래스로 여러 프록시를 생성**할 수 있도록 동작한다.
 
 AOP는 이를 `BeanPostProcessor` 를 사용해서 이를 해결하고 있다.
 
-스프링에서 빈 저장소에 등록할 목적으로 생성한 객체를 **등록 직전**에 **조작하고 싶다면** **BeanPostProcessor**를 사용하면 된다.
+스프링에서 빈을 **생성 후** **등록하기 직전**에 **조작하고 싶다면** **BeanPostProcessor**를 사용하면 된다.
 
-**BeanPostProcessor**는 빈을 생성한 후 등록하기 전에 객체를 조작하거나, 완전히 다른 객체로 바꿔치기 하는 등을 할 수 있다.
+**BeanPostProcessor**는 빈을 생성한 후 등록하기 전에 **객체를 조작**하거나, **완전히 다른 객체로 바꿔치기** 하는 등을 할 수 있다.
 
-![img_8.png](images/img_8.png)
+![img_7.png](images/img_7.png)
 
 만약 A 객체를 B 객체로 바꿔치기 하면 B 빈이 스프링 컨테이너에 등록된다.
 
@@ -195,10 +195,7 @@ AOP는 이를 `BeanPostProcessor` 를 사용해서 이를 해결하고 있다.
 
 우리가 사용하는 `@PostConstruct`도 빈 후처리기를 사용한 기술이다.
 
-스프링은 `CommonAnnotationBeanPostProcessor`를 자동으로 등록한다.
-
-해당 후처리기에서 `@PostConstruct` 애노테이션이 붙은 메서드를 호출해준다.
-
+스프링은 애플리케이션 실행 시 `CommonAnnotationBeanPostProcessor`라는 후처리기를 자동으로 등록한다. 해당 후처리기에서 `@PostConstruct` 애노테이션이 붙은 메서드를 호출해준다.
 
 ### AOP
 
@@ -237,19 +234,9 @@ bean을 가져와서 원하는 조건으로 체크를 한 후 **프록시로 Wra
 
 **Spring-AOP**에서도 크게 다르지 않다.
 
-![img_9.png](images/img_9.png)
+![img_6.png](images/img_6.png)
 
 Spring-AOP는 `@Aspect`를 전부 찾아서 `Advisor`로 변환한다. 찾은 `Adivsor` 하나당 등록된 모든 빈을 대상으로 **Pointcut을 보고 대상을 체크**한다. 대상은 **Advice**를 적용한 프록시로 빈을 **Wrapping**한다. 
 
-그래서 일괄적으로 프록시를 적용할 수 있다.
-
-## 주의 사항
-
-프록시 및 AOP에는 아래의 제약이 있다.
-- JDK Dynamic Proxy, CGLib 둘다 메서드 오버라이딩 방식으로 동작한다.
-  - 생성자, static 메서드, 필드 값 접근 에는 프록시를 상용할 수 없다.
-  - 스프링 AOP의 조인 포인트는 **메서드 실행**으로 제한된다.
-- 프록시 방식을 사용하는 **스프링 AOP**는 **스프링 빈**에만 적용할 수 있다.
-
-
+그래서 **일괄적으로 프록시를 적용**할 수 있다.
 
