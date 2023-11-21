@@ -181,14 +181,14 @@ public class MultiDataSourceManager {
     // 동시성을 보장해야 하므로 ConcurrentHashMap을 사용한다.
     private final Map<Object, Object> dataSourceMap = new ConcurrentHashMap<>();
 
-    private AbstractRoutingDataSource multiDataSource;
+    private final AbstractRoutingDataSource multiDataSource;
     private final DataSourceCreator dataSourceCreator;
 
     public MultiDataSourceManager(DataSourceCreator dataSourceCreator) {
         MultiDataSource multiDataSource = new MultiDataSource();
-        // AbstractRoutingDataSource의 targetDataSource를 지정
+        // AbstractRoutingDataSource의 targetDataSources를 지정
         multiDataSource.setTargetDataSources(dataSourceMap);
-        // Key 대상이 없을 경우 호출되는 DataBase 지정 (해당 프로젝트에서는 Key가 없으면 예외가 터지도록 설계)
+        // Key 대상이 없을 경우 호출되는 DataSource 지정 (해당 프로젝트에서는 Key가 없으면 예외가 터지도록 설계)
         multiDataSource.setDefaultTargetDataSource(dataSourceCreator.defaultDataSource());
         this.multiDataSource = multiDataSource;
         this.dataSourceCreator = dataSourceCreator;
@@ -263,9 +263,16 @@ public class DataSourceCreator {
 
 `AbstractRoutingDataSource`와 관련된 코드는 모두 작성했다.
 
-이제 `ThreadLocal`에 DbInfo를 넣어주고, `DataSource`가 없는 경우 생성해줘야 한다. 
+## Util 클래스 제공
 
-작성한 코드에서는 Filter, AOP 두 방식을 지원한다.
+이제 라이브러리의 사용처에서 `ThreadLocal`에 DbInfo를 넣어주고, `DataSource`가 없는 경우 생성해줘야 한다.
+
+그런데 사용처에서는 ThreadLocal에 대해 직접적으로 다루지 않게 하고 싶었고, 편의성을 위해 라이브러리의 개념에도 접근할 필요가 없게 하고 싶었다.
+- ThreadLocal은 다소 위험한 개념
+  - ThreadPool을 사용하는 경우 이전 Thread의 정보를 가져와서 잘못 쿼리가 나갈 수 있음
+- 라이브러리의 개념에 접근해야 한다면 매번 라이브러리를 설명해야 함
+
+그래서 사용자 편의를 위해 **유틸성 클래스를 제공**한다! 작성한 코드에서는 Filter, AOP 두 방식을 지원한다.
 
 ### Filter로 처리
 
@@ -345,7 +352,7 @@ public interface LoadDbInfoProcess {
 
 구현체는 사용자가 원하는 방식으로 구현할 수 있다.
 
-**ThreadLocal**을 사용해도 되고, Spring Batch를 사용한다면 **JobScope에서 ip와 partition을 꺼내는 등** 원하는 방식으로 구현하면 된다.
+**ThreadLocal**을 사용해도 되고, **Security Context**를 사용하거나 Spring Batch를 사용한다면 **JobScope에서 ip와 partition을 꺼내는 등** 원하는 방식으로 구현하면 된다.
 
 이렇게 해서 **샤딩 문제가 해결**되었다!
 
@@ -425,7 +432,7 @@ MySQL에서는 `@Table` 애노테이션의 `schema` 옵션이 동작하지 않�
 이후 수행한 nGrinder로 운영 환경에서의 테스트도 잘 통과했고, **지금은 1년 넘게 문제 없이 잘 사용하고 있다**. 
 
 
-## 번외 - afterPropertiesSet
+## 번외 1 - afterPropertiesSet
 
 MultiDataSourceManager에서 데이터소스를 추가할 때마다 AbstractRoutingDataSource의 **afterPropertiesSet()** **메서드**를 호출하고 있다.
 
@@ -443,6 +450,37 @@ MultiDataSourceManager에서 데이터소스를 추가할 때마다 AbstractRout
 - https://github.com/spring-projects/spring-framework/pull/31248
 
 **해당 PR은 main 브랜치로 머지**되었고 Spring Framework `6.1.0`부터 반영된다고 한다.
+
+## 번외 2 - 비동기
+
+중간에 비동기 쓰레드를 사용할 경우 ThreadLocal의 데이터를 비동기 쓰레드로 옮겨줘야 한다.
+
+해당 동작을위해 `TaskDecorator`의 구현체를 제공한다.
+
+```java
+public class DBContextHolderDecorator implements TaskDecorator {
+    @Override
+    public Runnable decorate(Runnable runnable) {
+        DbInfo dbInfo = DBContextHolder.getDbInfo();
+
+        return () -> {
+            DBContextHolder.setDbInfo(dbInfo);
+            try {
+                runnable.run();
+            } finally {
+                DBContextHolder.clear();
+            }
+        };
+    }
+}
+```
+
+ThreadPoolTaskExecutor에서는 아래와 같이 Decorator를 등록할 수 있다.
+
+```java
+ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
+taskExecutor.setTaskDecorator(new DBContextHolderDecorator());
+```
 
 ## 정리
 
