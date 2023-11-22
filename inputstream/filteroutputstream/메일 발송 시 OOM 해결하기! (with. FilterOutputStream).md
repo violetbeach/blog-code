@@ -245,7 +245,7 @@ class LFOutputStreamTest {
 
 ### 결과
 
-수정 이후 `GateTimeout`이 발생하지 않았고
+수정 이후 GateWay Timeout이 발생하지 않았고
 
 ![img_15.png](images/img_15.png)
 
