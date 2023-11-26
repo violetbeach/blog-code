@@ -1,4 +1,4 @@
-아래는 실무에서 Querydsl을 사용해서 Pagination 조회 기능을 커버링 인덱스로 성능을 개선했던 내용이다.
+아래는 실무에서 **Querydsl**을 사용해서 Pagination 조회 기능을 **커버링 인덱스로 성능을 개선**했던 내용이다.
 
 커버링 인덱스에 대해서는 지난 포스팅을 참고하자.
 
@@ -213,9 +213,9 @@ return new PageImpl<>(result, idsPage.getPageable(), idsPage.getTotalElements())
 
 추가로 count 쿼리의 결과가 바뀌진 않는 지 주의해야 한다. (기존 쿼리에 LeftOuterJoin이 있는 경우, ...)
 
-### Projection
+### 번외 - Projection
 
-추가로 아직 필요하지 않는 컬럼까지 조회해서 성능을 낭비하는 문제가 있었다.
+추가로 필요하지 않는 컬럼까지 조회해서 성능을 낭비하는 문제가 있었다.
 
 - DTOProjection을 잘못 사용해서 문제가 발생하고 있었다.
 - `@QueryProjection` 생성자의 인수로 필요한 컬럼만을 넘겨야 한다.
@@ -267,9 +267,9 @@ dev 환경 기준으로 아래의 성능 변화가 있었다.
 - 수정 후 - 371ms
 
 즉, 커버링 인덱스를 적용하고 약 10배의 처리량 개선을 할 수 있었다.
-- (인덱스 유도의 효과도 포함된 결과이다. Index를 강제로 태우는 것 대비해서도 2배~3배 정도 개선이다.
+- (인덱스 유도 효과도 포함된 결과이다. Index를 강제로 태우는 것 대비해서는 2배~3배 정도 개선이다.
 
 커버링 인덱스가 왜 빠른 지에 대한 설명은 서론의 포스팅을 참고하자.
 
-> (참고) 위 쿼리 중 Outer Join 때문에 TPS가 부족해서 이후에 튜닝을 다시 했다.  (10.8에서 107.7로 개선)
+> (참고) 쿼리 중 Outer Join 때문에 TPS가 부족해서 이후에 쿼리를 분리하는 튜닝을 다시 했다.  (TPS 10.8에서 107.7로 개선)
 > [https://github.com/violetbeach/blog-code/blob/master/loadtest/mail-api/readme.md#4-1-mails](https://github.com/violetbeach/blog-code/blob/master/loadtest/mail-api/readme.md#4-1-mails "https://github.com/violetbeach/blog-code/blob/master/loadtest/mail-api/readme.md#4-1-mails")
