@@ -16,19 +16,15 @@
 
 ![img_3.png](images/img_3.png)
 
-해당 유저의 정보가 **어떤 DB 서버**의 **몇 번째 스키마**에 저장되어 있는지는 MasterDB라고 부르는 DB 서버에 저장되어 있고, DB를 조회할 때마다 매번 Master DB를 질의하면 비효율적이므로 **JWT**에 발급해서 사용한다.
+해당 유저의 정보가 **어떤 DB 서버**의 **몇 번째 파티션(스키마)** 에 저장되어 있는지는 MasterDB라고 부르는 DB 서버에 저장되어 있고, DB를 조회할 때마다 매번 Master DB를 질의하면 비효율적이므로 **JWT**에 발급해서 사용한다.
 
-#### 요약
+즉, 정리하면 아래 두 가지 작업을 처리했어야 했다.
+1. DB 서버 매핑 (Sharding)
+2. 스키마명 매핑
 
-DB 서버가 샤딩(Sharding)된 구조를 가진다.
+### 기존 프로젝트에서 처리한 방식
 
-일반적으로 사용하는 DBMS에서 지원하는 파티셔닝은 논리적으로는 하나의 테이블이지만 물리적으로는 여러 개의 테이블로 나누는 구조를 가진다.
-
-사내 서비스에서는 자체적으로 스키마를 파티셔닝해서 논리적으로도 물리적으로도 여러 개의 **스키마**로 나누어져 있다.
-
-### 그럼 뭐가 문제일까?
-
-**PHP Laravel** 프로젝트의 경우 **요청이 들어올 때마다 실행되는 모델**을 가지고 있기 때문에 Thread-Safety에 대한 걱정이 없었다.
+**PHP** 프로젝트의 경우 **요청이 들어올 때마다 실행되는 모델**이기 때문에 Thread-Safety에 대한 걱정이 없었다.
 
 ![img_10.png](images/img_10.png)
 
@@ -63,16 +59,6 @@ Spring 컨테이너 안에서 JPA를 사용하는 경우 위 예시처럼 DB 정
 정리하면 **JPA를 사용하지 못하고** 있었고, JdbcTemplate을 사용하더라도 **DB 서버가 늘어나면 그것에 맞게 DataSource 개수도 추가**해줘야 하는 문제가 있었다.
 
 이 문제를 해결해야 했다.
-
-## 해결 방식
-
-Spring의 대부분 프로젝트에서 Template Method 패턴과 Strategy 패턴을 충분히 사용한다.
-
-여기서도 추상화된 작은 문제들로 분리를 해야겠다고 생각했다.
-
-주어진 문제는 **2개의 추상화된 문제로 분리**할 수 있었다.
-1. DB Sharding
-2. Schema name 동적 처리
 
 ## 1. DB Sharding
 
@@ -168,7 +154,7 @@ public record DbInfo(String ip, String partition) {
 @Slf4j
 @Configuration
 public class MultiDataSourceManager {
-    // vey = hostIp, value = DataSource
+    // key = hostIp, value = DataSource
     // 동시성을 보장해야 하므로 ConcurrentHashMap을 사용한다.
     private final Map<Object, Object> dataSourceMap = new ConcurrentHashMap<>();
 
@@ -198,7 +184,6 @@ public class MultiDataSourceManager {
                 // 실제로 사용하는 resolvedTargetDataSource에 반영하는 코드
                 multiDataSource.afterPropertiesSet();
             } catch (SQLException e) {
-                log.error("datasource connection failed ip: {}", ip);
                 throw new IllegalArgumentException("Connection failed.");
             }
         }
@@ -263,7 +248,7 @@ public class DataSourceCreator {
   - ThreadPool을 사용하는 경우 이전 Thread의 정보를 가져와서 잘못 쿼리가 나갈 수 있음
 - 라이브러리의 개념에 접근해야 한다면 매번 라이브러리를 설명해야 함
 
-그래서 사용자 편의를 위해 **유틸성 클래스를 제공**한다! 작성한 코드에서는 Filter, AOP 두 방식을 지원한다.
+그래서 사용자 편의를 위해 **유틸성 클래스를 제공**하기로 했다! 작성한 코드에서는 Filter, AOP 두 방식을 지원한다.
 
 ### Filter로 처리
 
@@ -355,7 +340,6 @@ public interface LoadDbInfoProcess {
 
 ```java
 public class PartitionInspector implements StatementInspector {
-
     @Override
     public String inspect(String sql) {
         String partition = DBContextHolder.getPartition();
@@ -387,7 +371,6 @@ Entity는 아래와 같이 설정한다.
 @Table(schema = "member_#partition#", name = "member")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
