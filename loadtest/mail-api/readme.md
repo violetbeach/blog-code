@@ -350,7 +350,7 @@ where mail0_.del_flag = 'N'
 
 (포스트맨 한번 요청할 시 0.3s~0.4s밖에 안걸리는데 TPS가 10.8 정도 밖에 안나왔다..)
 
-원인은 LEFT OUTER JOIN에 있는 것으로 확인했다. mail_content와 personal_mailbox는 1대 0~1 관계임에도 불구하고 Left Outer Join을 사용하면서 문제가 생겼다.
+원인은 LEFT OUTER JOIN에 있는 것으로 확인했다. 잠금 편지함을 제외하되, Join에 실패한 경우에도 mail_content가 모두 조회해야 해서 Left Outer Join을 사용하면서 문제가 생겼다.
 - 잠금 편지함 필터링 과정이 복잡해진다.
   - 가상 테이블로 전체 메일과 메일함을 매칭시키는 과정이 필요
   - 메일함이 PK를 타고 잠금 정보는 Index를 타지 않는다.
@@ -360,7 +360,9 @@ where mail0_.del_flag = 'N'
 
 ### 쿼리 분리
 
-그래서 해당 쿼리를 두 개로 분리하기로 했다.
+개선을 고민해보다가 `JOIN`을 할 필요가 없었다는 것을 알게 되었다.
+
+해당 쿼리를 두 개로 분리하기로 했다.
 - 사용자의 잠금 편지함 목록 조회
 - 메일 리스트 조회 시 `mailbox_id NOT IN (?)` 조건 조회
 
