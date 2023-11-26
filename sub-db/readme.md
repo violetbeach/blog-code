@@ -28,48 +28,39 @@ DB 서버가 샤딩(Sharding)된 구조를 가진다.
 
 ### 그럼 뭐가 문제일까?
 
-기존에 사용하던 NodeJS의 Sequelize나 PHP의 Laravel의 경우에는 모델(Entity)을 **런타임 중 동적으로 생성**할 수 있었다.
+**PHP Laravel** 프로젝트의 경우 **요청이 들어올 때마다 실행되는 모델**을 가지고 있기 때문에 Thread-Safety에 대한 걱정이 없었다.
 
-아래의 예시를 보자.
+![img_10.png](images/img_10.png)
 
-```typescript
-class UserModelFactory {
-    private models = new Map<string, ModelStatic<UserModel>>();
-    public getModel = async (host: string, partition: string): Promise<ModelStatic<UserModel>> => {
-        const key = `${host}_${partition}`;
-        if( this.models.has(key) ) {
-            return this.models.get(key);
-        }
+그래서 **실행될 때 JWT에 있는 값으로 DB 설정에 반영**만 해주면 되었다.
 
-        const conn = await DBConnectionFactory.getConnection(host);
-        const model = conn.define<UserModel>(`user_${key}`,
-            ModelAttributes, {
-                tableName: "user",
-                schema: "user" + partition,
-                timestamps: false
-            });
+**NodeJS의 Sequelize**의 경우 **런타임 중 동적으로 생성**할 수 있었다.
 
-        this.models.set(key, model);
-        return model;
-    };
-}
-```
+![img_11.png](images/img_11.png)
 
-key를 `${host}_${partition}`로 해시 맵에 찾는 모델이 없을 경우 새로 생성해서 사용한다.
+**모델에게 특정 DB 서버로의 커넥션과 파티션 번호를 부여**한다. **서비스에서는 해당 모델을 꺼내서 사용**하면 된다.
 
-즉, **모델을 사용할 때마다 매번 jwt에서 꺼낸 host, partition으로 특정 DB의 특정 스키마와 매핑되는 모델을 만든다**.
+즉, 모델을 DB 서버 수 x 파티션 수 만큼 메모리에 올리는 문제가 있었지만 **처리는 가능**했다.
 
 ### JPA를 사용할 수 없는 이유
 
-JPA에서는 위 예시처럼 DB 정보와 함께 **모델을 매번 생성**하는 게 **불가능**하다.
+Spring 컨테이너 안에서 JPA를 사용하는 경우 위 예시처럼 DB 정보와 함께 **모델을 매번 생성**하는 게 **불가능**하다.
 
-JPA에서는 **1개의 EntityModel**을 사용한다. 그래서 기존 방식으로는 DB 서버와 스키마 명이 여러 개인 문제를 해결할 수 없었다.
+아래와 같이 **DataSource를 싱글톤 빈으로 등록**해서 사용해야 한다.
 
-팀에서 이러한 문제 때문에 Java로 개발을 못하고 있었고, 자바로 개발된 프로젝트가 1개 있었는데 전부 JdbcTemplate을 사용했다.
+![img_12.png](images/img_12.png)
+
+**Schema name**도 아래와 같이 **애노테이션에 명시**하는 방법을 사용한다.
+
+![img_13.png](images/img_13.png)
+
+그래서 **DB 서버랑 스키마 명을 동적으로 어떻게 매핑**할 수 있을 지에 대한 확신이 없었다.
+
+**팀에서는 이 문제 때문에 Java로 개발을 못하고 있었고**, 자바로 개발된 프로젝트가 1개 있었는데 전부 JdbcTemplate을 사용했다.
 - DataSource를 DB 서버 개수만큼 생성
 - 파티션을 포함한 스키마명은 `sql`에 명시
 
-즉, **JPA와 같은 ORM을 사용할 수 없는 문제**가 있었고, JdbcTemplate을 사용하더라도 **DB 서버가 늘어나면 그것에 맞게 DataSource 개수도 추가**해줘야 하는 문제가 있었다.
+정리하면 **JPA를 사용하지 못하고** 있었고, JdbcTemplate을 사용하더라도 **DB 서버가 늘어나면 그것에 맞게 DataSource 개수도 추가**해줘야 하는 문제가 있었다.
 
 이 문제를 해결해야 했다.
 
