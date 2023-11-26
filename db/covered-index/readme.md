@@ -117,9 +117,9 @@ where mail0_.del_flag = 'N'
   )
 ```
 
-**dev - 351ms**가 소요
+**dev - 301ms**가 소요 (동일 쿼리)
 
-카운트 쿼리도 커버링 인덱스로 조회할 수 있었다.
+카운트 쿼리도 커버링 인덱스로 조회할 수 있다.
 
 ![img_2.png](images/img_2.png)
 
@@ -267,8 +267,9 @@ dev 환경 기준으로 아래의 성능 변화가 있었다.
 - 수정 후 - 371ms
 
 즉, 커버링 인덱스를 적용하고 약 10배의 처리량 개선을 할 수 있었다.
+- (인덱스 유도의 효과도 포함된 결과이다. Index를 강제로 태우는 것 대비해서도 2배~3배 정도 개선이다.
 
 커버링 인덱스가 왜 빠른 지에 대한 설명은 서론의 포스팅을 참고하자.
 
-> (참고) 위 쿼리 중 Outer Join 때문에 TPS가 부족해서 이후에 튜닝을 다시 했다.  (10.8 -> 107.7)
+> (참고) 위 쿼리 중 Outer Join 때문에 TPS가 부족해서 이후에 튜닝을 다시 했다.  (10.8에서 107.7로 개선)
 > [https://github.com/violetbeach/blog-code/blob/master/loadtest/mail-api/readme.md#4-1-mails](https://github.com/violetbeach/blog-code/blob/master/loadtest/mail-api/readme.md#4-1-mails "https://github.com/violetbeach/blog-code/blob/master/loadtest/mail-api/readme.md#4-1-mails")
