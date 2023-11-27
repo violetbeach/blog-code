@@ -15,10 +15,11 @@
 - partitions: 조회할 파티션
 - possible_keys: 사용할 수 있는 인덱스 목록
 - key: 실제 Optimizer가 선택한 인덱스
+- rows: 예측한 결과 레코드 수 (엏마나 맣은 레코드를 읽어야 하는 지)
+- ref: type이 ref일 경우 비교한 조건 (상수면 const)
+- rows: 예측(통게 기반)되는 결과 레코드 수
 
-사실 위에서는 이름만 읽어도 해석이 가능하다.
-
-중요한 건 이제부터다.
+이제 나머지 들을 알아보자.
 
 ## select_type
 
@@ -57,7 +58,8 @@ SELECT 쿼리의 타입을 분류한다.
 
 ```mysql
 explain select * from employees
-where office_id = 1 and money = 50;
+where office_id = 1 a
+    nd money = 50;
 ```
 
 `key`로 `custom_index`가 무사히 선택되었다.
@@ -86,6 +88,24 @@ where office_id = 1 and user_id > 0 and money = 50;
 ![img_4.png](img_4.png)
 
 쿼리 실행 시간도 548ms -> 7ms로 개선된 것을 볼 수 있다.
+
+## filtered
+
+MySQL 엔진에 의해 필터링되고 남은 비율이다.
+
+TODO 설명
+
+## extra
+
+- Using where: MySQL 엔진에 의해 추가적으로 필터링한 경우
+- Using index: 인덱스에만 접근해서 쿼리를 해결한 경우
+- Using filesort: Order By를 인덱스로 해결하지 못한 경우
+- Using temporary: 임시 테이블이 생성된 경우
+- Using index condition: Index Condition Pushdown이 발생한 경우
+  - TODO 중간 컬럼에서 인덱스를 지정하지 않아도
+  - MySQL 엔진에 넘기는 데이터 수를 줄일 수 있음
+- Using index for skip scan: 인덱스의 선행 칼럼이 조건에 없어도 인덱스를 탈 수 있게 해줌
+  - ex. 인덱스 컬럼이 (gender, age)인데 조건에 age만 있는 경우
 
 ## 참고
 
