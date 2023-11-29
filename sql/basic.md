@@ -1,7 +1,3 @@
-### SELECT 실행 순서
-
-SQL 쿼리문을 실행하는데 순서가 존재한다.
-
 SELECT 쿼리문은 FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY 총 6단계를 거친다.
 
 ![img.png](images/img.png)
@@ -20,7 +16,7 @@ WHERE 절에서는 테이블에서 **조건에 맞는** 데이터를 필터링�
 
 #### GROUP BY
 
-GROUP BY 절에서는 **선택한 칼럼을 기준으로 그룹핑한다.**
+GROUP BY 절에서는 **선택한 칼럼을 기준으로 조회한 레코드 목록을 그룹핑**한다.
 
 #### HAVING 절
 
@@ -42,9 +38,11 @@ SELECT 절은 여러 조건들을 처리한 후 남은 데이터에서 **어떤 
 
 LIMIT 절은 결과 중 몇개의 행을 보여줄 지 선택한다.
 
-### 실행순서가 중요한 이유
+## 실행순서가 중요한 이유
 
 **쿼리의 실행 순서를 아는 것은 중요하다.** 실행순서를 모르면 쿼리를 제대로 작성하기 어렵다. 예를 들어 보자.
+
+#### 1. 문법
 
 **OrderBy 절에서 Alias 사용**
 
@@ -68,15 +66,28 @@ Where 절에서는 SELECT 절보다 먼저 실행된다. 즉, WHERE 절은 FROM 
 
 WHERE 절에서 Alias를 사용하려다가 원치 않는 결과를 받는다거나, ORDER BY 절에서 SELECT 절에서 사용된 함수를 또 호출해서 자원이 낭비되는 이슈를 막으려면 실행 순서에 대한 이해가 필요하다.
 
-### 적응
+#### 2. 성능
 
-SQL 실행 순서를 익히기 위한 방법 중에 LINE DBA 분이 소개해준 방법으로 **SQL을 실행 순서대로 작성**하면 익히기 쉽다고 한다.
+아래는 SELECT 쿼리의 실행 동작을 시각화한 것이다.
 
-가령, SELECT -> FROM -> WHERE 순으로 작성하는 것이 아니라 FROM -> WHERE -> SELECT 순으로 작성하는 것이다.
+![img_1.png](images/img_1.png)
+
+**JOIN할 테이블이 많고 레코드도 매우 많다면** 수 많은 레코드를 가지고 `WHERE`, `GROUP BY`, `ORDER BY` 등을 수행하게 된다.
+
+**SQL 실행 순서를 이해**한다면 `WHERE` 쿼리를 먼저 수행한 후 `GROUP BY`, `ORDER BY`는 필터링된 ID 만을 가지고 **후속 쿼리**에서 실행할 수도 있을 것이다.
+
+즉, SQL 실행 순서를 이해하면 **쿼리의 성능이 낭비되는 지점이 잘 보이고 튜닝을 할 수 있게 된다.**
+
+### 학습 팁
+
+LINE DBA 분이 소개해준 방법으로 **SQL을 실행 순서대로 작성**하는 방법을 추천한다.
+
+SELECT -> FROM -> WHERE 순으로 작성하는 것이 아니라 FROM -> WHERE -> SELECT 순으로 작성하는 것이다.
 
 그러면 중간에 성능적으로 튜닝할 수 있는 요소를 발견할 가능성이 높아진다고 한다.
 
 ### Reference
 
--   [https://myjamong.tistory.com/172](https://myjamong.tistory.com/172)
--   [https://docs.microsoft.com/ko-kr/sql/ssms/visual-db-tools/use-having-and-where-clauses-in-the-same-query-visual-database-tools?view=sql-server-ver15](https://docs.microsoft.com/ko-kr/sql/ssms/visual-db-tools/use-having-and-where-clauses-in-the-same-query-visual-database-tools?view=sql-server-ver15)
+- [https://myjamong.tistory.com/172](https://myjamong.tistory.com/172)
+- [https://docs.microsoft.com/ko-kr/sql/ssms/visual-db-tools/use-having-and-where-clauses-in-the-same-query-visual-database-tools?view=sql-server-ver15](https://docs.microsoft.com/ko-kr/sql/ssms/visual-db-tools/use-having-and-where-clauses-in-the-same-query-visual-database-tools?view=sql-server-ver15)
+- https://www.youtube.com/watch?v=BHwzDmr6d7s&t=288s
