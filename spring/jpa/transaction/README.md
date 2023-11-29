@@ -1,8 +1,6 @@
-## Spring - Service Layer에서 Storage를 다룰 때 트랜잭션 처리하기!(+ with Hibernate)
+## Service Layer에서 Storage를 다룰 때 트랜잭션 처리하기!
 
-게시글 등을 등록할 때 파일을 추가로 업로드하는 경우가 있다.
-
-조회를 할 때 파일도 추가로 조회해야 하는 경우도 있다.
+게시글 등을 등록할 때 파일을 추가로 업로드하는 경우가 있다. 조회를 할 때 파일도 추가로 조회해야 하는 경우도 있다.
 
 다음의 예시를 보자.
 
@@ -27,14 +25,6 @@ public class MemberService {
 ```
 
 MemberService의 create 메서드는 1개 트랜잭션 안에서 Member를 생성하고 스토리지에 UserImage를 업로드하고 있다.
-
-이러면 괜찮은 걸까..?!
-
-**DB 커넥션을 업로드가 완료될 때까지 계속 잡고 있지는 않을까..?!**
-
-**삽입이 아니라 수정이라면 업로드가 완료될 때까지 해당 레코드에 접근하지 못하는 건 아닐까..?**
-
-어떤 것이 최선의 방법일까?!
 
 알아보자.
 
@@ -66,6 +56,7 @@ public class MemberService {
         return member;
     }
 
+    // Connection 점유 상황 출력
     private void printConnectionStatus() {
         final HikariPoolMXBean hikariPoolMXBean = ((HikariDataSource) dataSource).getHikariPoolMXBean();
         System.out.println("################################");
@@ -77,13 +68,16 @@ public class MemberService {
 }
 ```
 
-해당 코드는 **트랜잭션 진입 직후**에 커넥션을 사용하는 지 여부와 **트랜잭션 종료 직전**에 커넥션을 사용하는 지 여부를 출력한다.
+해당 `printConnectionStatus()`를 사용해서 **트랜잭션 진입 직후**와 **트랜잭션 종료 직전**에 커넥션을 사용하는 지 여부를 출력한다.
 
 ![img.png](img.png)
 
 확인 결과 트랜잭션 시작부터 업로드가 완료되고 트랜잭션이 커밋 되기 직전까지도 DB 커넥션을 사용하고 있었다.
 
-업로드할 파일의 크기가 크다면 DB 커넥션을 크게 낭비하게 된다.
+그래서 아래 문제가 생길 수 있다.
+
+- 업로드할 파일의 크기가 크다면 DB 커넥션을 낭비하게 되어 **DB 커넥션 풀 고갈** 문제로 이어질 수 있음
+- DB에서 락을 오래 점유하게 되어 락 타임아웃의 문제가 생길 수 있음
 
 ```java
 @Configuration
@@ -103,37 +97,58 @@ public class DataSourceConfig {
 }
 ```
 
-그렇다면 LazyConnectionDataSourceProxy를 사용하면 어떻게 될까?
+## LazyConnectionDataSourceProxy
+
+LazyConnectionDatasourceProxy를 사용하면 일부 개선의 여지가 생긴다.
 
 ![img_1.png](img_1.png)
 
 트랜잭션 진입 시가 아니라 정말로 쿼리가 나가야 할 때만 DB 커넥션을 가져온다.
+- 로직이 파일 업로드 -> 데이터 영속화 순이라면 DB 커넥션을 낭비하지 않을 수 있다.
+- 영속화를 먼저 수행된다면 결과는 이전과 크게 다르지 않을 것이다.
 
-즉, 파일 업로드 -> 엔터티 생성 순이라면 DB 커넥션을 낭비하지 않을 수 있다!!
-
-문제는 엔터티 생성이 실패할 경우 Dummy 파일이 남게 된다.
-- Cron을 통해 지울 수 있는 정책이 있다면 괜찮다..!
+파일 업로드를 먼저할 때 문제는 DB 업로드가 실패하면 **쓰레기 파일**이 남게 된다.
+- Cron을 통해 지울 수 있는 정책이 있다면 괜찮다.
 - 보상 트랜잭션을 사용해서 해당 스토리지를 지워주는 처리를 해주는 방법도 있다. (eg. Saga 패턴)
 
-**그러면 엔터티 생성 -> 파일 업로드 시에서는 DB 커넥션 낭비를 막을 수 있는 방법은 없을까?**
+## 보상 트랜잭션
 
-아래의 시도를 해봤다.
-- AutoIncrement를 사용하지 않고 엔터티 생성 (ID 강제 삽입)
-- Batch size 적용
+TransactionalEventListener를 사용하면 보상 트랜잭션의 개념을 사용할 수 있다.
 
-이는 모두 해결 방법이 되지 못했다. (AutoIncrement를 제거해도 새 객체인지 여부를 확인하기 위해 Select을 날린다.)
+```java
+@Async
+@TransactionalEventListener
+    classes = MemberResourceSavedEvent.class,
+    phase = TransactionPhase.AFTER_ROLLBACK
+)
+public void handle(MemberResourceSavedEvent event) {
+    memberStorageService.delete(event.getResources());
+}
+```
 
-이때 트랜잭션을 제거하면 DB 커넥션의 낭비를 막을 수 있다.
-![img_2.png](img_2.png)
+`phase`를 `TransactionPhase.AFTER_ROLLBACK`으로 사용하면 트랜잭션이 실패했을 때 해당 로직이 수행된다.
 
-단, 트랜잭션을 제거하면 Repository Test 안에서만 영속성이 관리된다.
-- 참고:https://cupeanimus.tistory.com/102
+그래서 트랜잭션이 실패했을 때 쓰레기 파일도 삭제할 수 있게 된다.
 
-즉, Repository Layer 이후부터는 엔터티가 준영속 상태가 되기에 추가 로직에서의 DirtyChecking이나 LazyLoading 등을 사용할 수 없다.
+꼭 이러한 처리가 아니더라도 스케줄러를 통해 쓰레기 파일을 지워주는 처리도 가능하다. 즉, 엔터티가 나중에 생성되는 구조라면 `LazyDataSourceProxy`를 사용해서 커넥션이 낭비되는 것을 막을 수 있다.
+
+## Presigned Url
+
+Presigned Url 방식으로 리소스를 먼저 서버에 업로드하고 메타 데이터를 생성할 때 자원의 경로를 연결시켜주는 방법도 있다.
+
+즉, API 요청 자체를 2개로 분리하는 것이다.
+- 리소스를 업로드
+- 메타 데이터를 생성
+
+연결은 Unique한 Key를 생성해서 해당 Key로 리소스와 메타 데이터를 생성해도 되고, 리소스의 ID나 경로 목록을 메타 데이터 생성할 때 넣어주기만 해도 된다.
 
 ## 트랜잭션 분리
 
-그렇다면 트랜잭션 로직을 분리하면 되지 않을까..?
+앞서 `LazyConnectionDataSourceProxy`를 사용하면 커넥션 점유 문제를 일부 막을 수 있었다.
+
+그렇지만 서비스 로직이 해당 클래스에 논리적으로 의존하게 된다. **명시적으로 트랜잭션을 분리하는 방법**도 있다.
+
+먼저 아래 코드를 보자.
 
 ```java
 public Member create(CreateMemberRequest request) {
@@ -158,28 +173,33 @@ public Member createEntity(String username) {
 
 ![img_3.png](img_3.png)
 
-결과는 예상대로 커넥션을 낭비하지 않는다.
+결과는 예상대로 커넥션을 낭비하지 않는다. 하지만 이 코드는 명백히 문제가 있다.
 
-단, 이 경우 문제가 생길 수 있다.
+`createEntity()`는 사실 **트랜잭션이 적용되지 않았다.** Spring AOP는 빈에 프록시를 등록해서 동작한다.
+- `@Transactional` 애노테이션은 AOP 기반으로 동작한다.
 
-현재 트랜잭션이 적용된 createEntity 메서드는 사실 트랜잭션이 적용되지 않았다!
-
-이유는 Spring AOP는 프록시 패턴을 기반으로 동작합니다. 즉, A빈에서 B빈을 호출하기 전에 B의 프록시 객체를 호출하게 된다.
-
-그런데 A빈에서 A빈의 메서드를 호출한다 한들 프록시 객체는 호출하지 않으므로 AOP는 동작하지 않는다! @Transactional도 Spring AOP로 동작하기에 정상 동작하지 않는다.
+그래서 인스턴스 메서드를 호출하는 것으로는 프록시가 동작하지 않는다.
 
 이런 방법을 풀려면 아래의 방법들 중 하나를 고민해야 한다.
-- 서비스 클래스를 분리하는 방법 (빈을 분리)
-- ObjectProvider를 사용해서 자신의 빈을 조회하는 방법
+- 서비스 클래스를 분리 (빈을 분리)
+- Transaction 범위 지정
+- 자신의 빈을 주입받아서 호출
 
-해당 이슈의 기능(createMember)은 서비스 클래스를 분리하기가 애매하다.
-- 그래서 Facade 패턴을 사용해서 계층을 하나 더 만드는 것도 방법이 될 수 있다.
+### 1. 서비스 클래스 분리
 
-단, 이 경우에도 트랜잭션을 분리함으로써 스토리지에 Upload할 때 예외가 발생할 경우 엔터티는 직접 롤백시켜줘야 한다.
+빈을 분리시키면 프록시를 동작시킬 수 있다.
 
-**한 클래스 내에서 트랜잭션 분리**
+![img_4.png](img_4.png)
 
-@Transactional을 사용하지 않고, 스프링에서 지원하는 TransactionTemplate을 사용하면 트랜잭션을 분리할 수 있다.
+그래서 Layer를 하나 더두기만 하면 된다.
+
+해당과 같이 DB 또는 Storage에 접근하면서 영속성을 관리할 수 있는 Implement Layer를 분리하고, DB 접근 클래스에서만 트랜잭션을 가지면 된다.
+
+더 간단한 방법은 그냥 Service Layer에서 트랜잭션을 사용하지 않으면 된다. 그러면 Repository 계층의 Transaction만 적용이 될 것이므로 트랜잭션을 분리할 수 있다.
+
+### 2. Transaction 범위 지정
+
+`Spring Transaction`에서 지원하는 `TransactionTemplate`을 사용하면 명시적인 트랜잭션을 사용할 수 있다.
 
 ```java
 void createMember() {
@@ -193,14 +213,10 @@ void createMember() {
 }
 ```
 
+이를 통해 트랜잭션을 분리할 수 있다.
 
-**조회**
 
-삽입이나 수정이 아닌 조회를 하는 경우에는 조금 수월하다.
-
-조회를 하는 경우에는 엔터티를 조회할 동안만 트랜잭션을 유지해도 전혀 문제가 없다.
-
-즉, 엔터티 조회와 파일 조회는 트랜잭션을 분리하는 것이 좋다.
+## OSIV
 
 ## 정리
 
@@ -226,3 +242,4 @@ LazyConnectionDataSourceProxy를 사용하면 이를 조금 완화할 수 있다
 - https://www.inflearn.com/questions/227574
 - https://suhwan.dev/2020/01/16/spring-transaction-common-mistakes/
 - https://steady-coding.tistory.com/610
+- https://geminikim.medium.com/지속-성장-가능한-소프트웨어를-만들어가는-방법-97844c5dab63
