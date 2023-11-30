@@ -93,7 +93,8 @@ where office_id = 1 and user_id > 0 and money = 50;
 
 MySQL 엔진에 의해 필터링되고 남은 비율이다.
 
-TODO 설명
+아래 링크를 참고 바란다.
+- https://jaehoney.tistory.com/392
 
 ## extra
 
@@ -102,8 +103,8 @@ TODO 설명
 - Using filesort: Order By를 인덱스로 해결하지 못한 경우
 - Using temporary: 임시 테이블이 생성된 경우
 - Using index condition: Index Condition Pushdown이 발생한 경우
-  - TODO 중간 컬럼에서 인덱스를 지정하지 않아도
-  - MySQL 엔진에 넘기는 데이터 수를 줄일 수 있음
+  - 인덱스를 활용하지 못하는 WHERE 필터 조건을 스토리지 엔진으로 줄 수 있음 
+  - 스토리지 엔진이 MySQL 엔진에 넘기는 데이터 수를 줄일 수 있음
 - Using index for skip scan: 인덱스의 선행 칼럼이 조건에 없어도 인덱스를 탈 수 있게 해줌
   - ex. 인덱스 컬럼이 (gender, age)인데 조건에 age만 있는 경우
 
