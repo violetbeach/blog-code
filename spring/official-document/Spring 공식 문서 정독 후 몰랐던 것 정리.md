@@ -1,12 +1,12 @@
-최근에 Spring 기술을 정확하게 모른다는 생각이 들었다.  (실무만 장애없이 처리할 수 있는 수준으로 구사할 수 있다.)
+최근에 Spring 기술을 정확하게 모른다는 생각이 들었다.
 
 그래서 Spring에 대해 더 자세히 알고 사용하고 싶고 더 깊은 레벨로 문제를 근본적으로 해결하고 싶어서 공식 문서를 정독하기로 했다.
 
 아래는 Spring 공식 문서를 정독한 것을 기록한 것이다.
 
-> 이번 게시글은 **공유**보다는 **기록**이 목적이라 가독성이 매우 좋지 않아요.. ㅠ 참고부탁드립니다!
+> **공유**보다는 **기록**이 목적이라 가독성이 매우 좋지 않다.
 
-## 새롭게 알게 되었거나 정확히 모르던 것 정리
+## 새롭게 알게 되었거나 리마인드할 필요가 있는 것 정리
 
 - 빈은 정적 팩토리 메서드로도 생성할 수 있다.
 - 빈은 2개 이상의 이름을 가질 수 있다. `@Bean` 애노테이션을 사용할 경우 `name` 옵션을 `,`로 연결하면 된다.
@@ -17,7 +17,7 @@
   - `SpringContext.getBean(T)`에서 리플렉션을 사용하므로 훨씬 느리다. 
   - Context Switching 비용은 줄일 수 있다.
 - AOP에서 빈을 프록시로 래핑하는 것은 BeanPostProcessor이다.
-- BeanPostPrecssor는 빈 초기화 콜백 메서드가 호출된 후, `InitializingBean.afterPropertiesSet()` 같은 컨테이너 초기화 메서드가 실행되기 전에 콜백을 받게 된다.
+- BeanPostPrecssor는 `InitializingBean.afterPropertiesSet()` 같은 컨테이너 초기화 메서드가 실행되기 전후에 콜백을 받게 된다.
 - 스프링은 `JSR-250` 기반의 `@Resource` 등을 지원한다. (`@PostConstruct`, `@PreDestroy`)도 JSR-250 이다.
   - `@Autowired`는 필드 타입을 기준으로, `@Resource`는 필드 이름을 기준으로 빈을 찾는다.
 - 스프링은 `JSR-330` 기반의 `@Inject`, `@Named`, `@Singleton` 등을 지원한다.
@@ -56,27 +56,40 @@
 - `TestContext`에 대해서도 매우 자세히 다루고 있다.
   - `TestContext`는 static 변수에 저장된다. 최대 크기는 32이고 LRU를 사용한다.
 - `MockRestServiceServer`를 사용해서 특정 endpoint에 대한 API를 Mocking할 수 있다.
-- `HtmlUnit`을 사용하면 js문법으로 뷰도 검증할 수 있다.
+- `HtmlUnit`을 사용하면 js문법으로 뷰를 검증할 수 있다.
 - 테스트의 트랜잭션은 `TransactionalTestExecutionListener`에 의해 롤백된다.
   - `ThreadLocal`에 현재 트랜잭션 상태를 관리한다.
 - JPAEntity를 안전하게 테스트하려면 명시적인 `flush()`를 호출해야 한다.
 - Spring은 `WebFlux`도 그렇고 `Mono`와 `Flux` 같은 Reactor는 메이저하게 다루고 있다.
-- 여러 개의 TransactionManager를 사용할 수 있다. (eg. `@Transactional("order")`)
-  - label을 붙여서 공통적인 처리도 할 수 있다.
-- `Spring R2DBC` 종류도 이미 `JDBC`와 동급으로 메이저한 스택으로 작성되어 있다.
+- `Composed Annotations`를 사용해서 트랜잭션 매니저별로 다른 애노테이션을 적용하면 유용할 수 있다.
+- 트랜잭션의 label을 사용하면 공통적인 처리를 할 수 있다.
+  - `@Transactional(label = "retryable")`
+- `Spring R2DBC` 종류도 이미 `JDBC`와 함께 메이저한 스택으로 작성되어 있다.
 - `Transactional`의 `isolation` 중 `REQUIRES_NEW`의 데드락 이슈는 공식문서에서도 다루고 있다.
 - Spring Jdbc는 `Stored Procedure`를 위한 `SimpleJdbcCall` 클래스를 지원한다.
-- Context의 Layer를 설정하는 것도 공식적으로 제공한다. [Link](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-servlet/context-hierarchy.html)
+- Context의 Layer를 설정하는 것도 공식적으로 다루고 있다. [Link](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-servlet/context-hierarchy.html)
 - WebSocket 방식도 공식적으로 지원한다.
-- `Reactor Netty`, `Undertow`, `Tomcat`, `Jetty`와 같은 것들을 **ServletContainer**라고 명칭나다.
+- `Reactor Netty`, `Undertow`, `Tomcat`, `Jetty`를 **ServletContainer**라고 명칭한다.
 - `@CrossOrigin` 애노테이션으로 특정 Controller 혹은 Controller 메서드에만 모든 origins, headers, http methods를 허용하는 등의 처리를 할 수 있다.
+- `Spring-Kafka`, `ActiveMQ`등은 JMS의 표준을 따른다.
+- `Spring`은 캐시 추상화를 제공한다. 특정 `CacheManager`을 지정해서 캐싱 방식을 부여할 수 있다.
 
-## Template Method 패턴
+## Template Method와 Strategy 패턴
 
-공식 레퍼런스를 보면서 스스로 생각하는 스프링 프레임워크가 지금까지도 잘 유지되고 있는 이유를 나름대로 찾을 수 있었다.
+공식 레퍼런스를 보면서 스프링 프레임워크가 지금까지도 잘 유지되고 있는 비결에 대해 나름대로 정리할 수 있었다.
 
-바로 `Template Method` 패턴이다.
+내가 생각하는 **스프링 프레임워크**에서 가장 잘한 부분은 `Template Method` 패턴과 `Strategy` 패턴이다.
 
+#### 1. Template method 패턴
+
+공식문서를 보면서 스프링은 수많은 개념을 추상화하고 인터페이스로 사용한다.
+- `ApplicationContext`
+- `BeanPostProcessor`
+- `CacheManager`
+- `JdbcTemplate`
+
+
+#### 2. Strategy 패턴
 공식문서를 보면서 `Scope` 인터페이스를 구현할 수도 있지만, `ScopeMetadataResolver`와 같은 해당 인터페이스를 사용하는 쪽도 모두 인터페이스로 되어있다.
 
 작업 A를 하기 위해서 A -> B -> C -> D Task로 나눈다고 봤을 때 A, B, C, D 모두 인터페이스로 추상화해서 템플릿 메서드 패턴으로 설계되어 있다.
@@ -96,14 +109,13 @@
 
 ## 소감
 
-정독을 하면서 모르는 걸 하나씩 알게 되고 메모했고, 그것들이 합쳐져서 스프링에 대한 지식이 더 깊어짐을 느꼈다.
+1회 정독을 하면서 모르는 걸 하나씩 정리하면서 스프링 전체 생태계에 대한 지식이 더 쌓이는 것을 느꼈다.
 
-작성한 부분 이외에도 많은 부분들에 대한 다양한 지식이 생기는 것을 느꼈다.
+스프링 생태게 뿐만 아니라 다양한 패턴의 활용이나, 라이브러리에서 뭘 고려해야 하는 지 등 시각이 조금 넓어지는 것 같다.
 
-입문자..(?)는 조금 어려울 수 있지만, 스프링에 대해 더 깊게 이해하고 싶은 사람이 있다면 꼭 추천한다!
+처음 공식 문서를 봤을 때는 잘 이해가 안되었는데, `아는 만큼 보인다`고 지금은 더 잘 보이게 되었다.
+
+1년 뒤에는 지금보다 더 잘 보일 것이다.
 
 ## 참고
 - https://docs.spring.io/spring-framework/reference
-
-진행상황
-- https://docs.spring.io/spring-framework/reference/web/webflux-webclient.html
