@@ -452,10 +452,10 @@ public class GlobalExceptionHandler {
 자동화 관점에서도 ErrorCode가 추가될 때마다 자동으로 문서에 반영되기 때문에 앞으로 수고로움을 덜 수 있을 것 같다.
 
 작성한 코드는 아래에서 확인할 수 있다.
-> https://github.com/violetbeach/verby-rest-api
+- https://github.com/violetbeach/verby-rest-api
 
 문서화한 결과는 **아래 링크**에서 확인할 수 있다.
-> https://api.verby.co.kr/docs/api-docs.html
+- https://api.verby.co.kr/docs/api-docs.html
 
 ## 참고
 - https://cheese10yun.github.io/spring-guide-exception/
