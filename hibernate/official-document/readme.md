@@ -67,7 +67,7 @@ void setup() {
 }
 ```
 
-## @ElementCollection
+## \@ElementCollection
 
 `@OneToMany`를 사용하는 대신 `@ElementCollection`을 사용할 수 있다.
 
@@ -102,3 +102,39 @@ public class Person {
 
 엔터티로써 인정받을 필요가 없고, 엔터티의 속성일 뿐이라면 `@ElementCollection`만 사용하는 것이 적합할 수 있다.
 
+## \@SoftDelete
+
+기존에는 `SoftDelete`를 사용하려면 JPA에서 `@Where`와 `@SQLDelete`와 같은 애노테이션을 작성해야 했다.
+
+```java
+@Entity
+@Table(name = "BOARD")
+@NoArgsConstructor
+@Where(clause = "is_deleted = false")
+@SQLDelete(sql = "UPDATE board SET is_deleted = true WHERE id = ?")
+public class Board {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private boolean isDeleted;
+}
+```
+
+Hibernate 6.4 부터는 `@SoftDelete` 애노테이션을 지원한다.
+
+```java
+@Entity
+@Table(name = "BOARD")
+@NoArgsConstructor
+@SoftDelete(columnName = "is_deleted")
+public class Board {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+}
+```
+
+만약 반대로 `is_active` 컬럼이 있다면 `@SoftDelete(columnName = "is_active", strategy = SoftDeleteType.ACTIVE)`  처럼 `strategy` 옵션을 사용하면 된다.
+- `Y`, `N` 등 문자열 등의 경우 Converter도 활용할 수 있게 지원한다.
+
+`@SoftDelete`를 활용하면 코드가 훨씬 깔끔해진다.
