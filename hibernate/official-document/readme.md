@@ -67,3 +67,38 @@ void setup() {
 }
 ```
 
+## @ElementCollection
+
+`@OneToMany`를 사용하는 대신 `@ElementCollection`을 사용할 수 있다.
+
+```java
+@Getter
+@Entity
+@Table(name = "PERSON_TABLE")
+public class Person {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ElementCollection
+    @CollectionTable(name = "ADDRESS_TABLE",
+            joinColumns = @JoinColumn(name= "person_id", referencedColumnName = "id")
+    )
+    private List<String> addresses = new ArrayList<>();
+
+    public void setAddresses(List<String> addresses) {
+        this.addresses = addresses;
+    }
+}
+```
+
+`@ElementCollection`은 아래의 특징을 가진다.
+- 단순한 값의 컬렉션을 나타낸다. 
+- 컬렉션만 조회, 삭제 등 어떤 행위도 할 수 없고, **반드시 부모를 통해 쿼리가 실행**된다.
+- 컬렉션은 엔터티가 아니므로 **ID 생성 전략을 사용할 수 없다.**
+- ID를 가지지 않으므로 컬렉션 값이 변경될 시 **전체 삭제** 후 생성한다.
+
+반면 `@OneToMany`의 경우 Many 측이 단순한 컬렉션이 아닌 **자식 엔터티**로 인정을 받게 된다. 
+
+엔터티로써 인정받을 필요가 없고, 엔터티의 속성일 뿐이라면 `@ElementCollection`만 사용하는 것이 적합할 수 있다.
+
