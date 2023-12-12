@@ -138,3 +138,49 @@ public class Board {
 - `Y`, `N` 등 문자열 등의 경우 Converter도 활용할 수 있게 지원한다.
 
 `@SoftDelete`를 활용하면 코드가 훨씬 깔끔해진다.
+
+## Inheritance
+
+실제 서비스를 운영하다보면 아래의 경우가 자주 있다.
+- Address라는 테이블이 있다.
+- Address에는 type이 PRIVATE, SHARED로 나뉜다.
+- 각 타입마다 사용하는 컬럼이나 조인 테이블이 다르다.
+
+이런 경우 Inheritance를 사용하면 객체 지향적인 설계가 가능하다.
+
+```java
+@Getter
+@Entity
+@Table(name = "ADDRESS_TABLE")
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+@DiscriminatorColumn(name = "type")
+public abstract class Address {
+    @Id
+    @GeneratedValue(strategy = GenerationType.TABLE)
+    private Long id;
+}
+
+@Entity
+@DiscriminatorValue("P")
+public class PrivateAddress extends Address {
+}
+
+@Entity
+@DiscriminatorValue("S")
+public class SharedAddress extends Address {
+    private String sharedType;
+}
+```
+
+JPA Repository는 아래와 같이 사용할 수 있다.
+
+```java
+public interface PrivateAddressRepository extends JpaRepository<PrivateAddress, Long> {
+}
+```
+
+그러면 `INSEERT` 쿼리에서 `type`이 `P`로 삽입되고, 조회 시 `type = P` 조건이 들어간다.
+
+그래서 각 타입의 엔터티가 필요한 필드와 메서드만 가지도록 설계할 수 있다.
+
+
