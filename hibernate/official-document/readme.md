@@ -179,8 +179,94 @@ public interface PrivateAddressRepository extends JpaRepository<PrivateAddress, 
 }
 ```
 
-그러면 `INSEERT` 쿼리에서 `type`이 `P`로 삽입되고, 조회 시 `type = P` 조건이 들어간다.
+그러면 데이터 삽입에서 `type`이 `P`로 삽입되고, 조회 시 `type = P` 조건이 들어간다.
 
 그래서 각 타입의 엔터티가 필요한 필드와 메서드만 가지도록 설계할 수 있다.
 
+## \@SQLRestriction
 
+Client가 여러 타입의 Account를 가진다면 Entity를 어떻게 구성할 수 있을까?
+
+그리고 각 타입의 Account가 다른 필드와 메서드를 가진다면?
+
+`@SQLRestriction`을 사용하면 이를 풀어낼 수 있다.
+
+아래와 같이 타입별로 다른 필드로 매핑한다.
+
+```java
+@Getter
+@Entity(name = "CLIENT_TABLE")
+@NoArgsConstructor
+public class Client {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @SQLRestriction("account_type = 'DEBIT'")
+    @OneToMany(mappedBy = "client")
+    private List<Account> debitAccounts = new ArrayList<>();
+
+    @SQLRestriction("account_type = 'CREDIT'")
+    @OneToMany(mappedBy = "client")
+    private List<Account> creditAccounts = new ArrayList<>();
+
+    public void addAccount(Account account) {
+        if(account.getType() == AccountType.CREDIT) {
+            creditAccounts.add(account);
+        } else {
+            debitAccounts.add(account);
+        }
+        account.setClient(this);
+    }
+}
+```
+
+아래는 Account 클래스이다.
+
+```java
+@Getter
+@Entity(name = "Account")
+@SQLRestriction("active = true")
+@NoArgsConstructor
+public class Account {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @ManyToOne
+    private Client client;
+    @Column(name = "account_type")
+    @Enumerated(EnumType.STRING)
+    private AccountType type;
+    private Boolean active = true;
+
+    public Account(AccountType type) {
+        this.type = type;
+    }
+
+    public void setClient(Client client) {
+        this.client = client;
+    }
+}
+```
+
+이렇게 매핑을 하면 `Client`를 조회할 때 아래의 조회 쿼리가 두번 나간다.
+
+```sql
+select
+    ca1_0.client_id,
+    ca1_0.id,
+    ca1_0.active,
+    ca1_0.account_type
+from
+    account ca1_0
+where
+    ca1_0.client_id=?
+    and ca1_0.active = true
+    and ca1_0.account_type = 'CREDIT'
+```
+
+그래서 각각의 결과를 다른 필드에 매핑할 수 있다.
+
+참고로 `@JoinTable`을 사용할 경우 `@SQLJoinTableRestriction`을 사용할 수 있다.
+
+##
