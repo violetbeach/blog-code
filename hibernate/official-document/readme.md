@@ -269,4 +269,26 @@ where
 
 참고로 `@JoinTable`을 사용할 경우 `@SQLJoinTableRestriction`을 사용할 수 있다.
 
-##
+## CascadeType
+
+JPA의 CascadeType은 아래 타입을 지원한다.
+- ALL
+  - 모든 엔터티 상태 전환 연산을 전파한다.
+- PERSIST
+  - 영속화를 전파한다.
+- MERGE
+  - 엔터티의 상태를 영속성 컨텍스트에 반영하는 연산을 전파한다.
+- REMOVE
+  - 삭제 연산을 전파한다.
+- REFRESH
+  - Refresh(엔터티의 데이터를 DB 데이터 기반으로 다시 로드) 연산을 전파한다.
+- DETACH
+  - 비영속화를 전파한다.
+
+여기서 `Cascade.ALL`을 사용하면 아래의 `org.hibernate.annotation.CascadeType`도 포함한다.
+- SAVE_UPDATE
+  - SaveOrUpdate(Hibernate에서 지원하는 기능)을 전파한다.
+- REPLICATE
+  - 복제 연산(Slave DB에 데이터를 동기화하는 연산)을 전파한다.
+- LOCK
+  - 엔터티를 영속성 컨텍스트에 연결하는 연산을 전파한다.
