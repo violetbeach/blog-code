@@ -18,7 +18,15 @@ Kafka 자체에 대한 내용은 이전 포스팅을 참고하자.
 
 Consumer는 해당 메일 정보를 받아서 사용자 설정(Archive 설정)에 따라 메일을 영구히 보관한다.
 
-## Producer 구현
+### Kafka 설정
+
+Kafka에서 Producer, Topic, Consumer에는 수 많은 설정이 있다.
+
+해당 설정들은 **성능, 가용성**에 **엄청난 차이**를 불러온다.
+
+해당 설정은 비즈니스에 따라 완전히 달라질 수 있다. 그래서 **비즈니스에 적절한 설계가 매우 중요**하다.
+
+## Producer 설계
 
 ### 1\. 처리량
 
@@ -255,7 +263,6 @@ staging 서버와 master 서버에서 동일한 Kafka Brocker를 사용하기 �
 @Service
 @RequiredArgsConstructor
 class ArchiveService implements SaveArchiveMailUseCase {
-
     private final MoveMailMessagePort moveMailMessagePort;
     private final PostArchiveMailPort postArchiveMailPort;
     private final MailMessageParser mailMessageParser;
@@ -285,7 +292,6 @@ class ArchiveService implements SaveArchiveMailUseCase {
             throw new StorageJobException(ErrorCode.ARCHIVE_STORAGE_ERROR, e.getMessage());
         }
     }
-
 }
 ```
 
@@ -323,7 +329,8 @@ public class KafkaConsumerConfig {
     private final KafkaProperties kafkaProperties;
 
     @Bean
-    ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory(ConsumerFactory<String, String> consumerFactory, KafkaTemplate<String, Object> objectKafkaTemplate) {
+    public ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory(
+        ConsumerFactory<String,String> consumerFactory, KafkaTemplate<String, Object> objectKafkaTemplate) {
         ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
@@ -365,7 +372,6 @@ public class KafkaConsumerConfig {
     public MessageConverter messageConverter() {
         return new StringJsonMessageConverter();
     }
-
 }
 ```
 
