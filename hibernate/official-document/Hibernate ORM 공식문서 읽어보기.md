@@ -5,25 +5,26 @@ Spring JPA 기반에서 개발하다보면 아래 라이브러리를 사용하�
 
 `Jakrta Persistence API`는 **명세**에 해당한다. 실제 구현하는 기술은 `Hibernate ORM`에 있다.
 
-해당 포스팅에서는 `Hibernate ORM`에 대해 학습 테스트를 진행하면서 잘 몰랐는데 알아두면 좋을 내용에 대해 소개한다.
+해당 포스팅에서는 `Hibernate ORM`에 대해 공식문서를 읽고 학습 테스트를 진행하면서 **알아두면 좋을 내용**에 대해 소개한다.
 
 ## Hibernate ORM
 
 Hibernate ORM에서 소개하는 목표는 아래와 같다.
 
 > Hibernate’s design goal is to relieve the developer from 95% of common data persistence-related programming tasks by eliminating the need for manual, hand-crafted data processing using SQL and JDBC.
-> 
-> 직역: Hibernate의 설계 목표는 SQL과 JDBC를 사용하여 수작업으로 데이터를 처리할 필요가 없도록 함으로써 개발자의 데이터 영속성 관련 프로그래밍 작업의 95%를 덜 수 있도록 하는 것입니다.
 
-즉, ORM을 사용해서 개발자가 SQL이나 JDBC를 사용하는 부분을 대신 해결해준다. (JPA의 설명과 상통한다.)
+직역하면 아래와 같다.
+
+> Hibernate의 설계 목표는 SQL과 JDBC를 사용하여 수작업으로 데이터를 처리할 필요가 없도록 함으로써 개발자의 데이터 영속성 관련 프로그래밍 작업의 95%를 덜 수 있도록 하는 것입니다.
+
+
+Hibernate는 ORM을 사용해서 개발자가 SQL이나 JDBC를 사용하는 부분을 대신 해결해준다. (JPA의 설명과 상통한다.)
 
 Hibernate ORM은 Stored Procedure를 기반으로 하는 데이터 중심 애플리케이션에는 적합하지 않고, Java의 객체 지향 프로그래밍 모델 및 비즈니스 로직에서 가장 적합하다고 한다.
 
 ## Statistics
 
-N+1 문제가 안터지게 되는 것은 어떻게 검증할 수 있을까?
-
-사실 쿼리를 보면 확인할 수 있지만, 학습 테스트 중이라서 테스트 코드로 검증하고 싶었다.
+N+1 문제를 해결했다고 가정하자. N+1 문제가 안터지게 되는 것은 테스트 코드로 어떻게 검증할 수 있을까?
 
 이때 `org.hibernate.stat.Statistics`를 활용할 수 있었다.
 
@@ -51,15 +52,16 @@ public class QueryCountUtil {
 ```
 
 `Statistics`는 `Hibnerate`에서 실행하는 쿼리의 개수나 시간 등을 측정하여 기록한다.
-- 더 다양한 기능은 공식 문서를 참고: https://docs.jboss.org/hibernate/orm/6.4/userguide/html_single/Hibernate_User_Guide.html#statistics
+- 공식 문서 참고: https://docs.jboss.org/hibernate/orm/6.4/userguide/html_single/Hibernate_User_Guide.html#statistics
 
 그래서 테스트 코드에서는 아래와 같이 작성할 수 있었다.
 
 ![img_3.png](images/img_3.png)
 
 해당 테스트에서는 `Eager loading` 엔터티를 조회할 시 지연 로딩으로 인한 엔터티 로딩을 사용하지 않는다는 것을 검증한다.
+- N+1 문제가 터졌다면 Product 1개당 1번의 지연로딩이 발생할 것이다.
 
-TestContext를 재활용하면서 SessionFactory에 카운트가 쌓이는 문제는 아래와 같이 막을 수 있었다.
+TestContext를 재활용하면서 SessionFactory에 카운트가 쌓이는 문제는 아래와 같이 해결할 수 있었다.
 
 ```java
 @BeforeEach
@@ -101,7 +103,7 @@ public class Person {
 
 반면 `@OneToMany`의 경우 Many 측이 단순한 컬렉션이 아닌 **자식 엔터티**로 인정을 받게 된다. 
 
-엔터티로써 인정받을 필요가 없고, 엔터티의 속성일 뿐이라면 `@ElementCollection`만 사용하는 것이 적합할 수 있다.
+엔터티로써 인정받을 필요가 없고, 엔터티의 속성일 뿐이라면 `@ElementCollection`만 사용하는 것이 **Fit한 처리**일 수 있다.
 
 ## \@SoftDelete
 
@@ -140,7 +142,9 @@ public class Board {
 
 `@SoftDelete`를 활용하면 코드가 훨씬 깔끔해진다.
 
-## Inheritance
+추가로 Hibernate 6.0 부터는 QueryDsl을 활용한 `execute()` 시에도 해당 애노테이션이 적용된다.
+
+## \@Inheritance
 
 실제 서비스를 운영하다보면 아래의 경우가 자주 있다.
 - Address라는 테이블이 있다.
@@ -250,7 +254,7 @@ public class Account {
 }
 ```
 
-이렇게 매핑을 하면 `Client`를 조회할 때 아래의 조회 쿼리가 두번 나간다.
+이렇게 매핑을 하면 `Client`를 조회에서 연관된 `Account`를 조회할 때 아래의 조회 쿼리가 타입별로 실행된다.
 
 ```sql
 select
@@ -298,22 +302,22 @@ JPA의 CascadeType은 아래 타입을 지원한다.
 
 JPA는 다양한 Callbacks를 제공한다.
 
-- @PrePersist
+- \@PrePersist
   - Persist를 수행하기 전에 실행
-- @PreRemove
+- \@PreRemove
   - Remove를 수행하기 전에 실행
-- @PreUpdate
+- \@PreUpdate
   - DB Update 전에 실행
-- @PostPersist
+- \@PostPersist
   - Persist를 수행한 후 실행
-- @PostRemove
+- \@PostRemove
   - Remove를 수행한 후 실행
-- @PostUpdate
+- \@PostUpdate
   - DB Update 후 실행
-- @PostLoad
+- \@PostLoad
   - 엔터티가 영속성 컨텍스트에 로드되거나 Refresh 된 후 실행
 
-공통된 부분은 별도의 Listener로 사용하는 것도 가능하다.
+여러 엔터티에 공통으로 적용해야 한다면 아래와 같이 별도의 Listener로 사용하는 것도 가능하다.
 
 ```java
 public class LastUpdateListener {
@@ -337,6 +341,8 @@ public static class Person {
     }
 }
 ```
+
+Callback을 사용하면 도메인 모델의 변화를 감지해야 하는 작업(CQRS 등)에서 유용하게 사용할 수 있다.
 
 ## 참고
 
