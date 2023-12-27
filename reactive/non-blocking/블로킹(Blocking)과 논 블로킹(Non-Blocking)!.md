@@ -43,7 +43,6 @@
 - Sync-NonBlocking
     - Caller는 Callee의 결과를 받는다. (동기)
     - Caller는 Callee에게 제어권을 주지 않고 자신의 로직을 계속 실행한다. (논 블로킹)
-    - Java의 Future를 사용하는 경우가 이에 해당한다.
 - Async-Blocking
     - Caller는 Callee의 결과를 받지 않는다. (비동기)
     - Caller는 Callee에게 제어권을 넘겨주고 대기한다. (블로킹)

@@ -10,4 +10,5 @@ public class PartitionInspector implements StatementInspector {
         String partition = DBContextHolder.getPartition();
         return sql.replaceAll("#partition#", partition);
     }
+
 }

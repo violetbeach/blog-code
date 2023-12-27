@@ -12,7 +12,8 @@ Java5 버전에는 Future라는 인터페이스가 추가되면서 비동기 작
 
 그래서 Java8에서는 위 문제들을 모두 해결한 CompletableFuture가 등장했다.
 
-위 문제 이외에도, CompletableFuture는 CompletionStage 인터페이스를 구현하고 있었기에 콜백 형태로 동작이 가능했다. (ex. ~초 이내에 완료되지 않으면 기본 값 반환, 예외 처리 등)
+CompletableFuture는 Future, CompletionStage 인터페이스를 모두 구현하고 있기에 콜백 형태로 동작이 가능하다.
+- (ex. ~초 이내에 완료되지 않으면 기본 값 반환, 예외 처리 등)
 
 ## 비동기 작업
 
@@ -23,7 +24,7 @@ CompletableFuture의 기본적인 메서드는 아래와 같다.
 - supplyAsync
   - 반환 값이 있는 경우
 
-runAsync와 supplyAsync는 Java7에 추가된 ForkJoinPool에 commonPool()을 사용해서 작업을 실행할 쓰레드를 쓰레드 풀로부터 얻어 실행시킨다.
+runAsync와 supplyAsync는 Java7에 추가된 ForkJoinPool을 사용해서 작업을 실행할 쓰레드를 얻어 실행시킨다.
 
 만약 원하는 쓰레드 풀을 사용하려면, executorService를 파라미터로 넘겨주면 된다.
 
@@ -62,7 +63,7 @@ mailTransfer.transfer(messages).exceptionallyAsync(e -> {
 
 **[Combine]**
 - thenCompose
-    - 두 작업이 이어서 실행하도록 조합
+    - 두 작업을 이어서 실행하도록 조합
     - 앞선 작업의 결과를 받아서 사용할 수 있음
 - thenCombine
     - 두 작업을 독립적으로 실행
@@ -71,6 +72,10 @@ mailTransfer.transfer(messages).exceptionallyAsync(e -> {
   - 여러 작업들을 동시에 실행
 - anyOf
   - 여러 작업들 중에서 가장 빨리 끝난 하나의 결과에 콜백을 실행
+
+**[Action]**
+- complete
+  - **작업이 완료되지 않았다면** 특정 값으로 변경한다.
 
 단, 조합을 할 때는 스레드 풀의 스레드 수와 작업 수를 잘 조율하지 않으면 데드락이 발생할 수 있다.
 
@@ -107,4 +112,3 @@ mailTransfer.transfer(messages).exceptionallyAsync(e -> {
 - https://mangkyu.tistory.com/263
 - https://stackoverflow.com/questions/38254268/completablefuture-exceptionally-with-executor
 - https://techblog.woowahan.com/2722/
-
