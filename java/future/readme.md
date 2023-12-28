@@ -15,41 +15,17 @@ Java5 버전에는 Future라는 인터페이스가 추가되면서 비동기 작
 CompletableFuture는 Future, CompletionStage 인터페이스를 모두 구현하고 있기에 콜백 형태로 동작이 가능하다.
 - (ex. ~초 이내에 완료되지 않으면 기본 값 반환, 예외 처리 등)
 
-## 비동기 작업
+## CompletableFuture 사용
 
 CompletableFuture의 기본적인 메서드는 아래와 같다.
+
+`runAsync()`와 `supplyAsync()`는 Java7에 추가된 ForkJoinPool을 사용해서 작업을 실행할 쓰레드를 얻어 실행시킨다.
+
 - runAsync
   - 반환 값이 없는 경우
 
 - supplyAsync
   - 반환 값이 있는 경우
-
-runAsync와 supplyAsync는 Java7에 추가된 ForkJoinPool을 사용해서 작업을 실행할 쓰레드를 얻어 실행시킨다.
-
-만약 원하는 쓰레드 풀을 사용하려면, executorService를 파라미터로 넘겨주면 된다.
-
-나의 경우에는 메일 발송을 구현하고 있었고, 반환 값이 필요 없었다. 그래서 아래와 같이 코드를 작성할 수 있었다.
-
-```java
-public CompletableFuture<Void> transfer(Iterator<MimeMessage> messages){
-        return CompletableFuture.runAsync(()->
-        javaMailSender.send(messages)
-        ,asyncMailSendExecutor);
-}
-```
-
-해당 메서드 사용처에서는 아래와 같이 사용할 수 있었다. exceptionally, exceptionallyAsync를 사용해서 예외를 반환받을 수도 있다.
-
-```java
-DBInfo DbInfo = ThreadLocal.getDbInfo();
-
-mailTransfer.transfer(messages).exceptionallyAsync(e -> {
-    MailBulkSendException exception = (MailBulkSendException) e.getCause();
-    List<FailedMailInfo> failedMailInfos = exception.getFailedMailInfos();
-    eventPublisher.publishEvent(new AsyncSendFailedEvent(failedMailInfos, DbInfo, exception.getMessage()));
-    return null;
-});
-```
 
 해당 메서드 이외에도 CompletableFuture에는 아래와 같은 기능을 제공한다.
 
@@ -63,13 +39,14 @@ mailTransfer.transfer(messages).exceptionallyAsync(e -> {
 
 **[Combine]**
 - thenCompose
-    - 두 작업을 이어서 실행하도록 조합
-    - 앞선 작업의 결과를 받아서 사용할 수 있음
+  - 두 작업을 이어서 실행하도록 조합
+  - 앞선 작업의 결과를 받아서 사용할 수 있음
 - thenCombine
-    - 두 작업을 독립적으로 실행
-    - 둘 다 완료되었을 때 콜백을 실행
+  - 두 작업을 독립적으로 실행
+  - 둘 다 완료되었을 때 콜백을 실행
 - allOf
   - 여러 작업들을 동시에 실행
+  - 여러 작업들이 완료된 시점을 알 수 있다.
 - anyOf
   - 여러 작업들 중에서 가장 빨리 끝난 하나의 결과에 콜백을 실행
 
@@ -79,8 +56,37 @@ mailTransfer.transfer(messages).exceptionallyAsync(e -> {
 
 단, 조합을 할 때는 스레드 풀의 스레드 수와 작업 수를 잘 조율하지 않으면 데드락이 발생할 수 있다.
 
-아래는 해당 이슈를 잘 정리한 내용이다.
-- https://techblog.woowahan.com/2722/
+아래는 해당 이슈를 잘 정리한 포스팅이다.
+- https://techblog.woowahan.com/2722
+
+## 실제 상황에 반영 
+
+CompletableFuture에서 원하는 쓰레드 풀을 사용하려면, `asyncMailSendExecutor`를 인자로 넘겨주면 된다.
+
+나의 경우에는 메일 발송을 구현하고 있었고, 반환 값이 필요 없었다. 그래서 아래와 같이 코드를 작성할 수 있었다.
+
+```java
+public CompletableFuture<Void> transfer(Iterator<MimeMessage> messages){
+        return CompletableFuture.runAsync(() ->
+        javaMailSender.send(messages),
+        asyncMailSendExecutor);
+}
+```
+
+해당 메서드 사용처에서는 아래와 같이 사용할 수 있었다.
+
+exceptionally, exceptionallyAsync를 사용해서 예외를 반환받을 수도 있다.
+
+```java
+DBInfo DbInfo = ThreadLocal.getDbInfo();
+
+mailTransfer.transfer(messages).exceptionallyAsync(e -> {
+    MailBulkSendException exception = (MailBulkSendException) e.getCause();
+    List<FailedMailInfo> failedMailInfos = exception.getFailedMailInfos();
+    eventPublisher.publishEvent(new AsyncSendFailedEvent(failedMailInfos, DbInfo, exception.getMessage()));
+    return null;
+});
+```
 
 ## 동작
 
@@ -88,7 +94,7 @@ mailTransfer.transfer(messages).exceptionallyAsync(e -> {
 
 작성한 코드의 과정에서 세세하게 로그를 찍어 본 결과 흐름은 아래와 같았다.
 
-![img_2.png](img_2.png)
+![img_2.png](images/img_2.png)
 
 즉, CompletableFuture에서 아래의 단점이 있었다.
 1. 결과를 대기하는 스레드가 추가로 사용되는 점
@@ -106,7 +112,7 @@ mailTransfer.transfer(messages).exceptionallyAsync(e -> {
 
 결과적으로 흐름은 아래와 같이 되었다.
 
-![img_3.png](img_3.png)
+![img_3.png](images/img_3.png)
 
 ## 참고
 - https://mangkyu.tistory.com/263
