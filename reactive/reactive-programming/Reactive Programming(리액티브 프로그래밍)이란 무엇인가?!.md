@@ -5,6 +5,10 @@
 
 ## Reactive Programming(리액티브 프로그래밍)
 
+Reactive의 정의는 "reacting to events or situations rather than acting first to change or prevent something" 이다.
+
+이를 직역하면 "무언가를 바꾸거나 예방하기 위해 먼저 행동하기 보다는 사건이나 상황에 반응하는"이다.
+
 Reactive Programming은 데이터 스트림과 변경 사항 전파를 중심으로 하는 비동기 프로그래밍 패러다임이다.
 프로그래밍 언어로 정적/동적인 데이터 흐름을 쉽게 표현할 수 있어야하며, 데이터 흐름을 통해 하부 실행 모델에 변화를 전파할 수 있도록 프로그래밍하는 것을 의미한다.
 
@@ -21,6 +25,40 @@ Reactive Programming은 아래의 이점이 있다.
 처리량이 높아지면 CPU, Memory 사용량이 급격히 늘어나면서 병목이 더 심해지는 악순환이 생긴다.
 
 그래서 1ms의 latency에도 민감한 대규모 서비스에서는 Async/NIO를 고려하게 되면서 Reactive Programming을 많이 하는 것 같다.
+
+## Reactive Manifesto
+
+Reactive Manifesto(리액티브 선언문)는 Reactive System의 특성을 강조하고, 핵심 가치 4가지와 구축에 필요한 가이드라인을 제공한다. 
+
+Reactive System의 핵심 가치 4가지는 아래와 같다.
+
+![img.png](img.png)
+
+각 가치의 의미는 다음과 같다.
+- Responsive(응답성): 
+  - 요구사항:
+    - 문제를 신속하게 탐지하고 효과적으로 대처
+    - 신속하고 일관성 있는 응답시간 제공
+    - 신뢰할 수 있는 상한선을 설정하여 일관된 서비스 품질을 제공
+  - 결과:
+    - 가능한 **즉각적으로 응답**
+    - 사용자에게 신뢰를 제공
+    - 오류 처리를 단순화
+- Elastic(유연성):
+  - 요구사항:
+    - 봉쇄: 장애는 각각의 구성 요소에 포함
+    - 격리: 구성 요소들은 서로 분리
+    - 위임: 복구 프로세스는 다른 구성 요소에 위임
+    - 복제: 필요한 경우 복제를 통해 고가용성을 보장
+  - 결과
+    - **장애에 직면하더라도 응답성을 유지**
+    - 시스템이 부분적으로 고장이 나더라도, 전체 시스템을 위험하게 하지 않고 복구를 보장
+- Resilient(탄력성):
+  - 요구사항:
+  - 결과:
+- Message Driven(메시지 주도):
+
+
 
 ## Spring Webflux
 
