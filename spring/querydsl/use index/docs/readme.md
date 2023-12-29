@@ -131,10 +131,67 @@ Hibernate ORM 5.6 에서는 `FromElementFactory`에서 `tableAlias`를 세팅한
 
 ![img_23.png](images/img_23.png)
 
+## 4. Comment + StatementInspector
+
+Hibernate의 주석과 StatementInspector를 활용한 방법이다.
+
+먼저 주석을 사용하려면 아래 프로퍼티를 설정해야 한다.
+- `spring.jpa.properties.hibernate.use_sql_comments=true`
+
+#### 4-1. USE INDEX 정규식 Inspect
+
+아래와 같이 주석으로 IndexHint 구문을 삽입한다.
+
+![img_25.png](images/img_25.png)
+
+이후 Inspector를 구현해서 주석의 IndexHint 구문을 Where 절 앞으로 옮기면 된다.
+
+![img_26.png](images/img_26.png)
+
+결과 아래와 같이 IndexHint가 잘 적용된다.
+
+![img_27.png](images/img_27.png)
+
+문법적으로 잘못된 경우 Replacing이 동작하지 않으므로 안전하다.
+
+반면 정규식을 파악하기 어렵고, 구문 사용에 제약이 있다는 단점이 있다.
+
+#### 4-2. START, END 정규식 Inspect
+
+다른 방법은 START 구문과 END 구문을 만든 후 가운데를 Grouping 하는 것이다.
+
+![img_29.png](images/img_29.png)
+
+queryFactory에서는 Inspector의 `getInspectorIndexHint()`를 사용해서 주석을 삽입하면 된다.
+
+![img_28.png](images/img_28.png)
+
+이 방법도 IndexHint가 잘 적용된다.
+
+![img_30.png](images/img_30.png)
+
+`USE INDEX`를 정규식으로 잡는 방법과 다르게 정규식을 파악하기 쉽고, 구문 사용도 자유롭다.
+
+반면, 잘못된 구문이 들어갈 경우 그대로 실행된다는 단점이 있다.
+
+추가로 두 방법 모두 **전체 쿼리에 영향이 생긴다는 단점**이 있다.
+- `spring.jpa.properties.hibernate.use_sql_comments=true`로 인해 모든 쿼리에 주석 생기는 문제
+
+**JOIN 확장이 어려운 문제**도 있다.
+
+그래서 상황에 맞게 사용하길 권장한다.
+
 ## 정리
 
 실무 문제를 해결하려고 `QueryDSL`에서 `MySQL`의 `Index Hint`를 줄 수 있는 방법을 알아봤다.
 
 `QueryDSL`이 해당 부분에 대한 지원이 커져서 쉽게 반영할 수 있게 되었으면 좋겠다.
+
+가장 좋은 것은 이렇게 IndexHint를 먹이는 상황이 안나오는거겠지만, 피치 못할 사정이 있을 때도 있다.
+- 조건과 정렬이 너무 다양한 경우
+- 그로 인해 Optimizer가 잘못된 선택을 하는 경우
+- Index 확장이 어려운 경우
  
+그래서 **어쩔수 없는 상황**에 여기서 고민했던 방법들을 선택지에 놓고 **상황에 맞게 선택**하면 좋을 것 같다.
+
 > 혹시 위 방법들 이외에도 좋은 해결법을 아시는 분은 공유해주세요!
