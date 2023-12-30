@@ -26,7 +26,7 @@ Reactive Programming은 아래의 이점이 있다.
 
 그래서 1ms의 latency에도 민감한 대규모 서비스에서는 Async/NIO를 고려하게 되면서 Reactive Programming을 많이 하는 것 같다.
 
-## Reactive Manifesto
+## Reactive Manifesto (v2)
 
 Reactive Manifesto(리액티브 선언문)는 Reactive System의 특성을 강조하고, 핵심 가치 4가지와 구축에 필요한 가이드라인을 제공한다. 
 
@@ -41,73 +41,245 @@ Reactive System의 핵심 가치 4가지는 아래와 같다.
     - 신속하고 일관성 있는 응답시간 제공
     - 신뢰할 수 있는 상한선을 설정하여 일관된 서비스 품질을 제공
   - 결과:
-    - 가능한 **즉각적으로 응답**
-    - 사용자에게 신뢰를 제공
-    - 오류 처리를 단순화
+    - 요구사항:
+      - 가능한 **즉각적으로 응답**
+      - 사용자에게 신뢰를 제공
+      - 오류 처리를 단순화
 - Elastic(유연성):
+  - 요구사항:
+    - 경쟁하는 지점이나 단일 병목 포인트가 없어야 한다.
+    - 컴포넌트를 샤딩하거나 복제하여 분산
+      - 예측 가능한 분산 알고리즘을 사용
+    - 실시간 성능을 측정하는 도구를 제공
+  - 결과:
+    - 작업량이 변화하더라도 응답성이 유지
+- Resilient(탄력성):
   - 요구사항:
     - 봉쇄: 장애는 각각의 구성 요소에 포함
     - 격리: 구성 요소들은 서로 분리
     - 위임: 복구 프로세스는 다른 구성 요소에 위임
     - 복제: 필요한 경우 복제를 통해 고가용성을 보장
-  - 결과
+  - 결과:
     - **장애에 직면하더라도 응답성을 유지**
     - 시스템이 부분적으로 고장이 나더라도, 전체 시스템을 위험하게 하지 않고 복구를 보장
-- Resilient(탄력성):
-  - 요구사항:
-  - 결과:
 - Message Driven(메시지 주도):
+  - 요구사항:
+    - 비동기 메시지 전달에 의존
+    - 명시적인 메시지 전달
+    - 논블로킹 통신
+  - 결과:
+    - MQ 생성 및 배압 적용
+    - 느슨할 결합, 격리, 위치 투명성을 보장하는 경계 형성
+      - 경계는 장애를 메시지로 지정
+    - 부하 관리 및 흐름 제어 가능해야 함
 
+정리를 하자면, 핵심 가치는 **즉각적으로 응답**하는 것이다.
 
+장애에 직면하거나 작업량이 변화하더라도 응답성을 유지해야 하고, 그것을 **비동기 Non-Blocking 기반의 메시지 큐로 달성**한다.
 
-## Spring Webflux
+## Reactive Stream
 
-![i_1.png](images/img_1.png)
+자바에서 Future를 사용한다면 비동기 논블로킹으로 동작할 수 있지만, Reactive Manifesto의 메시지 주도가 아니며 배압도 적용할 수 없다.
 
-Webflux는 **비동기 + 리액티브 프로그래밍**에 사용하고, Sprinb WebMvc를 대체하는 라이브러리이다.
-- 요청을 Event-Driven 방식으로 해결한다.
-- 요청이 완료될 때까지 다른 일을 하다가, 처리가 완료되면 Callback 메서드를 통해 응답을 반환한다.
-- 비동기 + 논블로킹
+아래는 **ReactiveStream API**의 모델이다.
 
-즉, Webflux는 요청이 끝날 때까지 기다리지 않기 때문에 cpu, thread, memory의 자원을 최대한 낭비하지 않고 효율적으로 동작하는 고성능 애플리케이션 개발에서 사용한다.
+![img_1.png](img_1.png)
 
-토비님의 세미나에서는 **서비스 간 호출이 많은 마이크로 서비스 아키텍처에 적합**하고, 함수형 프로그래밍의 이점이 있는 것도 Webflux를 선택하기에 충분한 이유가 된다고 한다.
+각 컴포넌트의 역할은 아래와 같다.
+- Publisher: 데이터, 이벤트를 전달
+- Subscriber: 데이터, 이벤트를 수신
+- Subscription: 데이터 흐름을 조절
 
-## Netty
+**ReactiveStream**에서는 Callee(Subscriber)가 Subscription을 사용해서 처리 가능한 만큼의 값만 요청하여 배압을 적용할 수 있다.
 
-![i_2.png](images/img_2.png)
+그리고 ReactiveMenifesto의 Responssive, Resilient, Elastic, Message Driven까지 모두 충족할 수 있게 한다.
 
-Spring Webflux를 사용하면 요청을 받는 내장 서버로 기본적으로 **Netty**를 사용한다.
+`org.reactivestreams`의 대표적인 인터페이스들은 아래와 같다.
 
-Netty는 Async / NIO(Non-Blocking IO)에 초점을 둔 이벤트 기반 네트워크 애플리케이션 프레임워크로써 유지보수를 고려한 고성능 프로토콜 서버나 클라이언트를 개발할 때 주로 사용한다.
+Publisher는 `subscribe()`로 SubScriber를 등록할 수 있다.
+```java
+public interface Publisher<T> {
+    void subscribe(Subscriber<? super T> s);
+}
+```
 
-Netty의 장점은 아래와 같다.
-- 비동기 이벤트 기반 네트워킹(Event Driven)을 지원
-- Tomcat과 다르게 자원이 항상 스레드를 점유하고 Block을 유지하지 않으므로 처리량 대폭 증가
-- 스레드 수가 적다. (경합 빈도가 크다.)
-- Context switching 오버헤드 감소 (1개 Thread에서 쌓인 Event Queue를 기반으로 Non-Blocking으로 동작하기 때문!)
+Subscriber는 Publisher로부터 받을 Subscription을 등록한 후, 각각의 Event가 들어오는 채널을 구현한다.
 
+```java
+public interface Subscriber<T> {
+    void onSubscribe(Subscription s);
+    void onNext(T t);
+    void onError(Throwable t);
+    void onComplete();
+}
+```
 
-### Event Loop
+Subscription은 Back-pressure(배압)를 조절할 수 있는 `request()`를 제공한다.
 
-Netty에서 핵심은 Event Loop이다.
+```java
+public interface Subscription {
+    void request(long n);
+    void cancel();
+}
+```
 
-![i.png](images/img.png)
+#### 예시 코드
 
-- Channel은 하나의 이벤트 루프에 등록된다.
-- Channel에서 이벤트가 발생하면 해당 이벤트 루프의 이벤트 큐에 등록된다.
-- Event Loop: 이벤트 큐에서 이벤트를 꺼내어서 작업을 비동기로 실행 (스레드 당 여러개 가질 수 있다.)
-- Pipeline: 이벤트를 받아서 Handler로 전달
+아래는 예시로 구현한 ReactiveStreams의 구현체이다.
 
-## Mono, Flux
+FixedIntPublisher는 `Flow.Publisher`를 구현하고,
+고정된 7개의 숫자를 Subscriber에게 전달한다.
+
+```java
+public class FixedIntPublisher implements Flow.Publisher<FixedIntPublisher.Result> {
+    
+    @Data
+    public static class Result {
+        private final Integer value;
+        private final Integer requestCount;
+    }
+    
+    @Override 
+    public void subscribe(Flow.Subscriber<? super Result> subscriber) {
+        // Thread-Safety한 Collection을 사용해야 한다.
+        var numbers = Collections.synchronizedList(
+                new ArrayList<>(List.of(1, 2, 3, 4, 5, 6, 7))
+        );
+        Iterator<Integer> iterator = numbers.iterator();
+        var subscription = new IntSubscription(subscriber, iterator);
+        subscriber.onSubscribe(subscription);
+    }
+}
+```
+
+IntSubscription은 Flow.Subscription을 구현하고,
+`request()`는 Subscriber의 `onNext()`가 동기적으로 동작하면 안되기 때문에 **별도 Thread의 Executor**를 사용한다.
+
+```java
+@RequiredArgsConstructor
+private static class IntSubscription implements Flow.Subscription {
+    private final Flow.Subscriber<? super Result> subscriber;
+    private final Iterator<Integer> numbers;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final AtomicInteger requestCount = new AtomicInteger(1);
+    private final AtomicBoolean isCompleted = new AtomicBoolean(false);
+
+    @Override
+    public void request(long n) {
+        executor.submit(() -> {
+            for (int i = 0; i < n; i++) {
+                if (numbers.hasNext()) {
+                    int number = numbers.next();
+                    numbers.remove();
+                    subscriber.onNext(new Result(number, requestCount.get()));
+                } else {
+                    // 모두 완료한 경우 Executor를 종료 및 Complete 처리
+                    var isChanged = isCompleted.compareAndSet(false, true);
+                    if (isChanged) {
+                        executor.shutdown();
+                        subscriber.onComplete();
+                        isCompleted.set(true);
+                    }
+                    break;
+                }
+            }
+          requestCount.incrementAndGet();
+        });
+    }
+}
+```
+
+디버깅을 위해 각 실행마다 `requestCount`를 증가시켰다. 
+
+RequestNSubscriber는 `Flow.Subscriber`를 구현한다. 최초 구독할 때 `onSubscribe()`로 1개의 처리를 요청했고, `onNext()`로는 N개의 처리를 요청했다.
+
+```java
+@Slf4j
+@RequiredArgsConstructor
+public class RequestNSubscriber<T> implements Flow.Subscriber<T>{
+    private final Integer n;
+    private Flow.Subscription subscription;
+    private int count = 0;
+
+    @Override
+    public void onSubscribe(Flow.Subscription subscription) {
+        this.subscription = subscription;
+        log.info("send request (1)");
+        this.subscription.request(1);
+    }
+
+    @Override
+    public void onNext(T item) {
+        log.info("item: {}", item);
+
+        if (count++ % n == 0) {
+            log.info("send request (n)");
+            this.subscription.request(n);
+        }
+    }
+
+    @Override
+    public void onError(Throwable throwable) {
+        log.error("error: {}", throwable.getMessage());
+    }
+
+    @Override
+    public void onComplete() {
+        log.info("complete");
+    }
+}
+```
+
+메인 메서드를 실행해보자.
+
+```java
+public static void main(String[] args) {
+    int N = 3;
+    Flow.Publisher publisher = new FixedIntPublisher();
+    Flow.Subscriber subscriber = new RequestNSubscriber<>(N);
+    publisher.subscribe(subscriber);
+    Thread.sleep(1000);
+}
+```
+
+결과는 아래와 같다.
+
+![img_2.png](img_2.png)
+
+최초 1개 요청을 처리한 후, 상황에 맞게 3개씩 요청을 처리했다.
+
+즉, 배압을 조절할 수 있었다.
+
+`IntSubscription`의 `request()`는 비동기 쓰레드에서 실행되므로 여러 Publisher의 데이터에 반응하여 병렬로 처리할 수 있다.
+
+```java
+public static void main(String[] args) {
+    int N = 3;
+    Flow.Publisher publisher = new FixedIntPublisher();
+    Flow.Subscriber subscriber = new RequestNSubscriber<>(N);
+    publisher.subscribe(subscriber);
+
+    Flow.Publisher publisher2 = new FixedIntPublisher();
+    Flow.Subscriber subscriber2 = new RequestNSubscriber<>(N);
+    publisher2.subscribe(subscriber2);
+
+    Thread.sleep(1000);
+}
+```
+
+아래는 두 개의 스트림을 순차적으로 실행한 결과이다.
+
+![img_3.png](img_3.png)
+
+## Reactor
 
 Spring Webflux에서는 Reactive Library로 **Reactor**를 사용한다.
 
-**Reactor** 라이브러리는 `org.reactivestreams`의 구성요소들의 구현체를 제공한다.
+**Reactor** 라이브러리는 `org.reactivestreams`의 구성요소들의 구현체(`reactor.core.*`)를 제공한다.
 
 대표적으로 `Publisher`를 구현하는 `Flux`와 `Mono`가 있다.
 
-아래와 같이 `Flux`를 사용해서 Repository 조회를 한다면 **Async**/**Non-Blocking**으로 조회를 하여 리소스 효율성을 향상시킬 수 있다. 
+아래와 같이 `Flux`를 사용해서 Repository 조회를 한다면 **Async**/**Non-Blocking**으로 조회를 하여 리소스 효율성을 향상시킬 수 있다.
 
 ```java
 @GetMapping
@@ -119,12 +291,6 @@ private Flux<Employee> getAllEmployees() {
 - Flux: 0 ~ N 개의 데이터 전달
 - Mono: 0 ~ 1개의 데이터 전달
 
-예제 코드는 아래 Repository에서 확인할 수 있습니다.
-- https://github.com/violetbeach/reactive-axon-server
-
 ## 참고
-
-- https://thalals.tistory.com/381
-- https://perfectacle.github.io/2021/02/28/netty-event-loop
-- https://recordsoflife.tistory.com/1314
-- https://www.baeldung.com/spring-webflux-concurrency
+- https://www.reactivemanifesto.org
+- https://engineering.linecorp.com/ko/blog/reactive-streams-with-armeria-1
