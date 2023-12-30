@@ -10,12 +10,11 @@
 
 동기와 비동기는 **프로세스의 수행 순서 보장**에 대한 **매커니즘**이다.
 
-![img_3.png](img_3.png)
+![img_3.png](images/img_3.png)
 
 동기(Synchronous)는 Caller가 Callee의 작업 결과를 기다린다.
 
-비동기(Asynchronous)는 Caller는 Callee의 작업 결과에 관심이 없다. Callee가 Caller에게 Callback을 수행한다.
-- Callee에서 예외가 터져도 Caller는 영향을 받지 않는다.
+비동기(Asynchronous)는 Caller는 Callee의 작업 결과에 관심이 없다. Callee가 Caller에게 Callback을 수행한다. (Callee에서 예외가 터져도 Caller는 영향을 받지 않는다.)
 
 일반적으로 Blocking(블로킹)과 Async(비동기)를 사용해야 하는 경우는 없다. 즉, 비동기는 논 블로킹과 함께 사용해야 비로소 의미를 가질 수 있다.
 
@@ -23,7 +22,7 @@
 
 블로킹과 논블로킹은 처리되어야 하는 **작업**이 **전체적인 작업 흐름을 막는 지**에 대한 관점이다.
 
-![img_4.png](img_4.png)
+![img_4.png](images/img_4.png)
 
 블로킹(Blocking)은 Callee가 작업을 마칠 때까지 Caller가 Blocking된다.
 즉, 제어권을 Callee가 가지고 있다.
@@ -35,7 +34,7 @@
 
 조합을 정리하면 아래 그림과 같다.
 
-![img_2.png](img_2.png)
+![img_2.png](images/img_2.png)
 
 - Sync-Blocking
     - Caller는 Callee의 결과를 받는다. (동기)
@@ -65,13 +64,13 @@ Blocking은 전파된다는 특징이 있다.
 
 아래에서 Caller는 Blocking 방식인 A 함수와 Non-Blocking 방식인 B 함수를 실행한다. 그러면 Caller 입장에서는 다음 동작 전체가 블로킹될 수 밖에 없다.
 
-![img_5.png](img_5.png)
+![img_5.png](images/img_5.png)
 
 즉, Blocking된 함수가 하나라도 존재하면 Caller는 Blocking이 된다.
 
 그래서 Non-Blocking의 이점을 제대로 누리기 위해서는 모든 함수가 Non-Blocking이어야 한다.
 
-![img_6.png](img_6.png)
+![img_6.png](images/img_6.png)
 
 아래는 "내가 만든 WebFlux가 느렸던 이유"라는 NHN의 강연이다.
 - https://www.youtube.com/watch?v=I0zMm6wIbRI&t=1510s
