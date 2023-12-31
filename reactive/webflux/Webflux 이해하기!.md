@@ -36,6 +36,17 @@ Netty에서 핵심은 Event Loop이다.
 - Event Loop: 이벤트 큐에서 이벤트를 꺼내어서 작업을 비동기로 실행 (스레드 당 여러개 가질 수 있다.)
 - Pipeline: 이벤트를 받아서 Handler로 전달
 
+## 작성중
+
+아래와 같이 `Flux`를 사용해서 Repository 조회를 한다면 **Async**/**Non-Blocking**으로 조회를 하여 리소스 효율성을 향상시킬 수 있다.
+
+```java
+private Flux<Employee> getAllEmployees() {
+    return employeeRepository.findAllEmployees();
+}
+```
+
+
 ## 참고
 
 - https://thalals.tistory.com/381
