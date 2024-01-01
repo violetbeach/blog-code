@@ -123,7 +123,7 @@ public interface Subscription {
 }
 ```
 
-#### 예시 코드
+### 예시 코드
 
 아래는 예시로 구현한 ReactiveStreams의 구현체이다.
 
@@ -513,8 +513,16 @@ try (var serverChannel = ServerSocketChannel.open()) {
 
 **Java NIO의 모든 IO가 Non-Blocking하게 동작할 수 있지는 않다.**
 
+### AIO(NIO2)
 
+Java AIO(Asynchronous Non-Blocking I/O)에서는 Callback 기반의 Channel을 제공해준다.
+- NIO2 라고도 부른다.
 
+![img_10.png](img_10.png)
+
+NIO2는 기존 Non-Blocking IO에서 결과를 받으려면 `while`문을 돌리는 등의 처리가 필요하다. NIO2에서는 콜백을 잡아서 처리할 수 있다.
+
+추가로 Non-Blocking 기반의 다양한 클래스를 지원한다. (`AsynchronousFileChannel`의 경우 Non-Blocking을 지원한다.)
 
 ## 참고
 - https://www.reactivemanifesto.org
