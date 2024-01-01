@@ -50,6 +50,136 @@ ops의 종류는 다음과 같다.
 - OP_ACCEPT: serverSocketChannel에서 accept 준비가 완료
 - OP_CONNECT: socketChannel에서 connect 준비가 완료
 
+Selector를 사용해서 대기하는 로직은 아래와 같이 작성할 수 있다.
+
+```java
+while(true) {
+    selector.select();
+    
+    var selectedKeys = selector.selectedKeys().iterator();
+    
+    while(selectedKeys.hasNext()) {
+        var key = selectedKeys.next();
+        // 작업 처리
+        selectedKeys.remove();
+    }
+}
+```
+
+결과적으로 여러 개의 채널을 하나의 Selector로 통합할 수 있게 된다.
+
+이를 I/O Multiplexing이라고 표현한다.
+
+
+#### 기존 코드
+
+아래는 Selector를 활용하지 않은 코드이다.
+
+```java
+public class Main {
+    
+    public static void main(String[] args) {
+        try (ServerSocketChannel serverSocket = ServerSocketChannel.open()) {
+            serverSocket.bind(new InetSocketAddress("localhost", 8080));
+            serverSocket.configureBlocking(false);
+
+            while (true) {
+                SocketChannel clientSocket = serverSocket.accept();
+                if (clientSocket == null) {
+                    Thread.sleep(100);
+                    continue;
+                }
+
+                String requestBody = handleRequest(clientSocket);
+                sendResponse(clientSocket, requestBody);
+            }
+        }
+    }
+    
+    private String handleRequest(SocketChannel clientSocket) {
+        // busy-wait
+        while (clientSocket.read(requestByteBuffer) == 0) {}
+        
+        ByteBuffer requestByteBuffer = ByteBuffer.allocateDirect(1024);
+        
+        requestByteBuffer.flip();
+        return StandardCharsets.UTF_8.decode(requestByteBuffer).toString();
+    }
+
+    private static void sendResponse(SocketChannel clientSocket, String requestBody) {
+        // 외부 API 지연을 가정
+        Thread.sleep(50);
+        
+        String content = "received: " + requestBody;
+        ByteBuffer responeByteBuffer = ByteBuffer.wrap(content.getBytes());
+        clientSocket.write(responeByteBuffer);
+        clientSocket.close();
+    }
+}
+```
+
+`handleRequest()`에 있던 `clientSocket.read()`에서 반복문을 돌면서 체크를 했어야 했다.
+
+#### 수정 코드
+
+```java
+public class Main {
+    
+    public static void main(String[] args) {
+        try (ServerSocketChannel serverSocket = ServerSocketChannel.open();
+             Selector selector = Selector.open();
+        ) {
+            serverSocket.bind(new InetSocketAddress("localhost", 8080));
+            serverSocket.configureBlocking(false);
+            serverSocket.register(selector, SelectionKey.OP_ACCEPT);
+
+            while (true) {
+                selector.select();
+                Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
+
+                while (selectedKeys.hasNext()) {
+                    SelectionKey key = selectedKeys.next();
+                    selectedKeys.remove();
+
+                    if (key.isAcceptable()) {
+                        SocketChannel clientSocket = ((ServerSocketChannel)key.channel()).accept();
+                        clientSocket.configureBlocking(false);
+                        clientSocket.register(selector, SelectionKey.OP_READ);
+                    } else if (key.isReadable()) {
+                        SocketChannel clientSocket = (SocketChannel) key.channel();
+
+                        String requestBody = handleRequest(clientSocket);
+                        sendResponse(clientSocket, requestBody);
+                    }
+                }
+            }
+        }
+    }
+    
+    private static String handleRequest(SocketChannel clientSocket) {
+        ByteBuffer requestByteBuffer = ByteBuffer.allocateDirect(1024);
+        clientSocket.read(requestByteBuffer);
+
+        requestByteBuffer.flip();
+        String requestBody = StandardCharsets.UTF_8.decode(requestByteBuffer).toString();
+        return requestBody;
+    }
+    
+    private static void sendResponse(SocketChannel clientSocket, String requestBody) {
+        // 외부 API 지연을 가정
+        Thread.sleep(50);
+
+        String content = "received: " + requestBody;
+        ByteBuffer responeByteBuffer = ByteBuffer.wrap(content.getBytes());
+        clientSocket.write(responeByteBuffer);
+        clientSocket.close();
+    }
+}
+```
+
+수정된 코드에서는 `handleRequest()`에서 while 문을 사용하지 않고, 이미 이벤트를 받은 상황이기 때문에 clientSocket이 null이 아닌 것을 보장할 수 있게 된다.
+
+결과적으로 각 NIO 작업에서 busy-wait을 하지 않아도 된다.
 
 
 
