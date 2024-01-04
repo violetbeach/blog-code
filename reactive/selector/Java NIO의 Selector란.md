@@ -181,7 +181,37 @@ public class Main {
 
 결과적으로 각 NIO 작업에서 busy-wait을 하지 않아도 된다.
 
+추가로 다수의 채널을 대상으로 동일한 처리가 가능해졌다.
 
+(TODO)
+Selector의 `select()`는 내부적으로 epoll(System call)을 기본으로 한다.
 
+그래서 busy-wait이 발생하지 않지만, 아쉬운 부분이 있는데, 확장성이 떨어지는 부분이다.
+
+현재 Main 메서드에서 이벤트를 전부 처리하고 있다. 만약, 이벤트에 대한 처리가 추가된다면 메인 메서드를 뜯어 고쳐야 한다.
+
+## Reactor 패턴
+
+Reactor 패턴은 **동시에 들어오는 요청들을 처리하는 이벤트 핸들링 패턴**이다.
+
+- Service Handler는 들어오는 요청을 Demultiplexing 해서 Request Handler에게 동기적으로 전달한다.
+- 이벤트를 한 곳에서 등록하여 관찰하고, 준비 완료된 이벤트들을 Request Handler에게 전달한다.
+
+주요 컴포넌트의 역할은 아래와 같다.
+- Reactor: 별도의 쓰레드에서 실행. 여러 요청의 이벤트를 등록하고 감시하고, 이벤트가 준비되면 dispatch 한다.
+- Handler: Reactor로부터 이벤트를 받아서 처리한다.
+
+Reactor 구현을 정리하면 다음과 같다.
+- 별도의 쓰레드에서 동작해야 한다. - Runnable을 구현하고 별도 쓰레드에서 실행
+- 여러 요청의 이벤트를 등록하고 감시한다. - Selector를 사용
+- 이벤트가 준비되면 dispatch 한다. - EventHandler 인터페이스를 만들고 call
+
+Handler 구현은 아래와 같다.
+- Reactor로부터 이벤트를 받아서 처리 - eg. accept 이벤트와 read 이벤트를 각각 처리할 수 있는 EventHandler를 만든다.
+- EventHandler의 처리가 Reactor에 영향을 주지 않아야 한다. - 별도 쓰레드에서 실행
+
+그림으로 표현하면 다음과 같다.
+
+(TODO)
 
 
