@@ -177,18 +177,35 @@ public class Main {
 }
 ```
 
-수정된 코드에서는 `handleRequest()`에서 while 문을 사용하지 않고, 이미 이벤트를 받은 상황이기 때문에 clientSocket이 null이 아닌 것을 보장할 수 있게 된다.
+위에서는 `handleRequest()`에서 while 문을 사용하지 않고, 이미 이벤트를 받은 상황이기 때문에 clientSocket이 null이 아닌 것을 보장할 수 있게 된다.
 
-결과적으로 각 NIO 작업에서 busy-wait을 하지 않아도 된다.
+결과적으로 각 NIO 작업에서 busy-wait을 하지 않아도 된다. 그리고 다수의 채널을 대상으로 동일한 처리가 가능해졌다.
 
-추가로 다수의 채널을 대상으로 동일한 처리가 가능해졌다.
+여기서 한 가지 의문이 있다. 아래 두 코드는 어차피 busy-wait이 발생하니까 성능상 동일한 것이 아니냐는 것이다.
 
-(TODO)
-Selector의 `select()`는 내부적으로 epoll(System call)을 기본으로 한다.
+```java
+while (true) {
+    SocketChannel clientSocket = serverSocket.accept();
+    if (clientSocket == null) {
+        Thread.sleep(100);
+        continue;
+    }
+    // 처리
+}
+```
 
-그래서 busy-wait이 발생하지 않지만, 아쉬운 부분이 있는데, 확장성이 떨어지는 부분이다.
+```java
+selector.select();
+Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
+```
 
-현재 Main 메서드에서 이벤트를 전부 처리하고 있다. 만약, 이벤트에 대한 처리가 추가된다면 메인 메서드를 뜯어 고쳐야 한다.
+Selector는 각 플랫폼마다 최적화된 구현을 제공하고, `select()`는 기본적으로 System call을 사용하고, epoll_wait을 사용해서 채널이 하날라도 준비되지 않는다면 무한정 대기한다.
+
+그래서 busy-wait이 발생하지 않게 된다.
+
+코드적으로 아쉬운 점은 확장성이 떨어지는 부분이다.
+
+현재 Main 메서드에서 이벤트를 전부 처리하고 있다. 이벤트에 대한 처리가 추가된다면 메인 메서드를 뜯어 고쳐야 한다.
 
 ## Reactor 패턴
 
@@ -202,8 +219,8 @@ Reactor 패턴은 **동시에 들어오는 요청들을 처리하는 이벤트 �
 - Handler: Reactor로부터 이벤트를 받아서 처리한다.
 
 Reactor 구현을 정리하면 다음과 같다.
-- 별도의 쓰레드에서 동작해야 한다. - Runnable을 구현하고 별도 쓰레드에서 실행
 - 여러 요청의 이벤트를 등록하고 감시한다. - Selector를 사용
+- 별도의 쓰레드에서 동작해야 한다. - Runnable을 구현하고 별도 쓰레드에서 실행
 - 이벤트가 준비되면 dispatch 한다. - EventHandler 인터페이스를 만들고 call
 
 Handler 구현은 아래와 같다.
@@ -212,6 +229,132 @@ Handler 구현은 아래와 같다.
 
 그림으로 표현하면 다음과 같다.
 
-(TODO)
+![img_3.png](img_3.png)
 
+- Acceptor는 EventHandler의 구현체의 일부 (accept 이벤트에만 집중)
+- EventHandler 구현체는 read 이벤트에만 집중
 
+## Reactor 패턴 기반의 HTTP 서버
+
+먼저 아래와 같이 Reactor를 구현한다.
+
+```java
+public class Reactor implements Runnable {
+    private static ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final ServerSocketChannel serverSocket;
+    private final Selector selector;
+    
+    public Reactor(int port) {
+        selector = Selector.open();
+        serverSocket = ServerSocketChannel.open();
+        serverSocket.bind(new InetSocketAddress("localhost", port));
+        serverSocket.configureBlocking(false);
+
+        var acceptor = new Acceptor(selector, serverSocket);
+        serverSocket.register(selector, SelectionKey.OP_ACCEPT).attach(acceptor);
+    }
+
+    @Override
+    public void run() {
+        executorService.submit(() -> {
+            while (true) {
+                selector.select();
+                Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
+
+                while (selectedKeys.hasNext()) {
+                    SelectionKey key = selectedKeys.next();
+                    selectedKeys.remove();
+
+                    dispatch(key);
+                }
+            }
+        });
+    }
+
+    private void dispatch(SelectionKey selectionKey) {
+        EventHandler eventHandler = (EventHandler) selectionKey.attachment();
+
+        if (selectionKey.isReadable() || selectionKey.isAcceptable()) {
+            eventHandler.handle();
+        }
+    }
+}
+```
+
+Reactor는 여러 이벤트를 감시하고 이벤트가 발행되면 dispatch를 수행한다. dispatch도 별도의 쓰레드에서 실행된다.
+
+`dispatch()`는 selectKey에서 attachment를 꺼내어서 EventHandler로 캐스팅 후 call한다.
+
+아래는 EventHandler 인터페이스이다.
+
+```java
+public interface EventHandler {
+    void handle();
+}
+```
+
+이벤트가 dispatch되면 `handle()` 메서드가 실행된다.
+
+아래는 Acceptor 클래스이다.
+
+```java
+@RequiredArgsConstructor
+public class Acceptor implements EventHandler {
+    private final Selector selector;
+    private final ServerSocketChannel serverSocketChannel;
+    
+    @Override
+    public void handle() {
+        SocketChannel clientSocket = serverSocketChannel.accept();
+        new HttpEventHandler(selector, clientSocket);
+    }
+}
+```
+
+`handle()`은 내부적으로 HttpEventHandler의 생성자를 호출한다.
+
+아래는 EventHandler를 구현하는 HttpEventHandler이다.
+
+```java
+public class HttpEventHandler implements EventHandler {
+    private final ExecutorService executorService = Executors.newFixedThreadPool(50);
+    private final SocketChannel clientSocket;
+    private final MsgCodec msgCodec;
+    
+    public HttpEventHandler(Selector selector, SocketChannel clientSocket) {
+        this.clientSocket = clientSocket;
+        this.clientSocket.configureBlocking(false);
+        this.clientSocket.register(selector, SelectionKey.OP_READ).attach(this);
+        this.msgCodec = new MsgCodec();
+    }
+
+    @Override
+    public void handle() {
+        String requestBody = handleRequest();
+        sendResponse(requestBody);
+    }
+    
+    private String handleRequest() {
+        ByteBuffer requestByteBuffer = ByteBuffer.allocateDirect(1024);
+        this.clientSocket.read(requestByteBuffer);
+        return msgCodec.decode(requestByteBuffer);
+    }
+    
+    private void sendResponse(String requestBody) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                ByteBuffer responeByteBuffer = msgCodec.encode(requestBody);
+                this.clientSocket.write(responeByteBuffer);
+                this.clientSocket.close();
+            } catch (Exception e) { }
+        }, executorService);
+    }
+}
+```
+
+생성자의 `this.clientSocket.register(selector, SelectionKey.OP_READ).attach(this);`를 넣었기 때문에 메인 메서드에서는 해당 클래스의 `handle()`을 실행하게 된다.
+
+Reactor 패턴을 사용하면 메인 메서드에서는 각 이벤트의 처리를 담당하지 않아도 되었다. OCP를 만족하여 확장성이 생긴 것이다.
+
+## 참고
+- https://fastcampus.co.kr/courses/216172
