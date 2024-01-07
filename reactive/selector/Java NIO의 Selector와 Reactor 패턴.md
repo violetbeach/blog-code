@@ -20,7 +20,7 @@ while(true) {
 
 해당 코드는 루프를 통해 자원을 획득할 때까지 확인을 하는 구조를 가진다.
 
-![img.png](img.png)
+![img.png](images/img.png)
 
 해당 문제를 주로 busy-wait 이라고 하고, 주로 동기 Non-Blocking에서 주로 발생한다. busy-wait은 아래 문제를 야기한다.
 - 확인을 위해 CPU 자원이 지속적으로 낭비
@@ -36,13 +36,13 @@ Selector를 사용하면 busy-wait 문제를 일부 해결할 수 있다.
 
 여러 Channel의 이벤트를 등록하고 준비된 이벤트를 모아서 조회할 수 있는 기능을 제공한다. 
 
-![img_1.png](img_1.png)
+![img_1.png](images/img_1.png)
 
 준비가 완료된 Event는 Thread에 전달한다.
 
 `SelectableChannel`은 `regeister()`로 Selector와 `ops`라는 관심있는 이벤트 목록 등록할 수 있다.
 
-![img_2.png](img_2.png)
+![img_2.png](images/img_2.png)
 
 ops의 종류는 다음과 같다.
 - OP_READ: channel의 읽기 준비가 완료
@@ -229,7 +229,7 @@ Handler 구현은 아래와 같다.
 
 그림으로 표현하면 다음과 같다.
 
-![img_3.png](img_3.png)
+![img_3.png](images/img_3.png)
 
 - Acceptor는 EventHandler의 구현체의 일부 (accept 이벤트에만 집중)
 - EventHandler 구현체는 read 이벤트에만 집중
@@ -343,8 +343,8 @@ public class HttpEventHandler implements EventHandler {
     private void sendResponse(String requestBody) {
         CompletableFuture.runAsync(() -> {
             try {
-                ByteBuffer responeByteBuffer = msgCodec.encode(requestBody);
-                this.clientSocket.write(responeByteBuffer);
+                ByteBuffer responseByteBuffer = msgCodec.encode(requestBody);
+                this.clientSocket.write(responseByteBuffer);
                 this.clientSocket.close();
             } catch (Exception e) { }
         }, executorService);
@@ -355,6 +355,30 @@ public class HttpEventHandler implements EventHandler {
 생성자의 `this.clientSocket.register(selector, SelectionKey.OP_READ).attach(this);`를 넣었기 때문에 메인 메서드에서는 해당 클래스의 `handle()`을 실행하게 된다.
 
 Reactor 패턴을 사용하면 메인 메서드에서는 각 이벤트의 처리를 담당하지 않아도 되었다. OCP를 만족하여 확장성이 생긴 것이다.
+
+메인 메서드에서는 아래와 같이 실행할 수 있다.
+
+```java
+public class Main {
+    public static void main(String[] args) {
+        Reactor reactor = new Reactor(8080);
+        reactor.run();
+    }
+}
+```
+
+Reactor가 아니라 EventLoop라고 명명하고 여러 개를 병렬로 실행할 수도 있다.
+
+```java
+public class Main {
+    public static void main(String[] args) {
+        List<EventLoop> eventLoops = List.of(new EventLoop(8080), new EventLoop(8081));
+        eventLoops.forEach(EventLoop::run);
+    }
+}
+```
+
+해당 구현은 Netty의 근간과 매우 유사하다!
 
 ## 참고
 - https://fastcampus.co.kr/courses/216172
