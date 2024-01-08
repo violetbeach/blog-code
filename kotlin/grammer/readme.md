@@ -1,0 +1,5 @@
+- open: 클래스 앞에 open 키워드가 없으면 상속이 불가능
+- object: 클래스를 정의하면서 동시에 인스턴스를 생성 (싱글톤)
+- susfend: 일시중단이 필요할 시 넣어야 하는 키워드 (DRAFT: 코루틴 효율로 인한 것으로 예상)
+- companion object: Kotlin에서는 상수대신 companion을 사용
+- sealed: 추상 클래스와 유사 (내부적으로 여러 클래스를 가짐)
