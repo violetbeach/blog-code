@@ -4,6 +4,8 @@
 
 코틀린은 안전성, 간결성, 상호 운용성을 강조하는 다중 패러다임, 다중 플랫폼 프로그래밍 언어이다. 다중 패러다임은 객체지향 프그래밍이나 함수형 프로그래밍 방식 등을 말한다.
 
+코틀린의 주 목적은 자바가 사용되는 모든 용도에 더 간결하고, 생산적이고, 안전한 언어를 제공하는 것이다.
+
 ## JVM 언어
 
 코틀린은 JVM언어 중 하나이다.
@@ -120,11 +122,95 @@ someObject?.takeIf{ status }?.doThis()
 
 Float, Double은 INFINITY 연산도 지원한다.
 
+##### Unit
+
+코틀린은 자바의 void 대신 Unit이라는 클래스를 사용한다.
+
+코틀린은 primitive type을 일체 사용하지 않고, 모든 타입을 클래스로 만들어서 사용한다.
+- 컴파일 시 자바의 primitive과 wrapper 중 효율적인 방식으로 자동 변환된다.
+- null이 될 수 있는 경우 wrapper 타입으로 컴파일
+
+그래서 모든 타입은 Any(자바의 Object)를 상속받고 있고, void의 경우 Unit으로 래핑해서 사용하고 있다.
+
+##### 변환
+
+코틀린은 타입의 자동 변환을 지원하지 않는다. 
+
+```kotlin
+val i = 1
+val l: Long = i //Error: type mismatch 컴파일 에러 발생
+```
+
+대신 Boolean을 제외한 모든 타입에 대한 변환 메서드를 제공한다.
+
+```kotlin
+val i = 1
+val l: Long = i.toLong()
+```
+
+##### 파라미터
+
+코틀린에서는 파라미터가 널(Null)을 허용할 지 여부를 `?`로 나타낸다.
+- `override fun onCreate(savedInstanceState: Bundle?) {}`
+
 #### Class
 
-- open: 클래스 앞에 `open` 키워드가 없으면 상속이 불가능
-- object: 클래스를 정의하면서 동시에 인스턴스를 생성 (싱글톤)
+클래스 앞에 아래 키워드를 붙일 수 있다.
+- open: 상속이 불가능
 - sealed: 추상 클래스와 유사 (내부적으로 여러 클래스를 가짐)
-- data class
+- data:
     - toString, hashCode, equals, copy를 자동으로 구현
     - 불변을 의미하지는 않음
+
+**object 키워드**
+
+```kotlin
+object HelloPrinter {
+    fun print(content: String) : Unit {
+        println("Hello $content")
+    }
+}
+```
+
+싱글톤 클래스를 정의할 때 사용. 사용처는 자바의 static 클래스를 사용하는 듯한 문법을 사용
+
+```kotlin
+HelloPrinter.print("VioletBeach")
+```
+
+#### 상수
+
+코틀린에서는 `static`이나 `const` 키워드를 사용하지 않는다.
+
+상수를 정의하는 방법은 2가지가 있다.
+
+첫 번째로 companion object를 사용하는 방식이다.
+
+```kotlin
+class Rule{
+    companion object{
+        const val Admin:Int = 1
+
+        fun printAdmin() {
+            println(Admin)
+        }
+    }
+}
+```
+
+두 번째는 **패키지 변수**로 선언하는 방식이다.
+
+```kotlin
+package org.violetbeach.rule.constants
+
+val Admin:Int = 1
+
+fun printAdmin() {
+    println(Admin)
+}
+```
+
+## 참고
+- https://0391kjy.tistory.com/57
+- https://kotlinlang.org/docs/jvm-get-started.html
+- https://incheol-jung.gitbook.io/docs/study/kotlin-in-action/1
