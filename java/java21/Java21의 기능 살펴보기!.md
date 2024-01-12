@@ -130,7 +130,7 @@ return switch(value) {
 
 #### Pattern
 
-기존에는 타입을 분기하려면 반드시 if + instanceof 문을 태웠어야 헀다.
+기존에는 타입을 분기하려면 반드시 if + instanceof 문을 태웠어야 했다.
 
 Java 21에서는 switch를 사용할 수도 있다.
 

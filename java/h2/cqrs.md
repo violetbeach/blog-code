@@ -84,7 +84,7 @@ public class SongData {
 
 ![img_2.png](img_2.png)
 
-이미지와 같이 DB 스키마를 생성하는 부분만 주석 처리하면 H2 데이터베이스 DDL로 잘 작동헀다.
+이미지와 같이 DB 스키마를 생성하는 부분만 주석 처리하면 H2 데이터베이스 DDL로 잘 작동했다.
 
 그리고 테스트 환경의 application.yml/properties 파일에 아래의 설정을 추가한다.
 ```yml

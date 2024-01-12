@@ -124,7 +124,7 @@ public class GlobalExceptionHandler {
 }
 ```
 
-참고로 `MethodArgumentNotValidException`은 SpringBoot의 `validation` 라이브러리의 `@Valid`를 사용헀을 때 검증이 실패하면 발생하는 Exception이다.
+참고로 `MethodArgumentNotValidException`은 SpringBoot의 `validation` 라이브러리의 `@Valid`를 사용했을 때 검증이 실패하면 발생하는 Exception이다.
 
 ### BusinessException
 ```java

@@ -176,7 +176,7 @@ JPAQuery<Long> idsQuery = subJpaQueryFactory
                 // 비즈니스 조건 적용 (생략)
         );
 
-// 페이지 네이션을 적용하는 부분 (offset, limit을 써도 무방하다. 사내 라이브러리를 사용헀음)
+// 페이지 네이션을 적용하는 부분 (offset, limit을 써도 무방하다. 사내 라이브러리를 사용했음)
 JPQLQuery<Long> idsPageQuery = querydsl.applyPagination(pageable, idsQuery);
 
 // 토탈 개수를 위해 카운트 쿼리를 날린다.
