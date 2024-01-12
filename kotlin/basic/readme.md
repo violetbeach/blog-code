@@ -4,6 +4,14 @@
 
 코틀린은 안전성, 간결성, 상호 운용성을 강조하는 다중 패러다임, 다중 플랫폼 프로그래밍 언어이다. 다중 패러다임은 객체지향 프그래밍이나 함수형 프로그래밍 방식 등을 말한다.
 
+## JVM 언어
+
+코틀린은 JVM언어 중 하나이다.
+
+그렇다고 코틀린이 직접 바이너리 프로그램을 작성하는 것은 아니고, 빌드의 산출물이 Java 클래스 파일이다.
+
+즉, 코틀린은 자바 프로그램을 작성하는 언어라고 보는 것이 맞다.
+
 ## 새로운 개념
 
 아래는 자바를 기준으로 한 코틀린의 새로운 개념이다. 
@@ -85,3 +93,38 @@ val a = readLine()!!.toInt()
 ```
 
 `!!`는 null이 아님을 단언(assertion)하는 것이다. `readLine()`의 결과가 null일 경우 예외를 발생한다.
+
+아래는 다른 문법이다.
+- ? - null 허용 (기본적으로 허용 X)
+- ?. - Null이 아닌 경우에만 호출 (null인 경우 null 반환)
+- ?: - null이 아닌 사용자 정의 값을 반환하고 싶을 때 사용
+- !! - null이 아님을 컴파일러에게 보증 (null이면 NPE)
+
+#### 조건
+
+```kotlin
+// if (someObject != null && status) {
+//    doThis()
+// }
+
+someObject?.takeIf{ status }?.doThis()
+```
+
+코틀린에서는 `taskIf`를 사용해서 조건 절에 null을 활용할 수 있다. `taskIf`는 인자인 predicate가 true일 경우 그 값을 return하고, 아닐 경우 null을 return한다.
+
+반대로 `takeUnless`는 인자로 들어오는 predicate가 false일 경우 그 값을 return 한다.
+
+#### Type
+
+코틀린의 모든 타입은 Any의 하위 타입이다.
+
+Float, Double은 INFINITY 연산도 지원한다.
+
+#### Class
+
+- open: 클래스 앞에 `open` 키워드가 없으면 상속이 불가능
+- object: 클래스를 정의하면서 동시에 인스턴스를 생성 (싱글톤)
+- sealed: 추상 클래스와 유사 (내부적으로 여러 클래스를 가짐)
+- data class
+    - toString, hashCode, equals, copy를 자동으로 구현
+    - 불변을 의미하지는 않음
