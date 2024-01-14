@@ -10,9 +10,11 @@
 
 코틀린은 JVM언어 중 하나이다.
 
-그렇다고 코틀린이 직접 바이너리 프로그램을 작성하는 것은 아니고, 빌드의 산출물이 Java 클래스 파일이다.
+그렇다고 코틀린이 직접 바이너리 프로그램을 작성하는 것은 아니고, 빌드의 산출물이 클래스 파일이다.
 
-즉, 코틀린은 자바 프로그램을 작성하는 언어라고 보는 것이 맞다.
+![img.png](img.png)
+
+코틀린은 자바 프로그램을 작성하는 언어라고 보는 것이 맞고, 컴파일 후 java 명령어로 해당 코드를 실행한다.
 
 ## 새로운 개념
 
@@ -23,6 +25,10 @@
 코틀린은 변수 타입을 지정하지 않아도 **타입추론**으로 컴파일되고 실행된다.
 
 코틀린은 **강한 타입 지정 언어**임에도 개발자가 불필요한 타입 정보를 코드에 추가하지 않을 수 있다.
+
+#### 변수와 함수
+
+코틀린에서는 클래스 외부에도 변수나 함수를 선언할 수 있다.
 
 #### 프로퍼티
 
@@ -45,8 +51,8 @@ println("Hello")
 ```
 #### 불변 & 가변
 
-- 불변 변수 - val
-- 가변 변수 - var
+- 불변 변수 - val (value)
+- 가변 변수 - var (variable)
 
 #### 논리
 
@@ -177,6 +183,42 @@ object HelloPrinter {
 ```kotlin
 HelloPrinter.print("VioletBeach")
 ```
+
+#### when
+
+코틀린은 switch 대신 when 구문을 사용한다. 
+
+```kotlin
+fun main() {
+    val x = 5
+
+    when (x) {
+    	1 -> println("x는 1이다")
+    	2, 3 -> println("x는 2 또는 3이다")
+    	in 4..10 -> println("x는 4와 10 사이에 있다")
+    	else -> println("x는 다른 수이다")
+    }
+}
+```
+
+when은 switch랑 다르게 상수 뿐 아니라 객체의 사용도 허용한다.
+
+#### is
+
+코틀린은 instanceof 대신 is를 사용하여 변수 타입을 검사한다.
+
+```kotlin
+fun floatToInt(e: Number): Int {
+    if (e is Float) {
+        return e.toInt();
+    }
+    throw IllegalArgumentException("Unknown expression")
+}
+```
+
+위에서 보면 코틀린은 자바에서 처럼 (Num)과 같이 명시적으로 캐스팅하지 않아도 된다.
+
+이를 **스마트 캐스트**라고 한다.
 
 #### 상수
 
