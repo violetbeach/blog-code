@@ -252,6 +252,25 @@ fun printAdmin() {
 }
 ```
 
+## 확장 함수
+
+코틀린은 다른 클래스의 인스턴스 메서드를 추가할 수 있다. 이를 **확장 함수**라고 한다.
+
+```kotlin
+fun String.lastChar(): Char = this.get(this.length - 1)
+```
+
+그러면 아래와 같이 String 객체의 인스턴스 메서드처럼 호출이 가능해진다.
+
+```kotlin
+println("Hello".lastChar())
+```
+
+확장 함수는 오버라이드가 안되고, 이름과 파라미터가 같을 경우 멤버 함수가 호출된다.
+
+이를 활용하면 자바에서 복잡한 디자인 패턴을 적용하지 않고도, 써드 파티 라이브러리에 함수를 추가할 수 있다.
+
+
 ## 참고
 - https://0391kjy.tistory.com/57
 - https://kotlinlang.org/docs/jvm-get-started.html
