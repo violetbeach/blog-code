@@ -63,7 +63,7 @@ println("Hello")
 
 중요한 점은 즉시 계산이 먼저 수행된다는 점이다. 즉시 계산의 경우 자바의 `&`나 `|`와 동일하다. 즉, 비트 연산도 해당 연산자로 가능하다.
 
-#### 문자열 템플릿
+#### 문자열
 
 아래와 같은 문자열 템플릿을 제공한다.
 
@@ -71,6 +71,10 @@ println("Hello")
 val name = "john"
 println("Hello, $name! ${Date()}")
 ```
+
+코틀린에서 `"""`를 사용하면 이스케이프 문자를 사용하지 않아도 된다.
+`"""(.+)/(.+)\\.(.+)"""`
+
 
 #### 배열
 
@@ -162,8 +166,10 @@ val l: Long = i.toLong()
 #### Class
 
 클래스 앞에 아래 키워드를 붙일 수 있다.
-- open: 상속이 불가능
+- open: 상속이 가능 (final의 반대. Kotlin은 final이 default라고 이해하면 된다.)
+  - 코틀린의 철학은 의도한 것이 아니라면 모두 final 클래스로 만들어야 한다는 것이다.
 - sealed: 추상 클래스와 유사 (내부적으로 여러 클래스를 가짐)
+  - when 구문을 사용할 때 모든 내부 클래스를 명시하면 else를 사용하지 않아도 된다.
 - data:
     - toString, hashCode, equals, copy를 자동으로 구현
     - 불변을 의미하지는 않음
@@ -178,10 +184,54 @@ object HelloPrinter {
 }
 ```
 
-싱글톤 클래스를 정의할 때 사용. 사용처는 자바의 static 클래스를 사용하는 듯한 문법을 사용
-
 ```kotlin
 HelloPrinter.print("VioletBeach")
+```
+
+object 키워드는 환경에 따라 주입 관계를 바꾸기가 어려우므로 DI 프로젝트와 클래스를 사용하는 것이 더 좋은 설계가 될 가능성이 크다.
+
+싱글톤 클래스를 정의할 때 사용한다. 사용처에서는 아래와 같이 자바의 static 클래스를 사용하는 듯하게 사용한다.
+
+익명 객체를 만들 때도 아래와 같이 object 키워드를 사용한다.
+
+```kotlin
+val listener = object : MouseAdapter() {
+    override fun mouseClicked(e: MouseEvent) { ... }
+    override fun mouseEntered(e: MouseEvent) { ... }
+}
+```
+
+**생성자**
+
+아래는 모두 코틀린의 생성자의 문법이다.
+
+```kotlin
+class User constructor(nickname:String){
+    val nickname: String
+    init {
+        nickname = nickname
+    }
+}
+
+class User(nickname: String){
+  val nickname = nickname;
+}
+
+class User(val nickname: String)
+
+class User(val nickname: String, val isSubscribed: Boolean = true)
+
+class User {
+  val name: String
+  val age: Int
+
+  constructor(name: String): this(name, 0) {}
+
+  constructor(name: String, age: Int) {
+    this.name = name
+    this.age = age
+  }
+}
 ```
 
 #### when
@@ -270,6 +320,81 @@ println("Hello".lastChar())
 
 이를 활용하면 자바에서 복잡한 디자인 패턴을 적용하지 않고도, 써드 파티 라이브러리에 함수를 추가할 수 있다.
 
+## 컬렉션
+
+코틀린의 컬렉션은 자바와 같은 클래스를 사용함에도 더 확장한 API를 제공한다.
+
+그렇다. 확장 함수를 사용하기 때문이다.
+
+다양한 메서드는 기본이고, 가변 인자도 사용할 수 있고, 배열과의 자유로운 변환도 가능하다.
+
+## lazy
+
+lateinit은 나중에 값을 할당할 경우 사용할 수 있다. 예를 들어 아래 코드를 보자.
+
+```kotlin
+fun initialize() {
+    var str: String = "";
+    if(age < 10) {
+        str = "아이입니다."
+    }
+    if(age > 20) {
+        str = "성인입니다."
+    }
+    description = str;
+}
+```
+
+여기서 실수로 str이 초기값인 ""가 될 수 있다. 기본값을 사용하지 않고 반드시 초기화를 해야 함을 명시하려면 아래와 같이 사용할 수 있다.
+
+```kotlin
+fun initialize() {
+    lateinit var str: String
+    if(age < 20) {
+        str = "아이입니다."
+    }
+    if(age >= 20) {
+        str = "성인입니다."
+    }
+    description = str;
+}
+```
+
+lateinit은 var 속성에 사용하고, lazy 는 람다를 받는다.
+
+```kotlin
+lateinit var inputValue : String
+val x : Int by lazy { inputValue.length }
+inputValue = "Initialized!"
+println(x)
+```
+
+x가 처음 사용되는 순간 lazy 문의 결과로 초기화시킨다.
+
+## by
+
+by 키워드를 사용하면 delegate 패턴과 유사하게 특정 동작을 다른 클래스에 위임할 수 있다.
+
+```kotlin
+class CountingSet<T>(
+        val innerSet: MutableCollection<T> = HashSet<T>()
+) : MutableCollection<T> by innerSet {
+
+    var objectsAdded = 0
+
+    override fun add(element: T): Boolean {
+        objectsAdded++
+        return innerSet.add(element)
+    }
+
+    override fun addAll(c: Collection<T>): Boolean {
+        objectsAdded += c.size
+        return innerSet.addAll(c)
+    }
+}
+```
+
+해당 메서드에서는 `add()`, `addAll()`을 제외하고 innserSet에 메서드 구현을 위임한다.
 
 ## 참고
 - https://0391kjy.tistory.com/57
