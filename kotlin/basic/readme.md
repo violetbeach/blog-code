@@ -396,6 +396,82 @@ class CountingSet<T>(
 
 해당 메서드에서는 `add()`, `addAll()`을 제외하고 innserSet에 메서드 구현을 위임한다.
 
+## inline
+
+인라인 함수를 사용하면 람다식을 사용할 때 무의미한 객체 생성을 막을 수 있다.
+
+```kotlin
+inline fun inlined(block: () -> Unit) {
+    block()
+}
+
+fun doSomething() {
+    inlined { println("do something") } 
+}
+```
+
+## sequence
+
+코틀린의 Collection 연산은 즉시(eager) 발생한다. Sequence 연산은 지연(lazy) 처리된다. 그렇다. 자바의 Stream과 매우 유사하다.
+
+가령, Sequence의 경우 `first()`와 같은 메서드로 원하는 원소를 찾은 즉시 종료할 수 있다.
+
+## 람다 전달
+
+아래는 동일한 문장이다.
+
+```kotlin
+postponComputation(1000, object : Runnable { 
+    override fun run() { 
+        println(42) 
+    }
+})
+
+postponComputation(1000) { println(42) }  
+```
+
+argument가 여러 개일 경우 아래와 같이 사용할 수 있다.
+
+```kotlin
+val sumUsingReduce = numbers.reduce {total, num -> 
+    total + num
+}
+```
+
+#### with
+
+with을 사용하여 중복된 변수명을 제거할 수 있다.
+
+```kotlin
+fun alphabet(): String {
+    val stringBuilder = StringBuilder()
+    return with(stringBuilder) {
+        for (letter in 'A'..'Z') {
+            this.append(letter)
+        }
+        append("\\nNow I know the alphabet!")
+        this.toString()
+    }
+}
+```
+
+this를 사용해 수신 객체에 접근할 수 있다.
+
+만약 수신 객체 자체를 반환해야 한다면 **apply**를 사용한다.
+
+apply를 활용한 buildString과 같은 표준 라이브러리 함수도 지원한다.
+
+```kotlin
+
+fun alphabet() = buildString {
+    for (letter in 'A'..'Z') {
+        append(letter)
+    }
+    append("\\nNow I know the alphabet!")
+}
+```
+
+
 ## 참고
 - https://0391kjy.tistory.com/57
 - https://kotlinlang.org/docs/jvm-get-started.html
