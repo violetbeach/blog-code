@@ -112,6 +112,17 @@ val a = readLine()!!.toInt()
 - ?: - null이 아닌 사용자 정의 값을 반환하고 싶을 때 사용
 - !! - null이 아님을 컴파일러에게 보증 (null이면 NPE)
 
+타입 변환을 안전하게 하기 위해 `as?`를 사용할 수도 있다.
+
+![img_1.png](img_1.png)
+
+또는 let을 사용해서 직접 구현할 수도 있다.
+
+```kotlin
+email?.let { sendEmailTo(it) } // email이 null일 경우 아무것도 하지 않음
+```
+
+
 #### 조건
 
 ```kotlin
@@ -462,7 +473,6 @@ this를 사용해 수신 객체에 접근할 수 있다.
 apply를 활용한 buildString과 같은 표준 라이브러리 함수도 지원한다.
 
 ```kotlin
-
 fun alphabet() = buildString {
     for (letter in 'A'..'Z') {
         append(letter)
@@ -470,6 +480,100 @@ fun alphabet() = buildString {
     append("\\nNow I know the alphabet!")
 }
 ```
+
+## 컬렉션
+
+코틀린의 Collection은 일기 전용 라이브러리이디. 쓰기를 수행하려면 MutableCollection을 사용해야 한다. 
+
+![img_2.png](img_2.png)
+
+## 리스트
+
+`val strings = listOf("a", "b", "c")`와 같이 리스트를 생성할 수 있다.
+
+## 산술 연산자 오버로딩
+
+코틀린에서 가장 신선했던 기능 중 한가지이다.
+
+`operator fun`을 사용하면 특정 클래스에 `+`, `*`, `/`, `%`, `-`의 연산에 대해 메서드 오버로딩으로 정의할 수 있다.
+
+```kotlin
+data class Money(
+    val value: Int
+) {
+    operator fun plus(money: Money): Money = Money(value + money.value)
+}
+```
+
+```kotlin
+val money1 = Money(1000)
+val money2 = Money(500)
+val sum = money1 + money2
+```
+
+아래와 같은 단항 연산자를 오버로딩할 수 있는 메서드도 있다.
+- unaryPlus
+- unaryMinus
+- not
+- inc
+- dec
+
+#### equals
+
+코틀린은 `==`, `!=` 연산자를 호출할 때 `quals()`를 호출한다.
+
+그래서 equals를 재정의하면 동등식을 정의할 수 있다.
+
+#### 범위
+
+in, until 구문으 사용하면 특정 범위에 해당하는 지를 알 수 있다.
+
+```kotlin
+operator fun Rectangle.contains(p: Point): Boolean {
+    return p.x in upperLeft.x until lowerRight.x &&
+           p.y in upperLeft.y until lowerRight.y
+}
+```
+
+특정 범위의 반복문은 아래와 같이 수행할 수 있다.
+
+```kotlin
+(0..n).forEach { print(it) }
+```
+
+#### 구조 분해
+
+구조 분해를 사용하면 복잡한 값을 여러 변수에 할당할 수 있따.
+
+```kotlin
+data class Point(val x: Int, val y: Int)
+fun main(args: Array<String>) {
+    val p = Point(10, 20)
+    val (x, y) = p
+}
+```
+
+## 함수
+
+코틀린의 함수는 파라미터의 default 값을 지정할 수 있다.
+
+```kotlin
+fun setUserInfo(email: String, phone: String = "000-0000-0000") {
+	this.email = email
+	this.phone = phone
+}
+```
+
+```kotlin
+setUserInfo("violetbeach@gmail.com")
+```
+
+
+
+
+## 고차 함수
+
+고차 함수는 다른 함수를 인자로 받거나 함수를 반환하는 함수이다.
 
 
 ## 참고
