@@ -254,10 +254,10 @@ fun main() {
     val x = 5
 
     when (x) {
-    	1 -> println("x는 1이다")
-    	2, 3 -> println("x는 2 또는 3이다")
-    	in 4..10 -> println("x는 4와 10 사이에 있다")
-    	else -> println("x는 다른 수이다")
+        1 -> println("x는 1이다")
+        2, 3 -> println("x는 2 또는 3이다")
+        in 4..10 -> println("x는 4와 10 사이에 있다")
+        else -> println("x는 다른 수이다")
     }
 }
 ```
@@ -421,6 +421,10 @@ fun doSomething() {
 }
 ```
 
+단, inline 메서드는 람다를 인자로 받는 함수에서만 사용하길 권장한다.
+
+일반 함수의 경우 JVM이 강력하게 인라이닝을 제공한다.
+
 ## sequence
 
 코틀린의 Collection 연산은 즉시(eager) 발생한다. Sequence 연산은 지연(lazy) 처리된다. 그렇다. 자바의 Stream과 매우 유사하다.
@@ -559,8 +563,8 @@ fun main(args: Array<String>) {
 
 ```kotlin
 fun setUserInfo(email: String, phone: String = "000-0000-0000") {
-	this.email = email
-	this.phone = phone
+    this.email = email
+    this.phone = phone
 }
 ```
 
@@ -568,13 +572,19 @@ fun setUserInfo(email: String, phone: String = "000-0000-0000") {
 setUserInfo("violetbeach@gmail.com")
 ```
 
+## use
 
+자원 관리를 위해 인라인된 try-with-resource 대신 use를 사용할 수 있다.
 
+```kotlin
+fun readFirstLineFromFile(path: String): String {
+    BufferedReader(FileReader(path)).use { br ->
+        return br.readLine()
+    }
+}
+```
 
-## 고차 함수
-
-고차 함수는 다른 함수를 인자로 받거나 함수를 반환하는 함수이다.
-
+use는 Closable 클래스에 대해 람다를 호출한 다음 close 처리한다.
 
 ## 참고
 - https://0391kjy.tistory.com/57
