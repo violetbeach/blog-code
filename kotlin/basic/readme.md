@@ -281,6 +281,8 @@ fun floatToInt(e: Number): Int {
 
 이를 **스마트 캐스트**라고 한다.
 
+스마트 캐스트는 1.3부터 다른 함수의 라인까지 인식해서 높은 수준으로 지원한다.
+
 #### 상수
 
 코틀린에서는 `static`이나 `const` 키워드를 사용하지 않는다.
@@ -585,6 +587,185 @@ fun readFirstLineFromFile(path: String): String {
 ```
 
 use는 Closable 클래스에 대해 람다를 호출한 다음 close 처리한다.
+
+## label
+
+코틀린의 모든 표현식은 @을 이용하여 label 될 수 있다.
+
+아래 코드는 가장 바깥의 반복문을 break로 제어하는 것이다.
+```kotlin
+loop@ for (i in 1..100) {
+    for (j in 1..100) {
+        if (...) break@loop
+    }
+}
+```
+
+아래와 같이 반복문에 대해서 반환할 수도 있따.
+
+```kotlin
+fun foo1() {
+    listOf(1, 2, 3, 4, 5).forEach lit@{
+        if (it == 3) return@lit // 람다식(forEach loop)에 대한 local return
+        print(it)
+    }
+    print("명시적 label을 사용한 코드")
+}
+
+fun foo2() {
+    listOf(1, 2, 3, 4, 5).forEach {
+        if (it == 3) return@forEach // 람다식(forEach loop)에 대한 local return
+        print(it)
+    }
+    print("묵시적 label을 사용한 코드")
+}
+```
+
+## 제너릭
+
+코틀린에서 제너릭의 상한이 없다면 `Any?`로 한다.
+
+```kotlin
+class Processor<T> {
+    fun process(value: T) { 
+        value.hashCode() // "value"는 널일 수 있으므로 CompileError! 
+    }
+}
+```
+
+#### 변성
+
+자바와 마찬가지로 List<Any>타입의 파라미터에 List<String>을 넘길 수 없다.
+
+이는 제너릭에는 공변이 없기때문이다.
+
+다만, 아래와 같이 T를 공변으로 선언할 수 있다. (자바의 `T extends User`과 유사하다.)
+```kotlin
+interface Producer<out T> {  // 클래스가 T에 대해 공변적이라고 선언한다. 
+    fun produce(): T
+}
+```
+
+`out`을 사용하는 공변 클래스는 read는 가능하지만, write는 불가능하다.
+
+
+`in`은 반공변적으로 만들 수 있다.
+
+#### 스타 프로젝션
+
+타입 인자 대신 `*`를 사용하면 모든 타입을 허용할 수 있다.
+
+```kotlin
+fun printFirst(list: List<*>) { 
+    if (list.isNotEmpty()) { 
+        println(list.first()) 
+    }
+}
+```
+
+## 애노테이션
+
+코틀린의 애노테이션에서 배열을 인자로 받는 경우 `arrayOf`를 사용해도 되고, 가변 길이 인자의 경우 `"abc", "def"`와 같이 나열할 수 있다.
+
+코틀린 1.2부터는 아래와 같이 `[]`문법도 지원한다.
+
+```kotlin
+
+@RequestMapping(value = ["v1", "v2"], path = ["path", "to", "resource"])
+```
+
+## 직렬화
+
+코틀린의 JSON 직렬화 라이브러리도 어떤 객체든 Json으로 변환할 수 있어야 한다.
+
+직렬화 라이브러리에서 실행 시점 전에 직렬화할 프로퍼티나 클래스 정보를 알 수 없으므로 리플렉션을 사용해야 한다.
+
+코틀린에서는 자바가 제공하는 `java.lang.reflect`와 코틀린이 제공하는 `kotlin.reflect` 패키지 중 한 가지를 선택해서 사용할 수 있다.
+
+#### 클래스 인자
+
+자바에서는 `.class`를 사용했지만, 코틀린에서는 `::class`를 사용한다.
+
+코틀린에서 클래스를 표현하는 클래스는 `KClass`이다.
+
+## TypeAlias
+
+아래와 같이 특정 타입에 대해 Alias를 붙일 수 있다.
+
+```kotlin
+typealias Args = Array<String>
+fun main(args:Args) { }
+
+typealias StringKeyMap<V> = Map<String, V>
+val myMap: StringKeyMap<Int> = mapOf("One" to 1, "Two" to 2)
+```
+
+## JvmField / JvmStatic
+
+#### JvmField
+
+코틀린의 @JvmField 애노테이션은 코틀린 컴파일러가 자동으로 getter / setter를 생성하지 못하도록 막는다.
+
+#### JvmStatic
+
+코틀린의 companion object는 자반의 static과 거의 유사하지만, 실제로는 다르다.
+
+아래 코틀린 코드를 자바 코드로 변환해보자.
+```kotlin
+class Bar {
+    companion object {
+        var barSize : Int = 0
+    }
+}
+```
+
+```java
+public final class Bar {
+   private static int barSize;
+   public static final class Companion {
+      public final int getBarSize() {
+         return Bar.barSize;
+      }
+      public final void setBarSize(int var1) {
+         Bar.barSize = var1;
+      }
+   }
+}
+```
+
+즉, Companion 클래스에 getter, setter가 내장된 형식으로 변환된다.
+
+코틀린의 `@JvmStatic`를 사용하면 아래와 같이 Companion 클래스를 생성하지 않는다.
+
+```java
+public final class Bar {
+   private static int barSize;
+   public static final int getBarSize() {
+      return barSize;
+   }
+
+   public static final void setBarSize(int var0) {
+      barSize = var0;
+   }
+
+   public static final class Companion {
+      public final int getBarSize() {
+         return Bar.barSize;
+      }
+      public final void setBarSize(int var1) {
+         Bar.barSize = var1;
+      }
+   }
+}
+```
+
+근데 이게 실제로는 차이가 없지 않느냐..? 라고 생각한다면, 자바에서 해당 코틀린 코드를 사용할 때의 문제 때문에 `@JvmStatic`을 활용한다.
+
+## 마무리
+
+해당 게시글은 실무에 빠른 투입을 위해 문법에 대해 **빠르게** 학습할 목적으로 정리한 것이다.
+
+정확하지 않거나 부적절한 내용이 있을ㅇ 수 있고, 당연히 븝로그에 올릴 생각도 없다.
 
 ## 참고
 - https://0391kjy.tistory.com/57
