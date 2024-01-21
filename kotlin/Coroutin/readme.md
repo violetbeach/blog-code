@@ -311,9 +311,25 @@ Defferred에 종속적이지 않고, await()륿 반드시 호출하는 번거로
 
 **구현이 Job에 종속적인 설계를 피해야 한다.**
 
+#### produce
 
+시퀀스와 이터레이터는 실행 중에 일시 중단할 수 없다. 실행 중에 일시 중단할 수 없다는 제한이 있다.
 
+프로듀서는 값이 생성된 후 일시 중단되며, 새로운 값이 요청될 때 다시 재개된다.
 
+```kotlin
+val producer = GlobalScope.produce {
+    send(1)
+}
+```
+
+```kotlin
+runBlocking {
+    producer.consumeEach {
+        println(it)
+    }
+}
+```
 ## 참고
 - https://www.charlezz.com/?p=45962
 - https://incheol-jung.gitbook.io/docs/study/undefined-4/1

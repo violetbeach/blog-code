@@ -427,6 +427,13 @@ fun doSomething() {
 
 일반 함수의 경우 JVM이 강력하게 인라이닝을 제공한다.
 
+## Iterator
+
+코틀린의 Iterator는 아래 특징을 가진다.
+- 순서대로만 액세스할 수 있다.
+- 요소는 한 방향으로만 검색한다.
+- 재설정(reset)할 수 없으므로 한 번만 반복할 수 있다.
+
 ## sequence
 
 코틀린의 Collection 연산은 즉시(eager) 발생한다. Sequence 연산은 지연(lazy) 처리된다. 그렇다. 자바의 Stream과 매우 유사하다.
