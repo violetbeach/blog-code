@@ -330,6 +330,58 @@ runBlocking {
     }
 }
 ```
+
+## Actor
+
+액터는 코루틴에서 쓰레드간 동기화를 지원한다.
+- 상태 액세스를 단일 스레드로 한정한다.
+- 다른 쓰레드는 채널을 통해서 상태 수정을 요청한다.
+
+아래 코드는 수신받은 메시지 횟수만큼 counter 값을 1 증가시킨다.
+```kotlin
+val actorCounter = actor<Void?> {
+    for (msg in channel) {
+        counter++
+    }
+}
+```
+
+```kotlin
+val workA = async (context){
+    repeat(2000) {
+        actorCounter.send(null)
+    }
+}
+
+val workB = async (context){
+    repeat(300) {
+        actorCounter.send(null)
+    }
+}
+workA.await()
+workB.await()
+println(counter)
+```
+
+해당 코드는 정확히 counter에 정확히 2300을 세팅할 수 있다.
+
+## 뮤텍스
+
+다른 방법은 Nutext를 사용하는 것이다.
+
+코틀린 뮤텍스의 가장 중요한 특징은 블록되지 않는다. 실행 대기 중인 코루틴은 잠금을 획득하고 코드 블록을 실행시킬 수 있을 때 까지 중지된다. 
+
+```kotlin
+var mutext = Mutext()
+fun asyncIncrement(by: Int) = async {
+    for (i in 0 until by) { 
+        mutex.withLock { 
+            counter++ 
+        }
+    }
+}
+```
+
 ## 참고
 - https://www.charlezz.com/?p=45962
 - https://incheol-jung.gitbook.io/docs/study/undefined-4/1
