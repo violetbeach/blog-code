@@ -269,16 +269,38 @@ public class SampleChannelOutboundHandler extends ChannelOutboundHandlerAdapter 
 
 해당 Handler는 String 타입일 경우 다음 OutboundHandler에게 패스하고, ByteBuf 타입이라면 가공한 후 write 한다.
 
-## 예시 코드
+## Encoder, Decoder
 
-아래와 같이 `Flux`나 `Mono`를 사용해서 Repository 조회를 한다면 **Async**/**Non-Blocking**으로 조회를 하여 리소스 효율성을 향상시킬 수 있다.
+Netty에서 외부에서 들어오는 데이터를 변환해주는 Decoder가 있고, 내부의 데이터를 변경해주는 Encoder를 사용할 수 있다.
 
-```java
-private Flux<Employee> getAllEmployees() {
-    return employeeRepository.findAllEmployees();
-}
-```
+Decoder의 경우 ChannelInBoundHandler를 구현하고, Encoder의 경우 ChannelOutBoundHandler를 구현한다.
 
+예를 들면 Netty는 아래의 클래스를 제공한다.
+- StringDecoder: ByteBuf 객체를 String으로 변환하여 다음 Handler에게 제공한다.
+- StringEncoder: String 객체를 ByteBuf로 변경하여 다음 handler에 제공한다.
+
+이를 사용하면 Handler의 구현을 간소화할 수 있다.
+
+## Bootstrap
+
+Netty는 Netty 서버나 클라이언트를 쉽게 만들 수 있게 Bootstrap이라는 클래스를 제공한다.
+
+Bootstrap은 다음의 메서드를 가진다.
+- group: EventLoopGroup 등록
+  - parent(accept 이벤트), child(read 이벤트)
+- channel: Channel 클래스를 기반으로 인스턴스 생성
+- childHandler: connect되었을 때 실행할 코드 
+- bind: 특정 호스트, 포트에 bind하고 channelFuture 반환
+
+Bootstrap도 Netty 서버 코드를 줄이는 데 큰 도움을 준다.
+
+## 정리
+
+지금까지 정리한 내용을 정리해보면 Netty의 구성은 대략적으로 아래와 같다.
+
+![img_7.png](img_7.png)
+
+다음에는 Reactor에 대해서 자세하게 알아보자.
 
 ## 참고
 
