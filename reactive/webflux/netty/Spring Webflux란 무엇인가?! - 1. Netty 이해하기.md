@@ -2,7 +2,7 @@
 
 아래는 Spring 공식문서에 나와있는 Spring MVC와 Spring Webflux에 대한 설명이다.
 
-![img.png](img.png)
+![img.png](images/img.png)
 
 Spring MVC는 동기 블로킹 기반의 서블릿 API와 request-per-thread 모델을 제공하고, Spring Webflux는 대량의 동시 커넥션이 가능한 Non-Blocking 웹 프레임워크이다. 
 
@@ -12,22 +12,22 @@ Spring MVC는 동기 블로킹 기반의 서블릿 API와 request-per-thread 모
 
 Spring MVC는 request-per-thread 모델이기 때문에 만약 1만개 이상의 요청이 동시에 들어온다면 쓰레드가 부족하게 된다.
 
-Spring Webflux는 **쓰레드를 가능한 최소한으로 사용하는 쓰레드 모델**을 제공한다고 생각하면 된다.
+Spring Webflux는 **쓰레드를 가능한 최소한으로 사용하는 모델**과 **리액티브 프로그래밍** 라이브러리를 제공한다고 생각하면 된다.
 
-![i_1.png](images/img_1.png)
+![i_1.png](images/img_9.png)
 
 Spring Webflux는 **비동기 + 리액티브 프로그래밍**을 기본으로 한다.
 - 요청을 Event-Driven 방식으로 처리한다.
-- 요청이 완료될 때까지 다른 일을 하다가, 처리가 완료되면 Callback 메서드를 통해 응답을 반환한다.
+- 작업이 완료될 때까지 다른 일을 하다가, 처리가 완료되면 Callback 메서드를 통해 응답을 반환한다.
 - 비동기 + 논블로킹
 
-Webflux는 요청이 끝날 때까지 기다리지 않기 때문에 cpu, thread, memory의 자원을 최대한 낭비하지 않고 효율적으로 동작하는 고성능 애플리케이션 개발에서 사용한다.
+Webflux는 작업이 끝날 때까지 기다리지 않기 때문에 cpu, thread, memory의 자원을 최대한 낭비하지 않고 효율적으로 동작하는 고성능 애플리케이션 개발에서 사용한다.
 
 토비님의 세미나에서는 **서비스 간 호출이 많은 마이크로 서비스 아키텍처에 적합**하고, 함수형 프로그래밍의 이점이 있는 것도 Webflux를 선택하기에 충분한 이유가 된다고 설명한다.
 
 ## Netty
 
-![i_2.png](images/img_2.png)
+![i_2.png](images/img_10.png)
 
 Spring Webflux를 사용하면 요청을 받는 내장 서버로 기본적으로 **Netty**를 사용한다.
 
@@ -43,17 +43,19 @@ Netty의 장점은 아래와 같다.
 
 Netty에서 핵심은 Event Loop이다.
 
-![i.png](images/img.png)
+![i.png](images/img_8.png)
 
 Event Loop에는 아래의 컴포넌트가 있다.
-- Channel은 하나의 이벤트 루프에 등록된다.
-- Channel에서 이벤트가 발생하면 해당 이벤트 루프의 이벤트 큐에 등록된다.
-- Event Loop: 이벤트 큐에서 이벤트를 꺼내어서 작업을 비동기로 실행 (스레드 당 여러개 가질 수 있다.)
+- Channel:
+  - 하나의 이벤트 루프에 등록된다.
+  - Channel에서 이벤트가 발생하면 해당 이벤트 루프의 이벤트 큐에 등록된다.
+- Event Loop: 이벤트 큐에서 이벤트를 꺼내어서 작업을 비동기로 실행 (1개의 Thread는 여러개의 Event Loop 가질 수 있다.)
 - Pipeline: 이벤트를 받아서 Handler로 전달
 
 아래 코드를 보자.
 
-EventLoopGroup은 `io.netty.channel`에 있는 Netty가 사용하는 EventLoopGroup이다. (Netty에서는 EventLoop를 직접 사용할 수 없다.)
+EventLoopGroup은 `io.netty.channel`에 있는 Netty가 사용하는 EventLoopGroup이다.
+- Netty에서는 EventLoop를 직접 사용할 수 없다. 그래서 EventLoopGroup를 사용한다.
 
 ```java
 public static void main(String[] args) {
@@ -72,7 +74,7 @@ public static void main(String[] args) {
 
 EventLoop는 1개의 쓰레드에서 동작하기 때문에 아래와 같이 들어간 순서가 보장된다.
 
-![img_1.png](img_1.png)
+![img_1.png](images/img_1.png)
 
 ### Event Loop Group
 
@@ -95,11 +97,11 @@ public static void main(String[] args) {
 
 결과는 아래와 같다. 
 
-![img_2.png](img_2.png)
+![img_2.png](images/img_2.png)
 
 다른 EventLoop 간 쓰레드가 동일함을 보장하지 않으므로 순서를 보장하지 않는다.
 
-단, 로그를 자세히 보면 동일한 EventLoop 간은 순서가 보장된다.
+단, 로그를 자세히 보면 **동일한 EventLoop 간은 순서가 보장**된다.
 
 ### Channel
 
@@ -109,7 +111,7 @@ Netty는 Java NIO의 Channel과 유사한 자체적인 Channel을 만들어서 �
 
 Netty의 AbstractChannel 내부적으로 Pipeline을 갖는다.
 
-즉, Netty에서 제공하는 대부분의 Channel은 Pipeline을 사용한다고 이해하면 된다.
+Netty에서 제공하는 모든 Channel은 Pipeline을 사용한다.
 
 #### NioServerSocketChannel
 
@@ -125,7 +127,6 @@ NioServerSocketChannel은 AbstractNioChannel을 상속하고, AbstractNioChannel
 
 ```java
 public interface ChannelFuture extends Future<Void> {
-    
     Channel channel();
 
     @Override
@@ -154,7 +155,7 @@ Netty에서 매우 중요한 역할을 하는 것 중 하나가 ChannelPipeline�
 
 아래 그림을 보자.
 
-![img_3.png](img_3.png)
+![img_3.png](images/img_3.png)
 
 해당 그림을 설명하면 아래와 같다.
 - EventLoop는 Channel의 Inbound I/O를 감시한다.
@@ -162,13 +163,15 @@ Netty에서 매우 중요한 역할을 하는 것 중 하나가 ChannelPipeline�
 - ChannelPipeline은 I/O 이벤트를 처리한다.
 - ChanelPipeline은 처리가 완료되면 Channel에 결과를 Outbound I/O로써 write 한다.
 
-즉, **ChannelPipeline을 어떻게 구성하는 지가 핵심 관심사**가 된다.
+즉, **ChannelPipeline을 어떻게 구성하는 지**가 핵심이 된다.
 
-**ChannelPipeline의 내부**는 아래와 같이 구성된다.
+ChannelPipeline의 내부는 아래와 같이 구성된다.
 
-![img_6.png](img_6.png)
+![img_6.png](images/img_6.png)
 
-ChannelHandlerContext와 ChannelHandler에 대해 알아보자.
+ChannelPipeline은 여러 개의 ChannelHandler를 가지고, 각 ChannelHandlerContext와 연결된 것을 볼 수 있다.
+
+다음은 ChannelHandlerContext와 ChannelHandler에 대해 알아보자.
 
 ## ChannelHandlerContext
 
@@ -178,11 +181,11 @@ ChannelHandlerContext와 ChannelHandler에 대해 알아보자.
 
 다음은 ChannelHandlerContext의 내부이다.
 
-![img_4.png](img_4.png)
+![img_4.png](images/img_4.png)
 
 1개의 ChannelHandlerContext는 ChannelHandler를 가진다.
 
-그리고 ChannelHandlerContext는 EventExecutor를 가질 수 있다. EventLoop에 Blocking이 생기는 것을 막고 별도 쓰레드에서 I/O 작업을 수행하기 위해 사용한다.
+그리고 ChannelHandlerContext는 EventExecutor를 가질 수 있다. EventLoop에 Blocking이 생기는 것을 막고 별도 쓰레드에서 I/O 작업을 수행하기 위해 EventExecutor를 사용한다.
 
 
 ## ChannelHandler
@@ -218,7 +221,7 @@ ChannelOutboundHandler도 Outbound I/O 작업을 가로채서 처리할 수 있�
 - flush: flush 작업 수행 후 호출
 - close: channel이 닫히면 호출
 
-#### Sample Handlers
+#### 예시 코드
 
 아래는 ChannelInboundHandlerAdapter를 상속받는 클래스이다. ChannelInboundHandlerAdapter는 ChannelInboundHandler 인터페이스에 대한 골격을 제공한다.
 
@@ -292,15 +295,47 @@ Bootstrap은 다음의 메서드를 가진다.
 - childHandler: connect되었을 때 실행할 코드 
 - bind: 특정 호스트, 포트에 bind하고 channelFuture 반환
 
-Bootstrap도 Netty 서버 코드를 줄이는 데 큰 도움을 준다.
+아래는 Bootstrap을 활용한 TCP 서버의 예시이다.
+
+```java
+EventLoopGroup parentGroup = new NioEventLoopGroup();
+EventLoopGroup childGroup = new NioEventLoopGroup(4);
+
+var bootstrap = new ServerBootstrap();
+var executorGroup = new DefaultEventExecutorGroup(4);
+var stringEncoder = new StringEncoder();
+var stringDecoder = new StringDecoder();
+
+var bind = bootstrap
+        .group(parentGroup, childGroup)
+        .channel(NioServerSocketChannel.class)
+        .childHandler(new ChannelInitializer<SocketChannel>() {
+            @Override
+            protected void initChannel(SocketChannel ch) {
+                ch.pipeline()
+                        .addLast(executorGroup, new LoggingHandler(LogLevel.INFO))
+                        .addLast(stringEncoder, stringDecoder, echoHandler());
+            }
+        })
+        .option(ChannelOption.SO_BACKLOG, 128)
+        .childOption(ChannelOption.SO_KEEPALIVE, true)
+        .bind(8080);
+
+bind.sync().addListener(future -> {
+    if (future.isSuccess()) {
+        log.info("Server bound to port 8080");
+    }
+});
+```
+Bootstrap은 각 컴포넌트 조립을 수행해서 Netty 코드를 줄이는 데 큰 도움을 준다.
 
 ## 정리
 
-지금까지 정리한 내용을 정리해보면 Netty의 구성은 대략적으로 아래와 같다.
+지금까지 정리한 내용을 정리해보면 Netty의 전체적인 구성은 아래와 같다.
 
-![img_7.png](img_7.png)
+![img_7.png](images/img_7.png)
 
-다음에는 Reactor에 대해서 자세하게 알아보자.
+이상으로 Netty에 대한 내용을 마치고 다음에는 Reactor에 대해서 자세하게 알아보자.
 
 ## 참고
 
