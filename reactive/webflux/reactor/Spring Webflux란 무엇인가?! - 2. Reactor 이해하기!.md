@@ -489,5 +489,205 @@ Flux.fromStream(IntStream.range(0, 10).boxed())
 
 handle의 sink를 사용해서 complete나 error를 더 일찍 전달하는 방식으로 사용할 수 있다는 점도 참고하자.
 
+## Thread
+
+Reactor에서의 subscribe랑 sequence 개념과 사용 방법에 대해 익혔다.
+
+subscribe를 하면 어떤 쓰레드에서 실행되는 걸까?
+
+**기본적으로**는 Publisher랑 subscribe가 같은 쓰레드에서 실행된다. 즉, 기본적으로는 동기적으로 동작한다고 볼 수 있다.
+
+- 별도의 설정이 없다면 subscribe를 호출한 caller의 쓰레드에서 실행된다.
+
+아래 코드를 실행해보자.
+
+```java
+public static void main(String[] args) {
+    var executor = Executors.newSingleThreadExecutor();
+    try {
+        executor.submit(() -> {
+            log.info("start!");
+            Flux.create(sink -> {
+                for (int i = 1; i <= 5; i++) {
+                    log.info("next: {}", i);
+                    sink.next(i);
+                }
+            }).subscribe(value -> {
+                log.info("value: " + value);
+            });
+        });
+    } finally {
+        executor.shutdown();
+    }
+}
+```
+
+결과 아래와 같이 동일한 쓰레드를 사용함을 알 수 있다.
+
+```
+26:36 [pool-2-thread-1] - start!
+26:36 [pool-2-thread-1] - next: 1
+26:36 [pool-2-thread-1] - value: 1
+26:36 [pool-2-thread-1] - next: 2
+26:36 [pool-2-thread-1] - value: 2
+26:36 [pool-2-thread-1] - next: 3
+26:36 [pool-2-thread-1] - value: 3
+26:36 [pool-2-thread-1] - next: 4
+26:36 [pool-2-thread-1] - value: 4
+26:36 [pool-2-thread-1] - next: 5
+26:36 [pool-2-thread-1] - value: 5
+```
+
+## Shceduler
+
+Scheduler로 Publish 혹은 Subscribe에 task를 실행하는 쓰레드 풀을 설정할 수 있고, Task를 언제 수행할 지 설정할 수 있다.
+- ImmediateScheduler
+  - subscribe를 호출한 caller 쓰레드에서 즉시 실행한다.
+  - 별도 Scheduler를 넘기지 않는다면 기본으로 사용된다.
+- SingleScheduler
+  - 캐싱된 1개 크기의 쓰레드 풀을 제공
+  - 모든 publish, subsscribe가 하나의 쓰레드에서 실행
+- ParallelScheduler
+  - 캐싱된 n개 크기의 쓰레드 풀을 제공
+  - 기본적으로 CPU 코어 수만큼의 크기를 갖는다.
+- BoundedElasticScheduler
+  - 캐싱된 고정되지 않은 크기의 쓰레드 풀을 제공
+  - 재사용할 수 있는 쓰레드가 있다면 사용하고, 없으면 새로 생성
+  - 특정 시간(default  = 60s) 사용하지 않으면 제거
+  - 생성 가능한 최대 쓰레드 수는 CPU 코어 수 x 10
+  - I/O Blocking 작업을 수행할 때 적합
+- ...
+
+Scheduler는 subscribeOn()으로 설정할 수 있다.
+
+```java
+Flux.create(sink -> {
+    for (int i = 1; i <= 5; i++) {
+        log.info("next: {}", i);
+        sink.next(i);
+    }
+}).subscribeOn(
+        Schedulers.single()
+).subscribe(value -> {
+    log.info("value: " + value);
+});
+```
+
+#### Schuedler.newXX
+
+`Schedulers.single()`를 사용한다면 해당 스케줄러를 사용하는 작업들이 스레드 풀을 공유한다.
+
+매번 새로운 쓰레드 풀을 할당하거나 중요한 작업들을 위해 별도의 쓰레드 풀을 할당해야 한다면 Scheduler.newXX를 사용할 수 있다.
+
+- newSingle()
+- newParallel()
+- newBoundedElastic()
+
+아래 코드는 Schedulers.newSingle()을 사용해서 쓰레드 풀을 다른 작업과 공유하지 않는다.
+
+```java
+public class SingleService {
+    Scheduler newSingle = Schedulers.newSingle("single");
+
+    void singleSchedulerTest(int idx) {
+        Flux.create(sink -> {
+            log.info("next: {}", idx);
+            sink.next(idx);
+        }).subscribeOn(
+                newSingle
+        ).subscribe(value -> {
+            log.info("value: " + value);
+        });
+    }
+}
+```
+
+#### fromExecutorService
+
+ExecutorService 사용에 익숙하다면 아래와 같이 Scheduler 인스턴스를 생성할 수도 있다.
+- Schedulers.fromExecutorService(executorService)
+
+#### publishOn
+
+subscribeOn으로 스케줄러를 조정할 수 있었는데, publishOn을 사용해서 이후에 추가되는 연산자들의 스케줄러를 설정할 수 있다.
+- publishOn은 subscribeOn과 다르게 위치가 중요하다.
+- 그 이후 다른 publishOn이 적용되면 추가된 Scheduler로 실행 쓰레드 변경
+- 쓰레드 풀에서 1개의 쓰레드만 지속적으로 사용
+
+아래 예시를 보자.
+
+```java
+Flux.create(sink -> {
+    for (var i = 0; i < 3; i++) {
+        log.info("next: {}", i);
+        sink.next(i);
+    }
+}).publishOn(
+        Schedulers.single()
+).doOnNext(item -> {
+    log.info("doOnNext: {}", item);
+}).subscribe(value -> {
+    log.info("value: " + value);
+});
+```
+
+결과는 아래와 같다.
+
+```
+19:20 [main] - next: 0
+19:20 [main] - next: 1
+19:20 [main] - next: 2
+19:20 [single-1] - doOnNext: 0
+19:20 [single-1] - value: 0
+19:20 [single-1] - doOnNext: 1
+19:20 [single-1] - value: 1
+19:20 [single-1] - doOnNext: 2
+19:20 [single-1] - value: 2
+```
+
+아래는 publishOn과 subscribeOn을 같이 사용한 예시이다.
+
+```java
+Flux.create(sink -> {
+    for (var i = 0; i < 3; i++) {
+        log.info("next: {}", i);
+        sink.next(i);
+    }
+}).publishOn(
+        Schedulers.single()
+).doOnNext(item -> {
+    log.info("doOnNext: {}", item);
+}).publishOn(
+        Schedulers.boundedElastic()
+).doOnNext(item -> {
+    log.info("doOnNext2: {}", item);
+}).subscribeOn(Schedulers.parallel()
+).subscribe(value -> {
+    log.info("value: " + value);
+});
+```
+
+결과는 아래와 같다.
+
+```java
+28:46 [parallel-1] - next: 0
+28:46 [parallel-1] - next: 1
+28:46 [parallel-1] - next: 2
+28:46 [single-1] - doOnNext: 0
+28:46 [single-1] - doOnNext: 1
+28:46 [single-1] - doOnNext: 2
+28:46 [boundedElastic-1] - doOnNext2: 0
+28:46 [boundedElastic-1] - value: 0
+28:46 [boundedElastic-1] - doOnNext2: 1
+28:46 [boundedElastic-1] - value: 1
+28:46 [boundedElastic-1] - doOnNext2: 2
+28:46 [boundedElastic-1] - value: 2
+```
+
+동작을 설명하면 아래와 같다.
+- subscribeOn이 소스에 영향을 주기 때문에 소스가 parallel도 동작을 한다.
+- 이후 동작부터는 publishOn으로 인해 single로 동작을 한다.
+- 이후 동작부터는 새로운 publishOn으로 인해 boundedElastic으로 동작한다. 
+
 ## 참고
 - https://fastcampus.co.kr/courses/216172
