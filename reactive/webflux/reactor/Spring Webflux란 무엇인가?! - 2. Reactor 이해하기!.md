@@ -689,5 +689,125 @@ Flux.create(sink -> {
 - 이후 동작부터는 publishOn으로 인해 single로 동작을 한다.
 - 이후 동작부터는 새로운 publishOn으로 인해 boundedElastic으로 동작한다. 
 
+다음은 Reactor에서 에러 핸들링에 대해 알아보자.
+
+## 에러 핸들링
+
+Reactive streams에서 onError 이벤트가 발생하면 onNext, onComplete 이벤트를 생산하지 않고 onError 이벤트를 아래로 쭉 전파하고 종료한다.
+
+onError 이벤트는 아래의 방식으로 처리할 수 있다.
+- 고정된 값을 반환
+- publisher를 반환
+- onComplete 이벤트로 변경
+- 다른 에러로 변환
+
+#### 에러 핸들링이 없을 경우?
+
+에러 핸들링이 없으면 내부적으로 onErrorDropped를 호출하게 된다.
+
+```java
+public static void onErrorDropped(Throwable e, Context context) {
+    Consumer<? super Throwable> hook = context.getOrDefault(Hooks.KEY_ON_ERROR_DROPPED,null);
+    if (hook == null) {
+        hook = Hooks.onErrorDroppedHook;
+    }
+    if (hook == null) {
+        log.error("Operator called default onErrorDropped", e);
+        return;
+    }
+    hook.accept(e);
+}
+```
+
+내부적으로 log.error()를 사용해서 로그를 출력한다.
+
+#### ErrorConsumer
+
+에러 핸들링의 가장 쉬운 방법 중 하나가 subscribe의 두번째 인자인 errorConsumer를 활용하는 방법이다.
+
+```java
+Flux.error(new RuntimeException("error"))
+        .subscribe(value -> {
+            log.info("value: " + value);
+        }, error -> {
+            log.info("error: " + error);
+        });
+```
+
+#### onErrorReturn
+
+ErrorConsumer는 특정 Action만 수행하지 결과를 반환하기 어렵다.
+
+이때 onErrorReturn을 사용할 수 있다.
+
+```java
+Flux.error(new RuntimeException("error"))
+        .onErrorReturn(0)
+        .subscribe(value -> {
+            log.info("value: " + value);
+        });
+```
+
+onErrorReturn을 사용하면 고정된 값을 반환할 수 있다. 단, onErrorReturn에는 함수를 전달할 수 없다.
+- 인자로 함수의 결과를 전달한다면 Subscribe도 되기 전에 동작할 것이다.
+
+#### onErrorResume
+
+onErrorReturn은 함수를 전달 받을 수 없었다.
+
+onErrorResume은 함수형 인터페이스를 전달 받아서 에러가 발생한 경우 함수형 인터페이스의 결과를 다음 subscribe에 전달할 수 있다. 
+
+```java
+Flux.error(new RuntimeException("error"))
+        .onErrorResume(throwable -> Flux.just(0, -1, -2))
+        .subscribe(value -> {
+            log.info("value: " + value);
+        });
+```
+
+onErrorResume을 사용하면 실제로 에러가 발생한 경우에만 함수형 인터페이스를 실행하게 된다.
+
+#### onErrorComplete
+
+onErrorComplete는 onError 이벤트를 onComplete 이벤트로 변경한다.
+
+```java
+Flux.create(sink -> {
+    sink.next(1);
+    sink.next(2);
+    sink.error(new RuntimeException("error"));
+}).onErrorComplete()
+        .subscribe(
+                value -> log.info("value: " + value),
+                null,
+                () -> log.info("complete"));
+```
+
+위 코드는 2번은 정상적으로 Consumer가 동작하고, 세 번째에 ErrorConsumer가 동작하지 않고, CompleteConsumer가 동작하게 된다.
+
+#### onErrorMap
+
+IOException을 커스텀 비즈니스 익셉션으로 핸들링 하는 경우 아래와 같이 onErrorMap을 사용할 수 있다.
+
+```java
+Flux.error(new IOException("fail to read file"))
+        .onErrorMap(e -> new CustomBusinessException("custom"))
+        .subscribe(value -> log.info("value: " + value),
+                e -> log.info("error: " + e));
+```
+
+onError는 예외를 다른 예외로 변환한다.
+
+#### doOnError
+
+에러를 변환할 필요가 없고, ErrorConsumer까지 전달되기 전에 처리가 필요하다면 doOnError를 활용할 수도 있다.
+
+```java
+Flux.error(new RuntimeException("error"))
+        .doOnError(error -> log.info("doOnError: " + error))
+        .subscribe(value -> log.info("value: " + value), 
+                error -> log.info("error: " + error));
+```
+
 ## 참고
 - https://fastcampus.co.kr/courses/216172
