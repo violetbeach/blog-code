@@ -489,6 +489,114 @@ Flux.fromStream(IntStream.range(0, 10).boxed())
 
 handle의 sink를 사용해서 complete나 error를 더 일찍 전달하는 방식으로 사용할 수 있다는 점도 참고하자.
 
+#### delayElements
+
+많이 사용하는 연산자 중에 delayElements라는 연산이 있다.
+
+- 최소 delay 만큼 간격을 두고 onNext 이벤트 발행
+- onNext 이벤트가 발행된 후 더 늦게 다음 onNext 이벤트가 전달되면 즉시 전파
+
+즉, 이를 사용하면 처리량을 제한할 수 있다.
+
+```java
+Flux.create(
+        sink -> {
+            for (int i = 1; i <= 5; i++) {
+                sleep(1000);
+                sink.next(i);
+            }
+            sink.complete();
+        })
+        .delayElements(Duration.ofMillis(5000))
+        .doOnNext(value -> log.info("doOnNext: " + value))
+        .subscribe();
+```
+
+해당 코드는 5초마다 onNext로 각 데이터가 전달된다.
+
+#### concat
+
+concat을 사용하면 Publisher 들을 결합할 수 있다.
+
+내부 동작은 아래와 같다.
+- 이전의 Publisher가 onComplete 이벤트를 전달되면 다음 Publisher를 subscribe
+
+코드를 보자
+
+```java
+var flux1 = Flux.range(1, 3)
+        .doOnSubscribe(value -> log.info("doOnSubscribe1"))
+        .delayElements(Duration.ofMillis(100));
+var flux2 = Flux.range(10, 3)
+        .doOnSubscribe(value -> log.info("doOnSubscribe2"))
+        .delayElements(Duration.ofMillis(100));
+
+Flux.concat(flux1, flux2)
+        .doOnNext(value -> log.info("doOnNext: " + value))
+        .subscribe();
+```
+
+아래는 코드를 실행한 결과이다.
+```
+00:44 [main] - doOnSubscribe1
+00:44 [parallel-1] - doOnNext: 1
+00:44 [parallel-2] - doOnNext: 2
+00:45 [parallel-3] - doOnNext: 3
+00:45 [parallel-3] - doOnSubscribe2
+00:45 [parallel-4] - doOnNext: 10
+00:45 [parallel-5] - doOnNext: 11
+00:45 [parallel-6] - doOnNext: 12
+```
+
+Publisher의 내부 순서도 보장하고, 인자로 전달된 각 Publisher 간 순서도 보장된다.
+
+그래서 처리량은 다소 떨어지게 된다.
+
+#### merge
+
+merge도 Publisher를 결합하는 연산이다.
+
+단, concat과 다르게 모든 Publisher를 바로 subscribe하고 각각의 Publisher의 onNext 이벤트가 동시에 도달된다.
+
+```java
+var flux1 = Flux.range(1, 3)
+        .doOnSubscribe(value -> log.info("doOnSubscribe1"))
+        .delayElements(Duration.ofMillis(100));
+var flux2 = Flux.range(10, 3)
+        .doOnSubscribe(value -> log.info("doOnSubscribe2"))
+        .delayElements(Duration.ofMillis(100));
+
+Flux.merge(flux1, flux2)
+        .doOnNext(value -> log.info("doOnNext: " + value))
+        .subscribe();
+```
+
+아래는 해당 코드 실행 결과이다.
+
+```
+07:45 [main] - doOnSubscribe1
+07:45 [main] - doOnSubscribe2
+07:45 [parallel-1] - doOnNext: 1
+07:45 [parallel-1] - doOnNext: 10
+07:45 [parallel-3] - doOnNext: 11
+07:45 [parallel-4] - doOnNext: 2
+07:45 [parallel-5] - doOnNext: 12
+07:45 [parallel-6] - doOnNext: 3
+07:46 [main] - end main
+```
+
+Publisher의 내부 순서는 보장하지만, 인자로 전달된 Publisher 간 순서를 보장하지 않는다.
+
+참고로 mergeSequential이라는 순서를 보장하는 연산자도 지원한다.
+- 동시에 실행된 결과를 내부적으로 재정렬하는 방식
+
+#### 다양한 연산자
+
+그 밖에도 다양한 연산자가 지원된다. 대부분 Stream에서도 사용하기 때문에 간략하게만 소개한다.
+- 
+
+다음은 Thread와 Scheduler에 대해 알아보자.
+
 ## Thread
 
 Reactor에서의 subscribe랑 sequence 개념과 사용 방법에 대해 익혔다.
