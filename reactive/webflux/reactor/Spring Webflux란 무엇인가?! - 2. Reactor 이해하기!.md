@@ -590,11 +590,6 @@ Publisher의 내부 순서는 보장하지만, 인자로 전달된 Publisher 간
 참고로 mergeSequential이라는 순서를 보장하는 연산자도 지원한다.
 - 동시에 실행된 결과를 내부적으로 재정렬하는 방식
 
-#### 다양한 연산자
-
-그 밖에도 다양한 연산자가 지원된다. 대부분 Stream에서도 사용하기 때문에 간략하게만 소개한다.
-- 
-
 다음은 Thread와 Scheduler에 대해 알아보자.
 
 ## Thread
@@ -916,6 +911,29 @@ Flux.error(new RuntimeException("error"))
         .subscribe(value -> log.info("value: " + value), 
                 error -> log.info("error: " + error));
 ```
+
+## 다양한 연산자
+
+Sequence에서 여러가지 연산자를 다뤘지만, 그 밖에도 다양한 연산자가 지원된다. 대부분 Stream에서도 사용하기 때문에 간략하게만 소개한다.
+- map:
+  - map: onNext 이벤트를 받아서 값을 변경하고 다음으로 전달
+  - mapNotNull: null인 경우 넘기지 않음. NPE를 방지할 수 있다.
+- flatMap:
+  - Map은 Mono<Mono<T>>를 반환하지만, flatMap은 Mono<T>를 반환 (Flux도 동일)
+  - 연산을 수행하기 위해 Mono나 Flux의 값을 꺼낼 필요가 없어진다.
+- doOnXX: doOnSubscribe, doOnNext 등은 데이터 sequence에 영향을 전혀 주지 않고 로깅이나 추가작업을 수행할 수 있다.
+- filter: onNext 이벤트를 받아서 true라면 onNext 이벤트를 전파하고, false라면 무시한다.
+- take:
+  - take: n개까지 onNext 이벤트를 전파하고 n개에 도달하면 onComplete 이벤트를 발생시킨다.
+  - takeLast: onComplete 이벤트가 발생하기 직전의 n개의 아이템만 전파하고 나머지는 버린다.
+- skip:
+  - skip: 처음 n개의 onNext 이벤트를 무시하고 그 이후 onNext 이벤트를 전파한다.
+  - skipLast: onComplete 이벤트가 발생하기 직전 n개의 onNext 이벤트를 무시한다.
+- collectList:
+  - next 이벤트가 전달되면 내부에 item을 저장한 후 complete 이벤트가 전달되면 저장했던 item을 list형태로 전달
+  - 다음 Flux에서 나이가 가장 적은 유저를 뽑는다고 했을 때 전체 유저를 알아야 한다. 그래서 `Flux<User>`가 아닌 `Mono<List<User>>`가 필요하다. 그때 사용할 수 있다.
+- cache: 처음 subscribe에만 publisher를 실행하고, 이후 subscribe에서는 캐싱한 event를 전달한다. 
+
 
 ## 참고
 - https://fastcampus.co.kr/courses/216172
