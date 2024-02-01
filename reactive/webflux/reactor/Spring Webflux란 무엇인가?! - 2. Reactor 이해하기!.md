@@ -934,6 +934,93 @@ Sequence에서 여러가지 연산자를 다뤘지만, 그 밖에도 다양한 �
   - 다음 Flux에서 나이가 가장 적은 유저를 뽑는다고 했을 때 전체 유저를 알아야 한다. 그래서 `Flux<User>`가 아닌 `Mono<List<User>>`가 필요하다. 그때 사용할 수 있다.
 - cache: 처음 subscribe에만 publisher를 실행하고, 이후 subscribe에서는 캐싱한 event를 전달한다. 
 
+## Context
+
+각 연산에서 Background를 공유해야 하는 환경에서는 어떻게 할까?
+
+ThreadLocal을 떠올릴 수 있지만 다른 쓰레드에서 접근할 수 없으므로 파이프라인 안에서 쓰레드가 변경되면 공유가 불가능해진다.
+
+```java
+public interface ContextView {
+    <T> T get(Object key);
+    boolean kasKey(Object key);
+    boolean isEmpty();
+    int size();
+}
+
+public interface Context extends ContextView {
+    Context put(Object key, Object value);
+    Context delete(Object key);
+    Context putAll(Context context);
+}
+```
+
+Context와 ContextView는 아래 역할을 수행한다.
+- Context는 파이프라인 내부 어디서든 접근 가능한 key-value 저장소
+- Context는 구독이 발생할 때마다 하나의 Context가 생긴다.
+- Context는 쓰기를 할 수 있고, ContextView는 읽기 전용이다.
+
+Context에 접근하기 위해서 아래의 메서드가 제공된다.
+
+```java
+public final Mono<T> contextWrite(
+        Function<Context, Context> contextModifier) {}
+```
+
+아래는 예시이다.
+
+```java
+Flux.just(1)
+        .flatMap(v -> ContextLogger.logContext(v, "1"))
+        .contextWrite(context ->
+                context.put("name", "violet"))
+        .flatMap(v -> ContextLogger.logContext(v, "2"))
+        .contextWrite(context ->
+                context.put("name", "beach"))
+        .flatMap(v -> ContextLogger.logContext(v, "3"))
+        .subscribe();
+```
+
+contextWrite를 사용할 때 주의할 점이 있다. 아래 결과를 보자.
+
+```
+31:47 [main] - name: 1, context: Context1{name=violet}
+31:47 [main] - name: 2, context: Context1{name=beach}
+31:47 [main] - name: 3, context: Context0{}
+```
+
+마지막 flatMap에서는 Context에 아무것도 들어있지 않은 것을 볼 수 있다.
+
+contextWrite는 subscribe부터 Upstream으로 위로 올라가며 Write를 실행하고 위 연산자에 전달한다. 즉, contextWrite 위에 있는 flatMap에 영향을 끼쳤고, 마지막 flatMap은 아래에 contextWrite가 없으므로 비어있는 상태인 것이다.
+
+Context는 인증 정보와 같이 독립적인 데이터를 전달하기에 적합하다.
+
+read는 `deferContextual()`를 사용할 수 있다.
+
+위 코드에서 결과를 출력한 ContextLogger도 내부적으로 아래와 같이 작성되어 있다.
+
+```java
+public class ContextLogger {
+    public static <T> Mono<T> logContext(T t, String name) {
+        return Mono.deferContextual(c -> {
+            log.info("name: {}, context: {}", name, c);
+            return Mono.just(t);
+        });
+    }
+}
+```
+
+아니면 연산에서 sink를 사용해서 직접 꺼내는 방법도 있다.
+
+```java
+Flux.create(sink -> {
+    var name = sink.contextView().get("name");
+    log.info("name in create: " + name);
+    sink.next(1);
+}).contextWrite(context ->
+        context.put("name", "violet")
+).subscribe(null, null, null, initialContext);
+```
 
 ## 참고
 - https://fastcampus.co.kr/courses/216172
