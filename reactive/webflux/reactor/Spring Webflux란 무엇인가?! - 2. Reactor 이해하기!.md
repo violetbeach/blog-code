@@ -3,6 +3,8 @@
 
 개념 자체가 생소하다면 해당 포스팅을 참고하시길 추천한다.
 
+![img.png](img.png)
+
 이번 포스팅에서 Project Reactor의 사용 방법에 대해 다룬다.
 
 ## Subscribe
@@ -1024,3 +1026,5 @@ Flux.create(sink -> {
 
 ## 참고
 - https://fastcampus.co.kr/courses/216172
+- https://projectreactor.io/
+- https://github.com/reactor/reactor-core
