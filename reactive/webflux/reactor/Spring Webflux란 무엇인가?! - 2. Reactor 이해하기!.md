@@ -1,11 +1,17 @@
+이번 포스팅에서는 Project Reactor의 사용 방법에 대해 다룬다.
+
+![img.png](images/img.png)
+
+## Project Reactor
+
 아래 포스팅에서 ReactiveProgramming에 대해 설명했고, Reactive Stream과 Project Reactor에 대해서도 간단하게 설명했었다.
 - https://jaehoney.tistory.com/359
 
-개념 자체가 생소하다면 해당 포스팅을 참고하시길 추천한다.
+개념 자체가 생소하다면 해당 포스팅(이전 편)을 참고하시길 추천한다.
 
-![img.png](img.png)
+Reactive Stream을 이해하고 있다면 굳이 보지 않아도 괜찮다.
 
-이번 포스팅에서 Project Reactor의 사용 방법에 대해 다룬다.
+첫 번째로 살펴볼 것은 Subscribe이다.
 
 ## Subscribe
 
@@ -19,7 +25,7 @@ public interface CorePublisher<T> extends Publisher<T> {
 
 Publisher가 item을 전달하면 그 아이템을 받아서 처리하는 것을 subscribe라고 한다.
 
-즉, item이 있어도 subscribe되지 않으면 아무 일도 일어나지 않는다.
+중요한 점은 item이 있어도 subscribe되지 않으면 아무 일도 일어나지 않는다.
 
 ```java
 Flux.fromIterable(List.of(1, 2, 3, 4, 5))
@@ -43,12 +49,15 @@ public final Disposable subscribe
 private final void subscribe(Subscriber<? super T> actual)
 ```
 
+아래는 오버로딩된 3개 메서드에 대한 설명이다.
 - Consumer를 넘기지 않는 subscribe
   - 별도로 Consume을 하지 않고 최대한으로 요청
 - 함수형 인터페이스 기반의 subscribe
   - Disposable을 반환하고 반환된 객체를 통해 언제든지 연결 종료할 수 있다.
 - Subscriber 기반의 subscribe
   - Subscriber는 subscription을 받기 때문에 request와 cancel으로 backpressure를 조절할 수 있다.
+
+#### 1. Consumer를 넘기지 않는 subscribe
 
 아래 코드를 보자.
 
@@ -63,6 +72,8 @@ Flux.fromIterable(List.of(1, 2, 3, 4, 5))
 해당 코드는 별도의 Consumer를 넘기지 않는 subscribe이다.
 - 결과를 이용하기 보다는 아이템을 만드는 것이 중요한 경우 사용한다.
 - 결과를 확인하기 위해 `doOnNext()`를 활용한다.
+
+#### 2. 함수형 인터페이스 기반의 subscribe
 
 아래는 함수형 인터페이스 기반의 subscribe이다.
 
@@ -91,6 +102,10 @@ subscribe에는 총 4가지 인자를 넘길 수 있다.
 - errorConsumer: 에러가 발생했을 때 인자로 받아서 처리
 - completeConsumer: 완료 후에 인자 없이 Runnable 실행
 - initialContext: upstream에 전달할 context
+
+당연히 람다식이나 메소드 레퍼런스도 사용할 수 있다. 이를 사용하면 Subscribe 결과에 따른 처리를 하는 등의 처리를 할 수 있다.
+
+#### 3. Subscriber 기반의 subscribe
 
 두 방법은 모두 backpressure를 사용할 수 없다. 이 경우 Subscriber 기반의 subscribe를 사용할 수 있다.
 
@@ -122,6 +137,8 @@ Flux.fromIterable(List.of(1, 2, 3, 4, 5))
 Subscriber 기반의 subscribe의 경우 `onSubscribe()`로 backpressure를 조절할 수 있다.
 
 외부에서 Subscriber를 전달하는 경우 `request()`를 직접 호출하거나 `cancel()`을 처리하는 등의 제어도 가능하다.
+
+다음은 배압을 조절하는 방법에 대해 알아보자.
 
 #### Unbounded Request
 
