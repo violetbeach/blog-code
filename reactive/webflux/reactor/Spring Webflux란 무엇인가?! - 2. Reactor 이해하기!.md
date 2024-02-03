@@ -138,7 +138,9 @@ Subscriber 기반의 subscribe의 경우 `onSubscribe()`로 backpressure를 조�
 
 외부에서 Subscriber를 전달하는 경우 `request()`를 직접 호출하거나 `cancel()`을 처리하는 등의 제어도 가능하다.
 
-다음은 배압을 조절하는 방법에 대해 알아보자.
+## Backpressure
+
+다음은 배압(Backpressure)을 조절하는 방법에 대해 알아보자.
 
 #### Unbounded Request
 
@@ -149,6 +151,8 @@ Unbounded Request는 아래 상황에 발생한다.
 - 람다 기반의 subscribe()
 - block(), blockFirst(), blockLast() 등의 blocking 연산
 - toIterable(), toStream() 등의 toCollect 연산자
+
+즉, 별도의 설정이 없다면 기본적으로 모든 아이템을 빠르게 전달한다.
 
 #### buffer
 
@@ -209,10 +213,19 @@ Flux.fromStream(IntStream.range(0, 10).boxed())
 
 위 코드의 경우 5개의 값만 전달되고 완료로 처리된다.
 
+다음은 중요한 개념인 Sequence에 대해 알아보자.
+
 ## Sequence
 
 Sequence란 Reactor에서 통지할 데이터를 정의한 것을 말한다. 데이터의 흐름 Stream과 유사하다고 생각하면 된다.
 
+공식 문서를 보면 0/1/N 시퀀스에 대해 설명하고 있다.
+
+![img.png](images/img_1.png)
+
+친절하게 설명에 나와있듯 Flux는 N개의 아이템을 담을 수 있고, Mono는 0개나 1개의 아이템을 담는 데 유용하다.
+
+시퀀스를 다루는 함수에 대해 알아보자.
 
 #### just
 
@@ -242,7 +255,7 @@ Mono.error(new RuntimeException("mono error"))
              log.error("error: " + error);
          });
 
- Flux.error(new RuntimeException("flux error"))
+Flux.error(new RuntimeException("flux error"))
          .subscribe(value -> {
              log.info("value: " + value);
          }, error -> {
@@ -261,6 +274,7 @@ Mono.empty()
         }, null, () -> {
             log.info("complete");
         });
+
 Flux.empty()
         .subscribe(value -> {
             log.info("value: " + value);
@@ -271,16 +285,17 @@ Flux.empty()
 
 이 경우에는 subscriber에게 onComplete 이벤트만 전달한다.
 
-가운데 null은 에러 컨슈머를 null로 사용한 것이다.
+가운데 null은 에러 컨슈머를 null로 사용한 것이다. Mono.empty()를 사용하므로 실패 Consumer는 필요가 없다.
 
-#### from
+#### fromXX
 
 실무를 하다보면 더 복잡한 경우도 생길 수 있다.
 
-예를 들면 Callable, Runnable 등을 실행한 결과를 Mono, Flux한테 넘기는 경우 등에서 fromX를 사용할 수 있다.
+예를 들면 Callable, Runnable 등을 실행한 결과를 Mono, Flux한테 넘기는 경우 등에서 fromXX를 사용할 수 있다.
 
 #### Mono
 
+Mono의 경우 아래 함수를 지원한다.
 - fromCallable: Callable 함수형 인터페이스를 실행하고 반환 값을 onNext로 전달
 - fromFuture: Future를 받아서 done 상태가 되면 반환 값을 onNext로 전달
 - fromSupplier: Supplier 함수형 인터페이스를 실행하고 반환 값을 onNext로 전달
@@ -311,6 +326,8 @@ Mono.fromRunnable(() -> {
     log.info("complete fromRunnable");
 });
 ```
+
+이를 사용하면 함수형 인터페이스나 Future 등의 결과를 시퀀스로 보낼 수 있다.
 
 #### Flux
 
@@ -347,11 +364,13 @@ Flux.range(
 });
 ```
 
+이를 활용하면 Flux를 사용한 시퀀스를 쉽게 생성할 수 있다.
+
 #### generate
 
-아래의 Flux.fromX를 사용하면 간단한 sequence를 만들 수 있다.
+Flux.fromXX를 사용하면 간단하게 sequence를 만들 수 있었다.
 
-더 복잡한 경우도 생길 수 있다. 조건문이 들어간다거나, 콜백을 실행한 후 값을 sequence에 넣어줘야 한다거나 하는 경우에서는 generate를 사용할 수 있다.
+그러나 복잡한 경우도 생길 수 있다. 조건문이 들어간다거나, 콜백을 실행한 후 값을 sequence에 넣어줘야 한다거나 하는 경우에서는 generate를 사용할 수 있다.
 
 ```java
 public static <T, S> Flux<T> generate(
@@ -367,7 +386,7 @@ generate는 아래의 작업을 수행한다.
   - 두 번째 인자로 SynchronousSink를 제공. 명시적으로 next, error, Complete 호출 가능
   - 한 번의 generator에서 최대 한 번만 next 호출 가능
 
-설명만 봐서는 잘 이해가 되지 않아서 예제 코드를 보자.
+잘 이해가 되지 않는다. 아래 코드를 보자.
 
 ```java
 Flux.generate(
