@@ -431,7 +431,7 @@ create는 아래 작업을 수행한다.
   - emitter 1번에서 next를 여러 번 호출 가능
   - 여러 thread에서 동시에 호출 가능
 
-아래 코드르 롭자.
+아래 코드를 보자.
 
 ```java
 Flux.create(sink -> {
@@ -460,7 +460,7 @@ Flux.create(sink -> {
 
 아래 코드는 아래 역할을 수행한다.
 - 2개의 쓰레드에서 sink.next를 수행
-- CompletableFuture의 allOf를 활용하여 두 개의 작업이 끝난 후 complete 이벤트 전달
+- CompletableFuture의 allOf()를 사용하여 두 개의 작업이 끝난 후 complete 이벤트 전달
 
 결과적으로 0~4와 5~9가 전달되고 각각 순서까지만 보장하고, 0~4와 5~9 사이에서는 순서가 보장되지 않는다.
 
@@ -490,12 +490,12 @@ public final <R> Flux<R> handle(
 ```
 
 handle은 아래 동작을 수행한다.
-- 독립적으로 sequence를 생성할 수 없고 존재하는 source에 연결
+- 일종의 interceptor로 source의 item을 필터하거나 변경할 수 있다.
+- 독립적으로 sequence를 생성할 수 없고 존재하는 source에 연결한다.
 - handler
   - 첫 번째 인자로 source의 item을 제공
   - 두 번째 인자로 SynchronousSink를 제공
-    - sink의 next를 이용해서 현재 주어진 item을 전달할 지 말 지 결정
-- 일종의 interceptor로 source의 item을 필터하거나 변경할 수 있다.
+    - sink의 next를 이용해서 현재 주어진 item을 전달할 지 여부를 결정
 
 아래 코드를 보자.
 
@@ -628,6 +628,32 @@ Publisher의 내부 순서는 보장하지만, 인자로 전달된 Publisher 간
 참고로 mergeSequential이라는 순서를 보장하는 연산자도 지원한다.
 - 동시에 실행된 결과를 내부적으로 재정렬하는 방식
 
+## 다양한 연산자 (Operators)
+
+지금까지는 Sequence를 생성하는 방법에 대해 배웠다.
+
+아래는 Sequence를 처리하기 위해 대표적으로 사용되는 publisher가 가지는 연산이다. 대부분 Stream과 유사하기 때문에 간략하게만 소개한다.
+- map:
+  - map: onNext 이벤트를 받아서 값을 변경하고 다음으로 전달
+  - mapNotNull: null인 경우 넘기지 않음. NPE를 방지할 수 있다.
+- flatMap:
+  - map은 `Mono<Mono<T>>`를 반환하지만, flatMap은 `Mono<T>`를 반환 (Flux도 동일)
+  - 연산을 수행하기 위해 Mono나 Flux의 값을 꺼낼 필요가 없어진다.
+- doOnXX: doOnSubscribe, doOnNext 등은 데이터 sequence에 영향을 전혀 주지 않고 로깅이나 추가작업을 수행할 수 있다.
+- filter: onNext 이벤트를 받아서 true라면 onNext 이벤트를 전파하고, false라면 무시한다.
+- take:
+  - take: n개까지 onNext 이벤트를 전파하고 n개에 도달하면 onComplete 이벤트를 발생시킨다.
+  - takeLast: onComplete 이벤트가 발생하기 직전의 n개의 아이템만 전파하고 나머지는 버린다.
+- skip:
+  - skip: 처음 n개의 onNext 이벤트를 무시하고 그 이후 onNext 이벤트를 전파한다.
+  - skipLast: onComplete 이벤트가 발생하기 직전 n개의 onNext 이벤트를 무시한다.
+- collectList:
+  - next 이벤트가 전달되면 내부에 item을 저장한 후 complete 이벤트가 전달되면 저장했던 item을 list형태로 전달
+  - 다음 Flux에서 나이가 가장 적은 유저를 뽑는다고 했을 때 전체 유저를 알아야 한다. 그래서 `Flux<User>`가 아닌 `Mono<List<User>>`가 필요하다. 그때 사용할 수 있다.
+- cache: 처음 subscribe에만 publisher를 실행하고, 이후 subscribe에서는 캐싱한 event를 전달한다.
+
+그냥 '이런 연산들이 있구나.' 라고 생각하고 필요할 때 찾아보면 된다.
+
 다음은 Thread와 Scheduler에 대해 알아보자.
 
 ## Thread
@@ -750,10 +776,9 @@ ExecutorService 사용에 익숙하다면 아래와 같이 Scheduler 인스턴�
 
 #### publishOn
 
-subscribeOn으로 스케줄러를 조정할 수 있었는데, publishOn을 사용해서 이후에 추가되는 연산자들의 스케줄러를 설정할 수 있다.
+subscribeOn으로 스케줄러를 조정할 수 있었는데, publishOn을 사용해서 이후에 **추가되는 연산자들의 스케줄러를 설정**할 수 있다.
 - publishOn은 subscribeOn과 다르게 위치가 중요하다.
-- 그 이후 다른 publishOn이 적용되면 추가된 Scheduler로 실행 쓰레드 변경
-- 쓰레드 풀에서 1개의 쓰레드만 지속적으로 사용
+- 적용 이후 다른 publishOn이 적용되면 추가된 Scheduler로 실행 쓰레드 변경
 
 아래 예시를 보자.
 
@@ -826,17 +851,17 @@ Flux.create(sink -> {
 ```
 
 동작을 설명하면 아래와 같다.
-- subscribeOn이 소스에 영향을 주기 때문에 소스가 parallel도 동작을 한다.
+- subscribeOn이 소스에 영향을 주기 때문에 소스가 parallel로 동작을 한다.
 - 이후 동작부터는 publishOn으로 인해 single로 동작을 한다.
 - 이후 동작부터는 새로운 publishOn으로 인해 boundedElastic으로 동작한다. 
 
-다음은 Reactor에서 에러 핸들링에 대해 알아보자.
+다음은 에러 핸들링에 대해 알아보자.
 
 ## 에러 핸들링
 
 Reactive streams에서 onError 이벤트가 발생하면 onNext, onComplete 이벤트를 생산하지 않고 onError 이벤트를 아래로 쭉 전파하고 종료한다.
 
-onError 이벤트는 아래의 방식으로 처리할 수 있다.
+onError 이벤트는 기본적으로 아래의 방식으로 처리할 수 있다.
 - 고정된 값을 반환
 - publisher를 반환
 - onComplete 이벤트로 변경
@@ -894,7 +919,7 @@ onErrorReturn을 사용하면 고정된 값을 반환할 수 있다. 단, onErro
 
 #### onErrorResume
 
-onErrorReturn은 함수를 전달 받을 수 없었다.
+onErrorReturn은 함수형 인터페이스를 전달 받을 수 없었다.
 
 onErrorResume은 함수형 인터페이스를 전달 받아서 에러가 발생한 경우 함수형 인터페이스의 결과를 다음 subscribe에 전달할 수 있다. 
 
@@ -924,7 +949,9 @@ Flux.create(sink -> {
                 () -> log.info("complete"));
 ```
 
-위 코드는 2번은 정상적으로 Consumer가 동작하고, 세 번째에 ErrorConsumer가 동작하지 않고, CompleteConsumer가 동작하게 된다.
+처음 2번은 sink.next(n)으로 정상적으로 Consumer가 동작하고, 원래라면 3번째에는 sink.error()로 인해 ErrorConsumer가 동작했다.
+
+실제로는 onErrorComplete()로 인해 onComplete 이벤트로 변경되므로 CompleteConsumer가 동작한다.
 
 #### onErrorMap
 
@@ -949,28 +976,6 @@ Flux.error(new RuntimeException("error"))
         .subscribe(value -> log.info("value: " + value), 
                 error -> log.info("error: " + error));
 ```
-
-## 다양한 연산자
-
-Sequence에서 여러가지 연산자를 다뤘지만, 그 밖에도 다양한 연산자가 지원된다. 대부분 Stream에서도 사용하기 때문에 간략하게만 소개한다.
-- map:
-  - map: onNext 이벤트를 받아서 값을 변경하고 다음으로 전달
-  - mapNotNull: null인 경우 넘기지 않음. NPE를 방지할 수 있다.
-- flatMap:
-  - Map은 Mono<Mono<T>>를 반환하지만, flatMap은 Mono<T>를 반환 (Flux도 동일)
-  - 연산을 수행하기 위해 Mono나 Flux의 값을 꺼낼 필요가 없어진다.
-- doOnXX: doOnSubscribe, doOnNext 등은 데이터 sequence에 영향을 전혀 주지 않고 로깅이나 추가작업을 수행할 수 있다.
-- filter: onNext 이벤트를 받아서 true라면 onNext 이벤트를 전파하고, false라면 무시한다.
-- take:
-  - take: n개까지 onNext 이벤트를 전파하고 n개에 도달하면 onComplete 이벤트를 발생시킨다.
-  - takeLast: onComplete 이벤트가 발생하기 직전의 n개의 아이템만 전파하고 나머지는 버린다.
-- skip:
-  - skip: 처음 n개의 onNext 이벤트를 무시하고 그 이후 onNext 이벤트를 전파한다.
-  - skipLast: onComplete 이벤트가 발생하기 직전 n개의 onNext 이벤트를 무시한다.
-- collectList:
-  - next 이벤트가 전달되면 내부에 item을 저장한 후 complete 이벤트가 전달되면 저장했던 item을 list형태로 전달
-  - 다음 Flux에서 나이가 가장 적은 유저를 뽑는다고 했을 때 전체 유저를 알아야 한다. 그래서 `Flux<User>`가 아닌 `Mono<List<User>>`가 필요하다. 그때 사용할 수 있다.
-- cache: 처음 subscribe에만 publisher를 실행하고, 이후 subscribe에서는 캐싱한 event를 전달한다. 
 
 ## Context
 
