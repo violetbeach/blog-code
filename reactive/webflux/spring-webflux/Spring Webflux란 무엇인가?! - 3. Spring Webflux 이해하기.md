@@ -46,7 +46,7 @@ public class ReactiveWebServerFactoryAutoConfiguration
 
 ![img_2.png](img_2.png)
 
-해당 클래스를 보면 @ConditionalOnClass로 인해서 기본적으로 EmbeddedNetty만 빈으로 등록된다.
+해당 클래스를 보면 @ConditionalOnClass로 인해서 기본적으로 EmbeddedNetty만 빈으로 등록된다. (spring-boot-starter-webflux 의존성은 spring-boot-starter-reactor-netty를 포함한다.)
 
 ![img_3.png](img_3.png)
 
@@ -119,5 +119,9 @@ Mono.from(adapter.toPublisher(attribute));
 
 attribute로 RxJava의 Flowable이 들어온다고 가정할 시, adapter에 의해 Publisher로 변경된 후 Mono로 변경한다.
 
+![img_4.png](img_4.png)
+
 그래서 Spring Webflux 환경에서 ReactiveStreams의 Publisher 혹은 Reactor의 Mono나 Flux 기준으로 개발만 한다면, ReactiveAdapter를 통해서 여러 라이브러리를 지원할 수 있다.
 
+## 참고
+- https://docs.spring.io/spring-framework/reference/
