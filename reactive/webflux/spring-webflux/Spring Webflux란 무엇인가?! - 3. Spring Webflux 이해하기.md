@@ -123,5 +123,62 @@ attribute로 RxJava의 Flowable이 들어온다고 가정할 시, adapter에 의
 
 그래서 Spring Webflux 환경에서 ReactiveStreams의 Publisher 혹은 Reactor의 Mono나 Flux 기준으로 개발만 한다면, ReactiveAdapter를 통해서 여러 라이브러리를 지원할 수 있다.
 
+#### HttpHandler
+
+아래는 `org.springframework.http.server.reactive`의 HttpHandler 인터페이스이다.
+
+```java
+public interface HttpHandler {
+    Mono<Void> handle(ServerHttpRequest request, ServerHttpResponse response);
+}
+```
+
+해당 인터페이스는 아래와 같이 구현한다.
+- ServerHttpRequest와 ServerHttpResponse를 전달받는다.
+- Http 요청 처리가 끝나면 Mono<Void>를 반환한다.
+  - ServerHttpResponse의 setComplete 혹은 writeWith가 Mono<Void>를 반환하므로 그대로 사용하는 경우가 많다.
+
+아래 구현을 보자.
+
+```java
+var httpHandler = new HttpHandler() {
+    @Override
+    public Mono<Void> handle(
+            ServerHttpRequest request,
+            ServerHttpResponse response) {
+        String nameQuery = request.getQueryParams().getFirst("name");
+        String name = nameQuery == null ? "world" : nameQuery;
+
+        String content = "Hello " + name;
+        log.info("responseBody: {}", content);
+        Mono<DataBuffer> responseBody = Mono.just(
+                response.bufferFactory()
+                        .wrap(content.getBytes())
+        );
+
+        response.addCookie(ResponseCookie.from("name", name).build());
+        response.getHeaders().add("Content-Type", "text/plain");
+        return response.writeWith(responseBody);
+    }
+};
+```
+
+해당 HttpHandler는 request의 값을 사용해서 응답을 만들어서 response에 write한다.
+
+구현한 HttpHandler는 Reactor Netty의 ReactorHttpHandlerAdapter로 Wrapping해서 사용할 수 있다.
+
+```java
+var adapter = new ReactorHttpHandlerAdapter(httpHandler);
+HttpServer.create()
+        .host("localhost")
+        .port(8080)
+        .handle(adapter)
+        .bindNow()
+        .channel().closeFuture().sync();
+```
+
+여기서 사용한 HttpServer도 Reactor Netty의 컴포넌트이다. HttpServer는 별도의 channel이나 eventLoopGroup을 명시하지 않아도 알아서 관리해준다.
+
 ## 참고
 - https://docs.spring.io/spring-framework/reference/
+- https://fastcampus.co.kr/courses/216172
