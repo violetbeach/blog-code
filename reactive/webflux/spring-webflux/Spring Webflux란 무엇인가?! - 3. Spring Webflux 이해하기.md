@@ -179,6 +179,104 @@ HttpServer.create()
 
 여기서 사용한 HttpServer도 Reactor Netty의 컴포넌트이다. HttpServer는 별도의 channel이나 eventLoopGroup을 명시하지 않아도 알아서 관리해준다.
 
+## HttpWebHandlerAdapter
+
+WebHandler는 spring-web에서 다양한 기능을 제공하기 위한 컴포넌트이다.
+
+```java
+public interface WebHandler {
+    Mono<Void> handle(ServerWebExchange exchange);
+}
+
+public interface WebFilter {
+    Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain);
+}
+
+public interface WebExceptionHandler {
+    Mono<Void> filter(ServerWebExchange exchange, Throwable ex);
+}
+```
+
+공통적으로 사용하는 ServerWebExchange에 대해 알아보자.
+
+#### ServerWebExchange
+
+ServerWebExchange는 아래와 같이 요청과 응답 등을 꺼내 사용할 수 있는 메서드를 제공한다.
+
+```java
+public interface ServerWebExchange {
+    ServerHttpRequest getRequest();
+    ServerHttpResponse getResponse();
+    Map<String, Object> getAttributes();
+    Mono<WebSession> getSession();
+    <T extends Principal> Mono<T> getPrincipal();
+    Mono<MultiValueMap<String, String>> getFormData();
+    Mono<MultiValueMap<String, Part>> getMultipartData();
+    ApplicationContext getApplicationContext();
+}
+```
+
+이를 활용하면 아래와 같이 WebHandler를 생성할 수 있다.
+
+```java
+var webHandler = new WebHandler() {
+    @Override
+    public Mono<Void> handle(ServerWebExchange exchange) {
+        final ServerHttpRequest request = exchange.getRequest();
+        final ServerHttpResponse response = exchange.getResponse();
+
+        String nameQuery = request.getQueryParams().getFirst("name");
+        String name = nameQuery == null ? "world" : nameQuery;
+
+        String content = "Hello " + name;
+        log.info("responseBody: {}", content);
+        Mono<DataBuffer> responseBody = Mono.just(
+                response.bufferFactory()
+                        .wrap(content.getBytes())
+        );
+
+        response.addCookie(
+                ResponseCookie.from("name", name).build());
+        response.getHeaders()
+                .add("Content-Type", "text/plain");
+        return response.writeWith(responseBody);
+    }
+};
+```
+
+WebHandler는 WebHttpHandlerBuilder를 사용해서 filters, exceptionHandlers, sessionManager 등을 조합한 후 HttpWebHandlerAdapter로 만들 수 있다.
+
+```java
+public HttpHandler build() {
+    WebHandler decorated = new FilteringWebHandler(this.webHandler, this.filters);
+    decorated = new ExceptionHandlingWebHandler(decorated,  this.exceptionHandlers);
+
+    HttpWebHandlerAdapter adapted = new HttpWebHandlerAdapter(decorated);
+    if (this.sessionManager != null) {
+        adapted.setSessionManager(this.sessionManager);
+    }
+    if (this.codecConfigurer != null) {
+        adapted.setCodecConfigurer(this.codecConfigurer);
+    }
+    if (this.localeContextResolver != null) {
+        adapted.setLocaleContextResolver(this.localeContextResolver);
+    }
+    if (this.forwardedHeaderTransformer != null) {
+        adapted.setForwardedHeaderTransformer(this.forwardedHeaderTransformer);
+    }
+    if (this.applicationContext != null) {
+        adapted.setApplicationContext(this.applicationContext);
+    }
+    adapted.afterPropertiesSet();
+
+    return (this.httpHandlerDecorator != null ? this.httpHandlerDecorator.apply(adapted) : adapted);
+}
+```
+
+HttpWebHandlerAdapter는 위에서 봤던 HttpHandler를 구현한다.
+
+그래서 각 컴포넌트를 조합해서 HttpServer를 구성할 수 있게 된다. 그리고 각 컴포넌트들이 통신하는 데이터가 ServerWebExchange이다.
+
 ## 참고
 - https://docs.spring.io/spring-framework/reference/
 - https://fastcampus.co.kr/courses/216172
