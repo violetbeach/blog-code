@@ -18,8 +18,8 @@ WebFluxAutoConfiguration은 SpringWebflux 사용을 위한 필수적인 AutoConf
 
 ```java
 @AutoConfiguration(after = { ReactiveWebServerFactoryAutoConfiguration.class, CodecsAutoConfiguration.class,
-		ReactiveMultipartAutoConfiguration.class, ValidationAutoConfiguration.class,
-		WebSessionIdResolverAutoConfiguration.class })
+        ReactiveMultipartAutoConfiguration.class, ValidationAutoConfiguration.class,
+        WebSessionIdResolverAutoConfiguration.class })
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 @ConditionalOnClass(WebFluxConfigurer.class)
 @ConditionalOnMissingBean({ WebFluxConfigurationSupport.class })
@@ -35,10 +35,10 @@ public class WebFluxAutoConfiguration {
 
 ```java
 @Import({ ReactiveWebServerFactoryAutoConfiguration.BeanPostProcessorsRegistrar.class,
-		ReactiveWebServerFactoryConfiguration.EmbeddedTomcat.class,
-		ReactiveWebServerFactoryConfiguration.EmbeddedJetty.class,
-		ReactiveWebServerFactoryConfiguration.EmbeddedUndertow.class,
-		ReactiveWebServerFactoryConfiguration.EmbeddedNetty.class })
+        ReactiveWebServerFactoryConfiguration.EmbeddedTomcat.class,
+        ReactiveWebServerFactoryConfiguration.EmbeddedJetty.class,
+        ReactiveWebServerFactoryConfiguration.EmbeddedUndertow.class,
+        ReactiveWebServerFactoryConfiguration.EmbeddedNetty.class })
 public class ReactiveWebServerFactoryAutoConfiguration
 ```
 
