@@ -277,6 +277,56 @@ HttpWebHandlerAdapter는 위에서 봤던 HttpHandler를 구현한다.
 
 그래서 각 컴포넌트를 조합해서 HttpServer를 구성할 수 있게 된다. 그리고 각 컴포넌트들이 통신하는 데이터가 ServerWebExchange이다.
 
+Spring Webflux에서는 WebHandler, WebFilter, WebExceptionHandler를 만든 이후 HandlerAdapter를 만들어서 ReactorNetty 기반의 서버를 구성해준다고 보면 될 것 같다. 
+
+다음으로 HandlerAdapter가 빈으로 등록한 컨트롤러 메서드를 실행하는 원리를 알기 위해 DispatcherHandler의 역할을 알아보자.
+
+## DispatcherHandler
+
+Spring Webflux에서는 DispatcherServlet과 유사하게 DispatcherHandler를 사용한다.
+
+아래는 DispatcherHandler의 일부이다.
+
+```java
+public class DispatcherHandler 
+        implements WebHandler, PreFlightRequestHandler, ApplicationContextAware {
+    
+    @Nullable
+    private List<HandlerMapping> handlerMappings;
+
+    @Nullable
+    private List<HandlerAdapter> handlerAdapters;
+
+    @Nullable
+    private List<HandlerResultHandler> resultHandlers;
+}
+```
+
+해당 DispatcherHandler가 요청을 처리하는 방식은 아래와 같다.
+
+![img_5.png](img_5.png)
+
+ReactorNetty는 DispatcherHandler에게 요청을 보낸다. DispatcherHandler의 동작은 요약하면 아래와 같다.
+- DispatcherHandler가 HandlerMapping를 찾는다.
+- DispatcherHandler가 HandlerAdapter를 찾는다.
+- handle을 실행해서 실제 핸들러(컨트롤러) 메서드를 수행한다.
+- 결과를 처리할 수 있는 HandlerResultHandler를 찾는다.
+- 실제 응답을 ReactorNetty에 돌려준다.
+
+각 컴포넌트는 아래 역할을 수행한다.
+- HandlerMapping: ServerWebExchange를 입력받은 후 요청을 처리할 Handler를 Mono로 반환한다.
+  - 반환하는 handler: HandlerMethod, HandlerFunction, WebHandler, ...
+- HandlerAdapter:
+  - support: HandlerMapping에서 전달받은 Handler를 지원하는 지 여부를 확인한다.
+  - handle: 실제 요청을 처리하고 HandlerResult를 Mono로 반환한다.
+  - ex. RequestMappingHandlerAdapter, SimpleHandlerAdapter, ...
+- HandlerResultHandler:
+  - support: HandlerAdapter를 통해 받은 HandlerResult를 지원하는 지 여부를 확인한다.
+  - handleResult: ServerWebExchange와 result를 받아서 응답을 Write하고 `Mono<Void>`를 반환한다.
+  - ex. ResponseEntityResultHandler, ResponseBodyResultHandler, ...
+
+Spring WebFlux에서 DispatcherHandler를 사용해서 요청을 처리하는 방법을 알아봤다. 
+
 ## 참고
 - https://docs.spring.io/spring-framework/reference/
 - https://fastcampus.co.kr/courses/216172
