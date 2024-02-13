@@ -306,6 +306,18 @@ public class DispatcherHandler
 
 ![img_5.png](img_5.png)
 
+각 컴포넌트는 아래 역할을 수행한다.
+- HandlerMapping: ServerWebExchange를 입력받은 후 요청을 처리할 Handler를 Mono로 반환한다.
+  - 반환하는 handler: HandlerMethod, HandlerFunction, WebHandler, ...
+- HandlerAdapter:
+  - support: HandlerMapping에서 전달받은 Handler를 지원하는 지 여부를 확인한다.
+  - handle: 실제 요청을 처리하고 HandlerResult를 Mono로 반환한다.
+  - ex. RequestMappingHandlerAdapter, SimpleHandlerAdapter, ...
+- HandlerResultHandler:
+  - support: HandlerAdapter를 통해 받은 HandlerResult를 지원하는 지 여부를 확인한다.
+  - handleResult: ServerWebExchange와 result를 받아서 응답을 Write하고 `Mono<Void>`를 반환한다.
+  - ex. ResponseEntityResultHandler, ResponseBodyResultHandler, ...
+
 아래 컨트롤러를 등록했다고 가정하자.
 
 ```java
@@ -324,25 +336,13 @@ public class HelloController {
 
 ReactorNetty는 DispatcherHandler에게 요청을 보낸다. DispatcherHandler의 동작은 요약하면 아래와 같다.
 - DispatcherHandler가 HandlerMapping를 찾는다.
-  - RequestMappingHandlerMapping에 의해 `helloQueryParam()`을 호출하는 HandlerMethod가 반환된다.  
+  - RequestMappingHandlerMapping에 의해 `helloQueryParam()`을 호출하는 HandlerMethod가 반환된다.
 - DispatcherHandler가 HandlerAdapter를 찾는다.
   - HandlerMapping에게 전달받은 것이 HandlerMethod이므로 RequestMappingHandlerAdapter가 반환된다.
 - RequestMappingHandlerAdapter의 `handle()`을 실행해서 실제 핸들러(컨트롤러) 메서드를 수행한다.
 - 결과를 처리할 수 있는 HandlerResultHandler를 찾는다.
   - ResponseBodyResultHandler를 반환한다.
 - ResponseBodyResultHandler가 응답을 write하고 결과를 ReactorNetty에 넘겨준다.
-
-각 컴포넌트는 아래 역할을 수행한다.
-- HandlerMapping: ServerWebExchange를 입력받은 후 요청을 처리할 Handler를 Mono로 반환한다.
-  - 반환하는 handler: HandlerMethod, HandlerFunction, WebHandler, ...
-- HandlerAdapter:
-  - support: HandlerMapping에서 전달받은 Handler를 지원하는 지 여부를 확인한다.
-  - handle: 실제 요청을 처리하고 HandlerResult를 Mono로 반환한다.
-  - ex. RequestMappingHandlerAdapter, SimpleHandlerAdapter, ...
-- HandlerResultHandler:
-  - support: HandlerAdapter를 통해 받은 HandlerResult를 지원하는 지 여부를 확인한다.
-  - handleResult: ServerWebExchange와 result를 받아서 응답을 Write하고 `Mono<Void>`를 반환한다.
-  - ex. ResponseEntityResultHandler, ResponseBodyResultHandler, ...
 
 Spring WebFlux에서 DispatcherHandler를 사용해서 요청을 처리하는 방법을 알아봤다. 
 
