@@ -346,6 +346,26 @@ ReactorNetty는 DispatcherHandler에게 요청을 보낸다. DispatcherHandler�
 
 Spring WebFlux에서 DispatcherHandler를 사용해서 요청을 처리하는 방법을 알아봤다. 
 
+#### Reactive Stack
+
+ServletStack에서 Arguments로 사용하는 객체와 Reactive Stack에서 사용하는 객체는 차이가 꽤 존재한다.
+
+아래는 Reactive Stack에서 사용하는 객체이다.
+
+**1. Method Argument**
+- ServerWebExchange:
+  - HttpServletRequest, HttpServletResponse 대신 사용한다.
+  - ServerHttpRequest, ServerHttpResponse만 사용할 수도 있다.
+- WebSession
+  - HttpSession 대신 WebSession을 지원한다.
+  - HttpSession과 다르게 새로운 Session 생성을 강제하지 않으므로 null이 될 수 있다.
+
+**2. Return**
+- Rendering
+  - ModelAndView 대신 Rendering을 지원한다.
+  - view, model, status, header, redirect 등의 정보를 포함한다.
+- Reactive Stack에서는 HttpMessageConverter 대신 HttpMessageWriter를 사용한다.
+
 ## 참고
 - https://docs.spring.io/spring-framework/reference/
 - https://fastcampus.co.kr/courses/216172
