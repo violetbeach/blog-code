@@ -179,6 +179,16 @@ HttpServer.create()
 
 여기서 사용한 HttpServer도 Reactor Netty의 컴포넌트이다. HttpServer는 별도의 channel이나 eventLoopGroup을 명시하지 않아도 알아서 관리해준다.
 
+## Thread
+
+Spring Webflux는 내부적으로 Reactor Netty에서 제공하는 서버를 사용한다.
+
+즉, 기존 Spring MVC에서는 Thread per request 모델이었지만, Spring Webflux에서는 Reactor Netty의 EventLoop 기반으로 동작한다.
+
+참고로 SpringBoot에서 사용하는 Tomcat의 max thread-pool size는 default가 200이다. Spring WebFlux에서 Worker thread default size는 core 개수로 설정되어 있다.
+
+즉, 서버의 core 수가 4개라면 worker thread 4개로 트래픽을 감당하게 된다.
+
 ## HttpWebHandlerAdapter
 
 WebHandler는 spring-web에서 다양한 기능을 제공하기 위한 컴포넌트이다.
