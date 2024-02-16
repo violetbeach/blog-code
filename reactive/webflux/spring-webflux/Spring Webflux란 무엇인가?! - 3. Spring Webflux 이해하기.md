@@ -376,6 +376,69 @@ ServletStack에서 Arguments로 사용하는 객체와 Reactive Stack에서 사�
   - view, model, status, header, redirect 등의 정보를 포함한다.
 - Reactive Stack에서는 HttpMessageConverter 대신 HttpMessageWriter를 사용한다.
 
+## Spring Security Reactive
+
+Spring WebFlux를 설명하는 데 Spring Security에 대해 언급하는 이유는 Spring Security Reactive가 메이저하게 다뤄지는 부분이고 중요한 근간이기 때문이다.
+
+SpringMVC에서 Spring Security의 구조에 대해 간단하게 살펴보자.
+
+![img_6.png](img_6.png)
+
+아래는 설명이다.
+- Servlet Stack에서는 Servlet filter를 사용
+- Servlet filter에 DelegatingFilterProxy를 추가
+  - DelegatingFilterProxy는 SecurityFilterChain을 호출
+- SecurityFilterChain를 사용해서 인증 인가를 수행
+  - 각 Filter와 컨트롤러에서는 SecurityContextHolder를 사용
+
+문제는 SecurityContextHolder는 내부적으로 ThreadLocal을 사용한다.
+
+즉, Spring MVC에서는 Thread per request 모델이어서 문제가 없었지만, Spring Webflux에서는 1개 Thread가 여러 개의 요청을 처리함으로 문제가 생긴다.
+
+그래서 Spring Security Reactive가 필요하다.
+
+#### SecurityWebFilterChain
+
+Spring Security Reactive에서는 SecurityWebFilterChain을 사용한다.
+
+SecurityWebFilterChain에서는 SecurityContextHolder가 아닌 ReactiveSecurityContextHolder를 사용한다.
+
+```java
+public final class ReactiveSecurityContextHolder {
+    
+    public static Mono<SecurityContext> getContext() {
+        return Mono.subscriberContext()
+                .filter(ReactiveSecurityContextHolder::hasSecurityContext)
+                .flatMap(ReactiveSecurityContextHolder::getSecurityContext);
+    }
+    
+    public static Function<Context, Context> clearContext() {
+        return (context) -> context.delete(SECURITY_CONTEXT_KEY);
+    }
+    
+    public static Context withSecurityContext(Mono<? extends SecurityContext> securityContext) {
+        return Context.of(SECURITY_CONTEXT_KEY, securityContext);
+    }
+
+    public static Context withAuthentication(Authentication authentication) {
+        return withSecurityContext(Mono.just(new SecurityContextImpl(authentication)));
+    }
+}
+```
+
+해당 클래스는 ThreadLocal 대신 SecurityContext라는 것을 사용한다.
+
+각 메서드의 역할은 아래와 같다.
+- getContext: SecurityContext를 Mono로 제공
+- clearContext: SecurityContext를 clear
+- withSecurityContext: SecurityContext를 Mono로 받아서 이를 포함하는 Context 반환
+- withAuthentication: Authentication을 받아서 SecurityContext를 생성 후 Context 반환
+
+해당 클래스에서 사용하는 Context는 이전 2편 Reactor 부분에서 봤던 `reactor.util.context`의 Context이다.
+- https://jaehoney.tistory.com/412
+
+그래서 다른 요청의 Context와 독립적으로 관리될 수 있다.
+
 ## 참고
 - https://docs.spring.io/spring-framework/reference/
 - https://fastcampus.co.kr/courses/216172
