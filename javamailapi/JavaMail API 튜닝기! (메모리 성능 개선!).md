@@ -1,14 +1,16 @@
 ## 이슈
 
-![img.png](images/img.png)
+```
+Handle dispatch failed: nested exception is java.lang.OutOfMemoryError: Java heap space
+```
 
-어느날 메일 API의 특정 메일 첨부파일을 읽어오는 end-point에서 OOM이 터졌다.
+어느날 특정 end-point에서 OOM이 터졌다.
 
-오잉..? 아직까지 일부 사용자에게만 운영중인 서버라서 OOM이 터지는 것은 뭔가가 잘못되었다는 것을 의미한다.
+아직까지 일부 사용자에게만 운영중인 서버라서 OOM이 터지는 것은 뭔가가 잘못되었다는 것을 의미한다.
 
 ![img_1.png](images/img_1.png)
 
-**Rancher**를 확인한 결과 실제로 메모리가 들쑥날쑥했고, OOM으로 인해 파드가 여러번 재실행되었다.
+리소스를 확인한 결과 실제로 메모리가 들쑥날쑥했고, OOM으로 인해 파드가 여러번 재실행되었다.
 
 ### 본문 내용
 
@@ -18,19 +20,21 @@
 
 ### 첨부파일 조회 Flow
 
+아래는 사용자가 Java-Mail-API를 사용하는 해당 서버에서 첨부파일을 조회할 때 발생하는 동작이다.
+
 ![img_5.png](images/img_5.png)
 
 해당 원문과 Flow를 그려보니 바로 떠오르는 원인을 알 수 있었다.
 
-조금 더 넓은 범위의 Flow를 그려보자.
+조금 더 사용자 범위에서의 Flow를 그려보자.
 
 ![img_6.png](images/img_6.png)
 
-즉, HTML 원문 조회 과정에서 **첨부파일에 대한 조회가 많이 발생**했고, 이로 인해서 서버가 터졌다.
+즉, HTML 원문 조회 과정에서 **N개의 첨부파일에 대한 조회가 발생**하고 그로 인해 서버가 터졌다.
 
-정상적인 경우라면 서버가 터지면 안되는 상황이었다. (사용자가 그렇게 많지 않기 때문)
+정상적인 경우라면 서버가 터지면 안된다. (사용자가 그렇게 많지 않기 때문)
 
-그래서 **Rancher**를 확인해보니 해당 **38MB** 짜리 원문을 조회하는 데 Memory 사용량이 **312MB** 정도 급증하고 있었다.
+심지어 **38MB** 짜리 원문을 조회하는 데 Memory 사용량이 **312MB** 정도 급증하고 있었다.
 
 ## Memory 급증
 
@@ -73,6 +77,10 @@ Memory 급증 원인을 찾기 위해 `MimeMessage`를 생성하는 테스트 �
 
 `MimeMessageParser.parse()`를 사용하면 더 많은 메모리(대략 **70MB** 정도)를 저장한다.
 
+여기서 **매우 큰 문**제를 발견할 수 있었다.
+
+37MB ~ 38MB의 메일 중 첨부파일 1개만 조회했을 뿐인데, 모든 메일 데이터를 메모리에 올리는 것이 첫 번째 문제였다.
+
 사용자 입장에서 **메일 1개를 조회**해서 브라우저 렌더링하면 **첨부파일 10개를 동시에 조회**하므로 **서버에 700MB 정도의 메모리 급증이 일어나게 된다.** (본문 조회까지 하면 x11..)
 
 즉, `byte[]`가 아니라 `File`만 가지고 있다가 **Stream**으로 읽어오던지, 조회할 첨부파일만 메모리에 할당하던지 하는 처리가 필요하다.
@@ -109,7 +117,7 @@ Memory 급증 원인을 찾기 위해 `MimeMessage`를 생성하는 테스트 �
 
 ![img_21.png](images/img_27.png)
 
-**메모리 사용량**도 **70MB에서 수정 후 거의 사용하지 않는다.**
+**메모리 사용량**도 **70MB였던 부분이 전혀 사용하지 않도록 개선되었다.**
 
 그래서 해당 부분까지 적용해보기로 했다.
 
@@ -119,11 +127,9 @@ Memory 급증 원인을 찾기 위해 `MimeMessage`를 생성하는 테스트 �
 
 `SharedFileInputStream`으로 바꾼 모듈을 사용처(Api Server)에서 의존을 받아서 테스트 코드를 돌려봤다.
 
-![img_2.png](images/img_2.png)
+![img.png](images/img.png)
 
-![img_3.png](images/img_3.png)
-
-**결과 일부 테스트가 깨졌고**, 다시 돌리니까 재현이 안되어서 `@RepeatedTest`를 돌려보니 **간헐적으로 테스트가 실패**하는 것을 확인할 수 있었다.
+그리고 테스트가 성공과 실패를 번갈아가면서 하길래, `@RepeatedTest`를 돌려보니 **간헐적으로 테스트가 실패**하는 것을 확인할 수 있었다.
 
 ![img_4.png](images/img_4.png)
 
@@ -224,33 +230,33 @@ public class SharedMimeMessage extends MimeMessage {
 
     private InputStream rawInputStream;
     
-    public HiworksMimeMessage(Session session) {
+    public MimeMessage(Session session) {
         super(session);
     }
 
-    public HiworksMimeMessage(Session session, InputStream is) throws MessagingException {
+    public MimeMessage(Session session, InputStream is) throws MessagingException {
         super(session, is);
         if(is instanceof SharedInputStream) {
             rawInputStream = is;
         }
     }
 
-    public HiworksMimeMessage(MimeMessage source) throws MessagingException {
+    public MimeMessage(MimeMessage source) throws MessagingException {
         super(source);
     }
 
-    protected HiworksMimeMessage(Folder folder, int msgnum) {
+    protected MimeMessage(Folder folder, int msgnum) {
         super(folder, msgnum);
     }
 
-    protected HiworksMimeMessage(Folder folder, InputStream is, int msgnum) throws MessagingException {
+    protected MimeMessage(Folder folder, InputStream is, int msgnum) throws MessagingException {
         super(folder, is, msgnum);
         if(is instanceof SharedInputStream) {
             rawInputStream = is;
         }
     }
 
-    protected HiworksMimeMessage(Folder folder, InternetHeaders headers, byte[] content, int msgnum) throws MessagingException {
+    protected MimeMessage(Folder folder, InternetHeaders headers, byte[] content, int msgnum) throws MessagingException {
         super(folder, headers, content, msgnum);
     }
 }
@@ -275,8 +281,6 @@ public class SharedMimeMessage extends MimeMessage {
 
 반영 결과 Client의 조회 1건으로 메모리 사용량이 **312MB 정도 튀고 OOM이 터지던 것**이
 **수정 후에는 30MB 정도** 튀는 것을 확인했다.
-
-이제 **실서버에 적용**하자.
 
 ## 실서버 적용
 
@@ -307,7 +311,7 @@ public class SharedMimeMessage extends MimeMessage {
 
 ![metric_2.png](images/metric_2.PNG)
 
-이제 실서버에 배포해야곘다!
+더 이상 OOM 문제가 발생하지 않았다.
 
 
 ## 참고
