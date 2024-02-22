@@ -49,48 +49,36 @@ Kafka에서 Producer, Topic, Consumer에는 수 많은 설정이 있다.
 
 어떤 메시지를 발행할 것인지에 대한 고민이 필요했다.
 
-사실 기존 프로젝트에서는 팀장님께서 개발하셨던 코드에 의해 이벤트를 발생하고 있었다.
-
-- ForwardSendEvent
-- ArchiveSendEvent
-
-해당 이벤트는 Forward Send, Archive Send가 필요하다는 기대 결과를 담은 메시지이다. 작업에 나는 아래의 리뷰를 남겼었다..!
+아래는 내가 리뷰했던 내용이다.
 
 ![img_3.png](images/img_3.png)
 
-즉, Forward가 필요하다는 메시지가 아니라, 메일이 발송되었다는 메시지를 발송해야 하는 것이 아니냐는 생각이었다!
+**특정 행위가 필요하다는 메시지**가 아니라, **특정 행위가 완료되었다는 이벤트**를 발송해야 하는 것이 아닐까 하는 것이었다.
 
-하지만 발송을 1건할 때마다 이벤트를 1건 발행해버리면 구독자가 그 만큼 많이 필요하고 이벤트를 필터링해야 하는데, 서비스가 그렇게 크지 않고 자원은 한정되어 있었다.
+문제는 **구독자가 그 만큼 많이 필요하고 이벤트를 필터링**해야 하는데, 서비스가 그렇게 크지 않고 자원은 한정되어 있었다.
 
-그래서 이벤트는 아쉽지만 메시지 주체로 MailArchivedEvent를 사용하고, 발행하는 측에서 아카이빙 여부를 판단하여 발행하는 쪽으로 설계했다.
-
-- 팀장님께서는 추후에 이벤트를 충분히 사용하게 되면 통합하자고 하셨다!
+그래서 아쉽지만 메시지 주체로 필요한 행위를 담도록 결정했다.
 
 ### 3\. 이벤트 스펙
 
 이벤트 주체 뿐만 아니라 이벤트 스펙에도 고민이 있었다.
 
-리뷰를 남긴 이유는 기존 이벤트 Spec으로 MimeMessage를 사용하는 부분이 확장성이 떨어진다고 생각했기 때문이다. (위 리뷰 참조)
+리뷰를 남긴 이유는 기존 이벤트 Spec으로 MimeMessage를 사용하는 부분이 확장성이 떨어진다고 생각했기 때문이다.
 
-해당 부분에 대해 아래와 같이 리뷰를 받았다!
+**ZeroPayload**가 가장 이상적이라고 생각했지만 구조적으로 해당 부분을 적용할 수 없었다.
 
-![img_4.png](images/img_4.png)
-
-Archiving Consumer의 경우 **ZeroPayload**가 가장 이상적이라고 생각했지만 해당 부분을 적용할 수 없었다.
-
-- Consumer가 이벤트를 소비하기 전에 메일이 삭제되어선 안된다는 요구사항
-- 메일을 저장하지 않고 발송할 수 있음
-    - DB에 데이터가 저장되지 않음
+- id를 사용할 경우: DB에 저장하지 않고 발송할 수 있기 때문에 Archive 처리를 할 수 없었다.
+- path를 사용할 경우: Consumer가 이벤트를 소비하기 전에 메일이 삭제될 수 있었다.
 
 그래서 논의 후에 **임시 폴더에 데이터를 카피**한 후 **해당 Path도 이벤트 스펙에 포함**시키기로 했다.
 
 ```java
 @Getter
-public class ExternalArchivedEvent implements Serializable {
+public class ExternalArchiveEvent implements Serializable {
     private Long mailNo;
     private String path;
 
-    public ExternalArchivedEvent(Long mailNo, Path path) {
+    public ExternalArchiveEvent(Long mailNo, Path path) {
         this.mailNo = mailNo;
         this.path = path.toString();
     }
@@ -123,27 +111,24 @@ public class ExternalArchivedEvent implements Serializable {
 Callback을 사용하면 낭비되는 스레드 없이 Kafka를 발송 완료한 스레드가 Callback을 실행한다. 추가로 블로킹 없이 비동기로 호출해서 처리량 저하가 발생하지 않기 때문에 아래와 같이 Callback을 사용했다.
 
 ```java
-@Async("ArchiveEventAsyncExecutor")
+@Async("ArchiveExecutor")
 @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-public void publishArchivedEvent(MailArchivedEvent event) {
-    Path savedPath = archiveMessageRepository.saveFile(event.getUserId(), event.getMessage());
-
-    ExternalArchivedEvent externalArchivedEvent = new ExternalArchivedEvent(event.userId(), savedPath);
-    objectKafkaTemplate.send(ARCHIVED_TOPIC, externalArchivedEvent)
+public void publishArchivedEvent(ArchiveEvent event) {
+    ExternalArchiveEvent externalEvent = new ExternalArchiveEvent(event.userId(), savedPath);
+    KafkaTemplate.send(TOPIC, externalEvent)
             .addCallback(new ListenableFutureCallback<>() {
-                    public void onSuccess(SendResult<String, Object> result) {}
+                    public void onSuccess(SendResult<String, Object> result) {
+                        // ..
+                    }
 
                     public void onFailure(Throwable ex) {
-                        log.error("Failed to send message to Kafka topic: " + ARCHIVED_TOPIC + ". officeNo: {}, officeUserNo: {}, archived eml: {}.", event.getOfficeNo(), event.getOfficeUserNo(), externalArchivedEvent.getPath(), ex);
+                        // ..
                     }
             });
 }
 ```
 
 발송 실패 시에는 로그를 남기고 있다.
-
-- 메인 트랜잭션에서 Log(Event)를 DB에 Insert해주면 문제가 생겼을 때 추적이 쉽고 Batch를 돌려서 후속 처리도 쉽다고 생각했다.
-- 자원 부족으로 우선은 Log만 남기도록 협의했다.
 
 #### Ack
 
@@ -255,45 +240,7 @@ staging 서버와 master 서버에서 동일한 Kafka Brocker를 사용하기 �
 
 - 저장된 Path에서 파일을 먼저 옮긴다.
 - DB에 데이터를 삽입한다.
-    - 실패 처리 고려
-
-처리 로직은 아래와 같다.
-
-```java
-@Service
-@RequiredArgsConstructor
-class ArchiveService implements SaveArchiveMailUseCase {
-    private final MoveMailMessagePort moveMailMessagePort;
-    private final PostArchiveMailPort postArchiveMailPort;
-    private final MailMessageParser mailMessageParser;
-    private final LoadPolicyPort loadPolicyPort;
-
-    public void archive(ArchiveRequest request) {
-        Path path = moveMailMessagePort.moveEml(request.sourcePath(), request.officeNo(), request.officeUserNo(), request.messagePartition());
-        MailMessage mailMessage = getMailMessage(path);
-
-        Policy policy = loadPolicyPort.loadPolicy(request.officeNo());
-
-        PostArchiveMailRequest postArchiveMailRequest = new PostArchiveMailRequest(
-                request.officeNo(),
-                request.officeUserNo(),
-                mailMessage,
-                path.getFileName().toString(),
-                policy.getArchiveYear()
-        );
-
-        postArchiveMailPort.postArchiveMail(postArchiveMailRequest);
-    }
-
-    private MailMessage getMailMessage(Path path) {
-        try {
-            return mailMessageParser.parse(path.toFile());
-        } catch (IOException e) {
-            throw new StorageJobException(ErrorCode.ARCHIVE_STORAGE_ERROR, e.getMessage());
-        }
-    }
-}
-```
+    - 실패 처리를 고려한다.
 
 처음에 전달받은 파일부터 옮기면 **메시지가 중복으로 소비되더라도 1개만 성공**되므로 괜찮다고 판단했다.
 
@@ -319,47 +266,14 @@ Spring Kafka의 Consumer는 기본적으로 메시지 소비에 실패할 시 10
 
 - 많이 사용하는 방법 중에 재시도가 모두 실패했을 때 DLQ(Dead Letter Queue)에 넣고 후처리하는 방법이 있다.
 
-여기서도 DLQ를 사용하면 추적 및 후처리가 편리하겠다고 판단했다. 설정은 아래와 같다.
+DLQ를 사용하면 추적 및 후처리가 편리하겠다고 판단했다. 설정은 아래와 같다.
 
 ```java
-@Slf4j
 @Configuration
-@RequiredArgsConstructor
 public class KafkaConsumerConfig {
-    private final KafkaProperties kafkaProperties;
-
+    
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory(
-        ConsumerFactory<String,String> consumerFactory, KafkaTemplate<String, Object> objectKafkaTemplate) {
-        ConcurrentKafkaListenerContainerFactory<String, String> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory);
-        factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
-        factory.setMessageConverter(new JsonMessageConverter());
-        factory.setCommonErrorHandler(customErrorHandler(objectKafkaTemplate));
-        factory.setMessageConverter(messageConverter());
-        return factory;
-    }
-
-    @Bean
-    public ConsumerFactory<String, String> consumerFactory() {
-        return new DefaultKafkaConsumerFactory<>(consumerProps());
-    }
-
-    private Map<String, Object> consumerProps() {
-        Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers());
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, kafkaProperties.getConsumer().getGroupId());
-
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, kafkaProperties.getConsumer().getAutoOffsetReset());
-        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, kafkaProperties.getConsumer().getMaxPollRecords());
-        return props;
-    }
-
-    private DefaultErrorHandler customErrorHandler(KafkaTemplate<String, Object> kafkaTemplate) {
+    public DefaultErrorHandler dlqErrorHandler(KafkaTemplate<String, Object> kafkaTemplate) {
         DeadLetterPublishingRecoverer dlqRecover = new DeadLetterPublishingRecoverer(kafkaTemplate,
                 (record, e) -> {
                     log.error("topic: {}, cause: {}, value: {}", record.topic(), e.getMessage(), record.value());
@@ -367,10 +281,6 @@ public class KafkaConsumerConfig {
                 });
 
         return new DefaultErrorHandler(dlqRecover, new FixedBackOff(0L, 2L));
-    }
-
-    public MessageConverter messageConverter() {
-        return new StringJsonMessageConverter();
     }
 }
 ```
