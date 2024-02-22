@@ -51,7 +51,6 @@ Http Streaming 방식은 위 문제들을 해결한 방식이다.
 
 Spring WebFlux에서는 Handler의 Return Type으로 `Flux<ServerSentEvent>`, `Observable<ServerSentEvent>`를 지원한다.
 
-
 내부적으로는 Chunked Transfer-Encoding 기반으로 아래와 같은 데이터를 전송한다.
 
 ```
@@ -84,6 +83,55 @@ data:data-2
 - retry: reconnection을 위한 대기 시간을 클라이언트에게 전달
 - comment(Empty): 정보를 남기기 위한 역할
 
+#### ServerSentEventHttpMessageWriter
+
+Spring WebFlux는 Servlet Stack과 다르게 ~Converter가 아니라 ~Writer를 사용한다.
+
+ServerSentEventHttpMessageWriter는 객체를 ServerSentEvent 형태로 encode해서 write하는 역할을 한다.
+
+```java
+public class ServerSentEventHttpMessageWriter implements HttpMessageWriter<Object> {
+    private static final MediaType DEFAULT_MEDIA_TYPE = 
+            new MediaType("text", "event-stream", StandardCharsets.UTF_8);
+    private static final List<MediaType> WRITABLE_MEDIA_TYPES =
+            Collections.singletonList(MediaType.TEXT_EVENT_STREAM);
+}
+```
+
+ServerSentEventHttpMessageWriter는 MediaType으로 "event-stream"을 찾아서 핸들링한다.
+
+내부를 보면 ServerSentEvent가 input으로 들어오면 그대로 사용하고, 아니라면 ServerSentEvent로 변환한다.
+
+![img_1.png](img_1.png)
+
+즉, Content-Type으로 `text/event-stream`을 사용하면 ServerSentEvent로 응답을 내릴 수 있다.
+
+ServerSentEvent는 내부적으로 Flux의 값을 조금씩 흘려보낸다. 해당 부분에 대해 더 알아보자.
+
+#### Controller 구현
+
+아래 Controller는 Content-Type으로 `text/event-stream`을 사용한다.
+
+```java
+@Controller
+public class SseController {
+    @ResponseBody
+    @GetMapping(path = "/sse", produces = "text/event-stream")
+    Flux<String> sse() {
+        return Flux.interval(Duration.ofMillis(1000))
+                .map(i -> "VioletBeach: " + i);
+    }
+}
+```
+
+그 결과 아래와 같이 초마다 1Line씩 데이터가 출력된다.
+
+![img_4.png](img_4.png)
+
+
+
+
 ## 참고
 
+- https://fastcampus.co.kr/courses/216172
 - https://medium.com/techieahead/http-short-vs-long-polling-vs-websockets-vs-sse-8d9e962b2ba8
