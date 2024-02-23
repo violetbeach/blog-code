@@ -115,10 +115,10 @@ Response의 OutputStream을 바로 ZipOutputStream으로 변환해서 사용한 
 아래는 responseZip()의 일부이다.
 
 ```java
-zos.write(attachment.getBytes());
+zos.write(driveFile.getBytes());
 ```
 
-attachment.getBytes()의 내부 구현을 보니까 모든 파일 데이터(bytes)를 읽어서 메모리에 올리고 있었다.
+driveFile.getBytes()의 내부 구현을 보니까 모든 파일 데이터(bytes)를 읽어서 메모리에 올리고 있었다.
 
 ```java
 public byte[] getBytes() {
