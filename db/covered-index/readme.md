@@ -24,7 +24,7 @@ left outer join
 left outer join
     article_auth on (article_auth.article_id = article.article_id)
 where
-    region_code = 'KR' and
+    article.region_code = 'KR' and
     (category.is_public = true or category.category_id is null)
     # 검색조건
 order by article.article_id desc
@@ -55,7 +55,7 @@ from article
 left outer join
      category on (category.category_id = article.category_id)
 where
-    region_code = 'KR' and
+    article.region_code = 'KR' and
     (category.is_public = true or category.category_id is null)
     # 검색조건
 limit 0, 20;
@@ -144,7 +144,7 @@ from article
 left outer join
      category on (category.category_id = article.category_id)
 where
-    region_code = 'KR' and
+    article.region_code = 'KR' and
     (category.is_public = true or category.category_id is null)
     # 검색조건
 order by article.article_id desc
@@ -183,10 +183,9 @@ from article
 left outer join
      category on (category.category_id = article.category_id)
 where
-    region_code = 'KR' and
+    article.region_code = 'KR' and
     (category.is_public = true or category.category_id is null)
     # 검색조건
-limit 0, 20;
 ```
 
 카운트 쿼리도 커버링 인덱스로 조회를 하고 있다.
@@ -210,7 +209,6 @@ from article
      article_auth on (article_auth.article_id = article.article_id)
 where
     article.article_id in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20) and
-    (category.is_public = true or category.category_id is null)
 order by article.article_id desc
 ```
 
@@ -247,9 +245,10 @@ public class ArticleRepositoryImpl {
         JPAQuery<Long> idsQuery = jpaQueryFactory
             .select(article.articleId)
             .from(article)
+            .leftJoin(category).on(category.categoryId.eq(article.categoryId))
             .where(
                 article.regionCode.eq(regionCode),
-                category.isPublic.eq(true).or(category.categoryId.isNull())
+                category.isPublic.eq(true).or(article.categoryId.isNull())
             );
 
         // 페이지 네이션 적용 (offset, limit, sort) 후 쿼리 실행
