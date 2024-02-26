@@ -6,9 +6,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 
 @SpringBootTest
-class AsIfRepositoryTest {
+class AsIsRepositoryTest {
 
-    @Autowired AsIfRepository asIfRepository;
+    @Autowired
+    AsIsRepository asIfRepository;
 
     @Test
     void test() {

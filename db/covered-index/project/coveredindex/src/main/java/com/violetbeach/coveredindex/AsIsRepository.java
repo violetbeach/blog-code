@@ -19,11 +19,11 @@ import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 @Repository
-public class AsIfRepository {
+public class AsIsRepository {
     private final JPAQueryFactory jpaQueryFactory;
     private final Querydsl querydsl;
 
-    public AsIfRepository(JPAQueryFactory jpaQueryFactory, EntityManager entityManager) {
+    public AsIsRepository(JPAQueryFactory jpaQueryFactory, EntityManager entityManager) {
         this.jpaQueryFactory = jpaQueryFactory;
         this.querydsl = new Querydsl(entityManager, new PathBuilderFactory().create(Article.class));
     }
@@ -38,8 +38,7 @@ public class AsIfRepository {
                 articleAuth.articleAuthId
             ))
             .from(article)
-            .leftJoin(category)
-            .on(category.categoryId.eq(article.categoryId))
+            .leftJoin(category).on(category.categoryId.eq(article.categoryId))
             .leftJoin(articleAuth)
             .on(articleAuth.articleId.eq(article.articleId))
             .where(

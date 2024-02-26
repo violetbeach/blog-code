@@ -203,12 +203,10 @@ select article.article_id,
        article_auth.article_auth_id
        # .. 생략
 from article
-         left outer join
-     category on (category.category_id = article.category_id)
-         left outer join
+left outer join
      article_auth on (article_auth.article_id = article.article_id)
 where
-    article.article_id in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20) and
+    article.article_id in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
 order by article.article_id desc
 ```
 
@@ -248,7 +246,7 @@ public class ArticleRepositoryImpl {
             .leftJoin(category).on(category.categoryId.eq(article.categoryId))
             .where(
                 article.regionCode.eq(regionCode),
-                category.isPublic.eq(true).or(article.categoryId.isNull())
+                category.isPublic.eq(true).or(category.categoryId.isNull())
             );
 
         // 페이지 네이션 적용 (offset, limit, sort) 후 쿼리 실행
