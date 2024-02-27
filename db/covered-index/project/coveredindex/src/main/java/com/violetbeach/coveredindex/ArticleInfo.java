@@ -2,11 +2,14 @@ package com.violetbeach.coveredindex;
 
 import com.querydsl.core.annotations.QueryProjection;
 
+import lombok.Getter;
+
+@Getter
 public class ArticleInfo {
     private final Long articleId;
     private final String subject;
     private final String content;
-    private final Long categoryId;
+    private final String categoryId;
     private final Long articleAuthId;
 
     @QueryProjection
@@ -19,7 +22,7 @@ public class ArticleInfo {
     }
 
     @QueryProjection
-    public ArticleInfo(Long articleId, String subject, String content, Long categoryId, Long authId) {
+    public ArticleInfo(Long articleId, String subject, String content, String categoryId, Long authId) {
         this.articleId = articleId;
         this.subject = subject;
         this.content = content;

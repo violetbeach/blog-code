@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-// @Table(indexes = @Index(name = "ix_category_id", columnList = "category_id"))
+// @Table(indexes = @Index(name = "ix_region_code_category_id", columnList = "regision_code,category_id"))
 public class Article {
 
     @Id
@@ -22,7 +22,7 @@ public class Article {
     private String subject;
     private String content;
     private String regionCode;
-    private Long categoryId;
+    private String categoryId;
     @Lob
     private String additional1;
     @Lob
@@ -42,7 +42,7 @@ public class Article {
     @Lob
     private String additional9;
 
-    public Article(String subject, String content, Long categoryId) {
+    public Article(String subject, String content, String categoryId) {
         this.subject = subject;
         this.content = content;
         this.categoryId = categoryId;

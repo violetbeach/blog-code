@@ -2,9 +2,9 @@ package com.violetbeach.coveredindex;
 
 import static com.violetbeach.coveredindex.QArticle.*;
 import static com.violetbeach.coveredindex.QArticleAuth.*;
-import static com.violetbeach.coveredindex.QCategory.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.persistence.EntityManager;
 
@@ -24,6 +24,7 @@ public class ToBeRepository {
     private final JPAQueryFactory jpaQueryFactory;
     private final CategoryRepository categoryRepository;
     private final Querydsl querydsl;
+    private final List<String> defaultCategoryIdList = List.of("normal", "notice", "event");
 
     public ToBeRepository(JPAQueryFactory jpaQueryFactory, CategoryRepository categoryRepository,
         EntityManager entityManager) {
@@ -33,18 +34,20 @@ public class ToBeRepository {
     }
 
     public Page<ArticleInfo> findList(String regionCode, Pageable pageable) {
-        List<Long> notPrivateCategoryIds = categoryRepository.findAllByRegionCode(regionCode)
+        List<String> publicCategoryIds = categoryRepository.findAllByRegionCode(regionCode)
             .stream()
-            .filter(category -> !category.isPublic())
+            .filter(Category::isPublic)
             .map(Category::getCategoryId)
-            .toList();
+            .collect(Collectors.toList());
+
+        publicCategoryIds.addAll(defaultCategoryIdList);
 
         JPAQuery<Long> idsQuery = jpaQueryFactory
             .select(article.articleId)
             .from(article)
             .where(
                 article.regionCode.eq(regionCode),
-                article.categoryId.notIn(notPrivateCategoryIds)
+                article.categoryId.in(publicCategoryIds)
             );
 
         List<Long> ids = querydsl.applyPagination(pageable, idsQuery).fetch();
@@ -67,8 +70,6 @@ public class ToBeRepository {
     private JPAQuery<Long> createCountQuery(Predicate whereCondition) {
         return jpaQueryFactory.select(article.count())
             .from(article)
-            .where(whereCondition)
-            .leftJoin(category)
-            .on(category.categoryId.eq(article.categoryId));
+            .where(whereCondition);
     }
 }

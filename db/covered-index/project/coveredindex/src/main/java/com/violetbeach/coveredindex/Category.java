@@ -1,8 +1,6 @@
 package com.violetbeach.coveredindex;
 
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Lob;
 
@@ -16,8 +14,7 @@ import lombok.NoArgsConstructor;
 public class Category {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long categoryId;
+    String categoryId;
     private boolean isPublic;
     private String name;
     private String regionCode;
@@ -40,7 +37,7 @@ public class Category {
     @Lob
     private String additional9;
 
-    public Category(Long categoryId, boolean isPublic, String name) {
+    public Category(String categoryId, boolean isPublic, String name) {
         this.categoryId = categoryId;
         this.isPublic = isPublic;
         this.name = name;

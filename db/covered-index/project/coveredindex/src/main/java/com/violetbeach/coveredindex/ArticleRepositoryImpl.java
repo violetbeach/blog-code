@@ -36,9 +36,10 @@ public class ArticleRepositoryImpl {
         JPAQuery<Long> idsQuery = jpaQueryFactory
             .select(article.articleId)
             .from(article)
+            .leftJoin(category).on(category.categoryId.eq(article.categoryId))
             .where(
                 article.regionCode.eq(regionCode),
-                category.isPublic.eq(true).or(category.categoryId.isNull())
+                category.isPublic.eq(Boolean.TRUE).or(category.categoryId.isNull())
             );
 
         List<Long> ids = querydsl.applyPagination(pageable, idsQuery).fetch();
