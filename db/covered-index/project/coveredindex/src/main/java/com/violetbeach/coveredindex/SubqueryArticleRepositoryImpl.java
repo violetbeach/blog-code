@@ -16,16 +16,17 @@ import org.springframework.stereotype.Repository;
 
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.PathBuilderFactory;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 @Repository
-public class ArticleRepositoryImpl {
+public class SubqueryArticleRepositoryImpl {
     private final JPAQueryFactory jpaQueryFactory;
     private final CategoryRepository categoryRepository;
     private final Querydsl querydsl;
 
-    public ArticleRepositoryImpl(JPAQueryFactory jpaQueryFactory, CategoryRepository categoryRepository,
+    public SubqueryArticleRepositoryImpl(JPAQueryFactory jpaQueryFactory, CategoryRepository categoryRepository,
         EntityManager entityManager) {
         this.jpaQueryFactory = jpaQueryFactory;
         this.categoryRepository = categoryRepository;
@@ -36,11 +37,16 @@ public class ArticleRepositoryImpl {
         JPAQuery<Long> idsQuery = jpaQueryFactory
             .select(article.articleId)
             .from(article)
-            .leftJoin(category).on(category.categoryId.eq(article.categoryId))
             .where(
                 article.regionCode.eq(regionCode),
-                category.isPublic.eq(Boolean.TRUE).or(category.categoryId.isNull()),
-                category.regionCode.eq(regionCode)
+                article.categoryId.in(
+                    JPAExpressions.select(category.categoryId)
+                        .from(category)
+                        .where(
+                            category.isPublic.eq(true),
+                            category.regionCode.eq(regionCode)
+                        )
+                )
             );
 
         List<Long> ids = querydsl.applyPagination(pageable, idsQuery).fetch();
@@ -63,8 +69,6 @@ public class ArticleRepositoryImpl {
     private JPAQuery<Long> createCountQuery(Predicate whereCondition) {
         return jpaQueryFactory.select(article.count())
             .from(article)
-            .where(whereCondition)
-            .leftJoin(category)
-            .on(category.categoryId.eq(article.categoryId));
+            .where(whereCondition);
     }
 }

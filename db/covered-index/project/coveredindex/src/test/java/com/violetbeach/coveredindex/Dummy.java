@@ -104,4 +104,25 @@ public class Dummy {
                 });
         }
     }
+
+    @Test
+    void categorySpread() {
+        List<Category> categories = new ArrayList<>();
+        while (categoryIndex < 100000) {
+            boolean isPublic = categoryIndex % 5 != 0;
+            categories.add(
+                new Category(String.valueOf(categoryIndex), isPublic, "name_" + categoryIndex++, )
+            );
+        }
+
+        String sql = "INSERT INTO category (is_public, name) VALUES (?, ?)";
+        jdbcTemplate.batchUpdate(sql,
+            categories,
+            1000,
+            (PreparedStatement ps, Category category) -> {
+                ps.setBoolean(1, category.isPublic());
+                ps.setString(2, category.getName());
+            });
+    }
+
 }

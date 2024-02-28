@@ -42,4 +42,8 @@ public class Category {
         this.isPublic = isPublic;
         this.name = name;
     }
+
+    public void setRegionCode(String regionCode) {
+        this.regionCode = regionCode;
+    }
 }

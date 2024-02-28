@@ -120,7 +120,7 @@ from article
 left outer join
      category on (category.category_id = article.category_id)
 where
-    region_code = 'JP' and
+    article.region_code = 'JP' and
     (category.is_public = true or category.category_id is null)
 ```
 
@@ -135,16 +135,16 @@ where
 
 ```sql
 left outer join
-     category on (category.category_id = article.category_id)
+    category on (category.category_id = article.category_id)
 where
-    region_code = 'JP' and
+    article.region_code = 'JP' and
     (category.is_public = true or category.category_id is null)
 ```
 
 해당 쿼리는 의도와 정확하게 일치하는 쿼리이다. 
 
-article이 기본 category와 매핑된 것도 있다. 기본 category는 테이블에 보관하지 않는다. categoryId가 normal, notice, event인 경우이다.
 해당 경우는 Join할 레코드가 없으므로 `category.category_id is null`로 체크한다. 요구사항을 정리하면 아래와 같다.
+article이 기본 category와 매핑된 것도 있다. 기본 category는 테이블에 보관하지 않는다. categoryId가 default, notice, event인 경우이다.
 - region_code가 'JP'인 레코드만 조회한다.
 - category의 is_public이 true 거나 조인할 카테고리가 없는 데이터만 노출한다.
 
@@ -172,7 +172,7 @@ public class ArticleRepositoryImpl {
     private final JPAQueryFactory jpaQueryFactory;
     private final CategoryRepository categoryRepository;
     private final Querydsl querydsl;
-    private final List<String> defaultCategoryIdList = List.of("normal", "notice", "event");
+    private final List<String> defaultCategoryIdList = List.of("default", "notice", "event");
 
     public ArticleRepositoryImpl(JPAQueryFactory jpaQueryFactory, CategoryRepository categoryRepository,
         EntityManager entityManager) {
@@ -233,14 +233,14 @@ public class ArticleRepositoryImpl {
 # 1. PUBLIC 카테고리 전체 검색
 select category_id
 from category
-where is_public = true
+where region_code = 'JP' and is_public = true
     
 # 2. 커버링 인덱스 기반 id 리스트 조회
 select article.article_id
 from article
 where
     article.region_code = 'JP' and
-    article.category_id in ('1', '2', '3', '4', '5', 'normal', 'notice', 'event')
+    article.category_id in ('1', '2', '3', '4', '5', 'default', 'notice', 'event')
 order by article.article_id desc
 limit 0, 20;
 
@@ -249,7 +249,7 @@ select count(1)
 from article
 where
     article.region_code = 'JP' and
-    article.category_id in ('1', '2', '3', '4', '5', 'normal', 'notice', 'event')
+    article.category_id in ('1', '2', '3', '4', '5', 'default', 'notice', 'event')
 
 # 4. 데이터 블록 조회
 select article.article_id,

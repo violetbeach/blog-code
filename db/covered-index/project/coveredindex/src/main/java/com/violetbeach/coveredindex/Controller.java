@@ -13,16 +13,23 @@ import lombok.RequiredArgsConstructor;
 public class Controller {
     private final ArticleRepositoryImpl articleRepository;
     private final ToBeRepository toBeRepository;
+    private final SubqueryArticleRepositoryImpl subqueryArticleRepository;
 
     @GetMapping("/join")
     ResponseEntity<Page<ArticleInfo>> join() throws InterruptedException {
-        Page<ArticleInfo> articles = articleRepository.findList("JP", PageRequest.of(0, 50));
+        Page<ArticleInfo> articles = articleRepository.findList("2", PageRequest.of(0, 50));
         return ResponseEntity.ok().body(articles);
     }
 
     @GetMapping("/split")
     ResponseEntity<Page<ArticleInfo>> split() throws InterruptedException {
-        toBeRepository.findList("JP", PageRequest.of(0, 50));
+        toBeRepository.findList("2", PageRequest.of(0, 50));
         return ResponseEntity.ok().body(null);
+    }
+
+    @GetMapping("/subquery")
+    ResponseEntity<Page<ArticleInfo>> subquery() throws InterruptedException {
+        Page<ArticleInfo> articles = subqueryArticleRepository.findList("2", PageRequest.of(0, 50));
+        return ResponseEntity.ok().body(articles);
     }
 }
