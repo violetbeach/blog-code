@@ -1,4 +1,4 @@
-class Test {
+class UserExam {
     fun getUserTypeCode(user: User): Any = when (user.type) {
         Type.MEMBER -> if (true) {
             1
@@ -11,15 +11,16 @@ class Test {
         } else {
             1
         }
+
+        else -> 0
     }
 
     class User {
-        val type: Type
+        var type: Type? = null
     }
 
     enum class Type {
         ADMIN,
         MEMBER,
     }
-
 }
