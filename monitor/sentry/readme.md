@@ -59,7 +59,69 @@ class Controller {
 }
 ```
 
-우선 Error를 전달(Capture)하는 기준에 대해 알아야 한다.
+우선 Error를 전달(Capture)하는 원리와 기준에 대해 알아야 한다.
+
+## 원리
+
+아래는 Sentry 라이브러리에 있는 `SentryExceptionResolver`이다.
+```java
+public class SentryExceptionResolver implements HandlerExceptionResolver, Ordered {
+    
+    private final int order;
+    // .. 생략
+    
+    @Override
+    public @Nullable ModelAndView resolveException(
+        final @NotNull HttpServletRequest request,
+        final @NotNull HttpServletResponse response,
+        final @Nullable Object handler,
+        final @NotNull Exception ex) {
+
+        final SentryEvent event = createEvent(request, ex);
+        final Hint hint = createHint(request, response);
+
+        hub.captureEvent(event, hint);
+
+        // null = run other HandlerExceptionResolvers to actually handle the exception
+        return null;
+    }
+    
+    @NotNull
+    protected SentryEvent createEvent(
+        final @NotNull HttpServletRequest request, final @NotNull Exception ex) {
+
+        final Mechanism mechanism = new Mechanism();
+        mechanism.setHandled(false);
+        mechanism.setType(MECHANISM_TYPE);
+        final Throwable throwable =
+            new ExceptionMechanismException(mechanism, ex, Thread.currentThread());
+        final SentryEvent event = new SentryEvent(throwable);
+        event.setLevel(SentryLevel.FATAL);
+        event.setTransaction(transactionNameProvider.provideTransactionName(request));
+
+        return event;
+    }
+
+    // org.springframework.core.Ordered 인터페이스의 메서드
+    @Override
+    public int getOrder() {
+        return order;
+    }
+}
+```
+
+해당 클래스는 `HandlerExceptionResolver`를 구현한다. `HandlerExceptionResolver`는 스프링 웹에서 발생된 예외를 핸들링 할 수 있는 기능을 제공한다.
+
+그래서 예외를 catch한 경우에는 Error가 Sentry로 전달되지 않았던 것이다.
+
+그런데, `@ControllerAdvice`를 사용할 경우 Exception을 터트리지 않고 객체를 반환하도록 하는 경우가 많다.
+
+스프링은 `ExceptionHandlerExceptionResolver`를 검색하면서 `AnnotationAwareOrderComparator`를 사용해서 정렬한다. 해당 클래스는 Order를 사용한다.
+
+그래서 아래 속성으로 Order를 명시할 수 있다. default가 1이라서 `@ExceptionHandler`가 먼저 동작한다. (낮을수록 먼저 동작한다.)
+```properties
+sentry.exception-resolver-order: 1
+```
 
 ## 설정
 
@@ -93,6 +155,53 @@ sentry.beforeSend: null
 # 예외 해결 순서 지정, -2147483647로 설정하면 Spring 예외 처리기에서 처리된 오류는 무시한다.
 sentry.exception-resolver-order: 0
 ...
+```
+
+## 필터링
+
+Sentry는 올바른 정보와 합리적인 양을 가장 권장한다.
+
+`beforeSend`는 이벤트가 서버로 전송되기 직전에 호출되기 때문에 이벤트를 편집하거나 전송하지 않을 수 있다.
+
+BeforeSend 콜백은 `BeforeSendCallback`을 구현해서 빈으로 등록한다.
+
+```kotlin
+@Component
+class CustomBeforeSendCallback : SentryOptions.BeforeSendCallback {
+    override fun execute(event: SentryEvent, hint: Hint): SentryEvent? {
+        // Example: Never send server name in events
+        event.serverName = null
+        return event
+    }
+}
+```
+
+hint를 사용해서 추가 데이터를 추출할 수도 있다.
+
+```kotlin
+@Component
+class CustomBeforeSendCallback : SentryOptions.BeforeSendCallback {
+    override fun execute(event: SentryEvent, hint: Hint): SentryEvent? {
+        if (hint["my-hint-key"] != null) {
+            null
+        }
+        return event
+    }
+}
+```
+
+Exception 정보로 필터링하는 것도 가능하다.
+
+```kotlin
+@Component
+class CustomBeforeSendCallback : SentryOptions.BeforeSendCallback {
+    override fun execute(event: SentryEvent, hint: Hint): SentryEvent? {
+        if (event.throwable is SQLException) {
+            event.fingerprints = listOf("database-connection-error")
+        }
+        return event
+    }
+}
 ```
 
 ## 참고
