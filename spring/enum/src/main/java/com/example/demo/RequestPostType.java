@@ -2,9 +2,9 @@ package com.example.demo;
 
 public enum RequestPostType {
 
-	BOARD, TEST;
+    BOARD, TEST;
 
-	 public PostType toDomain() {
-		 return null;
-	}
+    public PostType toDomain() {
+        return null;
+    }
 }

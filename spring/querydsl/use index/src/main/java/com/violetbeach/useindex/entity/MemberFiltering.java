@@ -5,8 +5,10 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Table;
+
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+
 import org.hibernate.annotations.Immutable;
 
 @Entity
@@ -15,14 +17,14 @@ import org.hibernate.annotations.Immutable;
 @Immutable
 public class MemberFiltering {
 
-	@Id
-	@GeneratedValue
-	@Column(name = "id")
-	private Long id;
-	private String username;
+    @Id
+    @GeneratedValue
+    @Column(name = "id")
+    private Long id;
+    private String username;
 
-	public MemberFiltering(String username) {
-		this.username = username;
-	}
+    public MemberFiltering(String username) {
+        this.username = username;
+    }
 
 }

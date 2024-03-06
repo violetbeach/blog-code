@@ -9,14 +9,14 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class DriveFile {
-	private final String filename;
-	private final InputStream inputStream;
+    private final String filename;
+    private final InputStream inputStream;
 
-	public byte[] getBytes() {
-		try {
-			return inputStream.readAllBytes();
-		} catch (IOException e) {
-			throw new DriveIOException(e.getMessage());
-		}
-	}
+    public byte[] getBytes() {
+        try {
+            return inputStream.readAllBytes();
+        } catch (IOException e) {
+            throw new DriveIOException(e.getMessage());
+        }
+    }
 }

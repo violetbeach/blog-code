@@ -6,5 +6,5 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public class DomainMailMessageModel {
-	private final String content;
+    private final String content;
 }

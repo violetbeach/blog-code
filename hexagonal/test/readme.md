@@ -30,91 +30,91 @@
 ```java
 lass AccountTest {
 
-	@Test
-	void calculatesBalance() {
-		AccountId accountId = new AccountId(1L);
-		Account account = defaultAccount()
-				.withAccountId(accountId)
-				.withBaselineBalance(Money.of(555L))
-				.withActivityWindow(new ActivityWindow(
-						defaultActivity()
-								.withTargetAccount(accountId)
-								.withMoney(Money.of(999L)).build(),
-						defaultActivity()
-								.withTargetAccount(accountId)
-								.withMoney(Money.of(1L)).build()))
-				.build();
+    @Test
+    void calculatesBalance() {
+        AccountId accountId = new AccountId(1L);
+        Account account = defaultAccount()
+                .withAccountId(accountId)
+                .withBaselineBalance(Money.of(555L))
+                .withActivityWindow(new ActivityWindow(
+                        defaultActivity()
+                                .withTargetAccount(accountId)
+                                .withMoney(Money.of(999L)).build(),
+                        defaultActivity()
+                                .withTargetAccount(accountId)
+                                .withMoney(Money.of(1L)).build()))
+                .build();
 
-		Money balance = account.calculateBalance();
+        Money balance = account.calculateBalance();
 
-		assertThat(balance).isEqualTo(Money.of(1555L));
-	}
+        assertThat(balance).isEqualTo(Money.of(1555L));
+    }
 
-	@Test
-	void withdrawalSucceeds() {
-		AccountId accountId = new AccountId(1L);
-		Account account = defaultAccount()
-				.withAccountId(accountId)
-				.withBaselineBalance(Money.of(555L))
-				.withActivityWindow(new ActivityWindow(
-						defaultActivity()
-								.withTargetAccount(accountId)
-								.withMoney(Money.of(999L)).build(),
-						defaultActivity()
-								.withTargetAccount(accountId)
-								.withMoney(Money.of(1L)).build()))
-				.build();
+    @Test
+    void withdrawalSucceeds() {
+        AccountId accountId = new AccountId(1L);
+        Account account = defaultAccount()
+                .withAccountId(accountId)
+                .withBaselineBalance(Money.of(555L))
+                .withActivityWindow(new ActivityWindow(
+                        defaultActivity()
+                                .withTargetAccount(accountId)
+                                .withMoney(Money.of(999L)).build(),
+                        defaultActivity()
+                                .withTargetAccount(accountId)
+                                .withMoney(Money.of(1L)).build()))
+                .build();
 
-		boolean success = account.withdraw(Money.of(555L), new AccountId(99L));
+        boolean success = account.withdraw(Money.of(555L), new AccountId(99L));
 
-		assertThat(success).isTrue();
-		assertThat(account.getActivityWindow().getActivities()).hasSize(3);
-		assertThat(account.calculateBalance()).isEqualTo(Money.of(1000L));
-	}
+        assertThat(success).isTrue();
+        assertThat(account.getActivityWindow().getActivities()).hasSize(3);
+        assertThat(account.calculateBalance()).isEqualTo(Money.of(1000L));
+    }
 
-	@Test
-	void withdrawalFailure() {
-		AccountId accountId = new AccountId(1L);
-		Account account = defaultAccount()
-				.withAccountId(accountId)
-				.withBaselineBalance(Money.of(555L))
-				.withActivityWindow(new ActivityWindow(
-						defaultActivity()
-								.withTargetAccount(accountId)
-								.withMoney(Money.of(999L)).build(),
-						defaultActivity()
-								.withTargetAccount(accountId)
-								.withMoney(Money.of(1L)).build()))
-				.build();
+    @Test
+    void withdrawalFailure() {
+        AccountId accountId = new AccountId(1L);
+        Account account = defaultAccount()
+                .withAccountId(accountId)
+                .withBaselineBalance(Money.of(555L))
+                .withActivityWindow(new ActivityWindow(
+                        defaultActivity()
+                                .withTargetAccount(accountId)
+                                .withMoney(Money.of(999L)).build(),
+                        defaultActivity()
+                                .withTargetAccount(accountId)
+                                .withMoney(Money.of(1L)).build()))
+                .build();
 
-		boolean success = account.withdraw(Money.of(1556L), new AccountId(99L));
+        boolean success = account.withdraw(Money.of(1556L), new AccountId(99L));
 
-		assertThat(success).isFalse();
-		assertThat(account.getActivityWindow().getActivities()).hasSize(2);
-		assertThat(account.calculateBalance()).isEqualTo(Money.of(1555L));
-	}
+        assertThat(success).isFalse();
+        assertThat(account.getActivityWindow().getActivities()).hasSize(2);
+        assertThat(account.calculateBalance()).isEqualTo(Money.of(1555L));
+    }
 
-	@Test
-	void depositSuccess() {
-		AccountId accountId = new AccountId(1L);
-		Account account = defaultAccount()
-				.withAccountId(accountId)
-				.withBaselineBalance(Money.of(555L))
-				.withActivityWindow(new ActivityWindow(
-						defaultActivity()
-								.withTargetAccount(accountId)
-								.withMoney(Money.of(999L)).build(),
-						defaultActivity()
-								.withTargetAccount(accountId)
-								.withMoney(Money.of(1L)).build()))
-				.build();
+    @Test
+    void depositSuccess() {
+        AccountId accountId = new AccountId(1L);
+        Account account = defaultAccount()
+                .withAccountId(accountId)
+                .withBaselineBalance(Money.of(555L))
+                .withActivityWindow(new ActivityWindow(
+                        defaultActivity()
+                                .withTargetAccount(accountId)
+                                .withMoney(Money.of(999L)).build(),
+                        defaultActivity()
+                                .withTargetAccount(accountId)
+                                .withMoney(Money.of(1L)).build()))
+                .build();
 
-		boolean success = account.deposit(Money.of(445L), new AccountId(99L));
+        boolean success = account.deposit(Money.of(445L), new AccountId(99L));
 
-		assertThat(success).isTrue();
-		assertThat(account.getActivityWindow().getActivities()).hasSize(3);
-		assertThat(account.calculateBalance()).isEqualTo(Money.of(2000L));
-	}
+        assertThat(success).isTrue();
+        assertThat(account.getActivityWindow().getActivities()).hasSize(3);
+        assertThat(account.calculateBalance()).isEqualTo(Money.of(2000L));
+    }
 
 }
 ```
@@ -128,77 +128,77 @@ lass AccountTest {
 ```java
 class SendMoneyServiceTest {
 
-	private final LoadAccountPort loadAccountPort =
-			Mockito.mock(LoadAccountPort.class);
+    private final LoadAccountPort loadAccountPort =
+            Mockito.mock(LoadAccountPort.class);
 
-	private final AccountLock accountLock =
-			Mockito.mock(AccountLock.class);
+    private final AccountLock accountLock =
+            Mockito.mock(AccountLock.class);
 
-	private final UpdateAccountStatePort updateAccountStatePort =
-			Mockito.mock(UpdateAccountStatePort.class);
+    private final UpdateAccountStatePort updateAccountStatePort =
+            Mockito.mock(UpdateAccountStatePort.class);
 
-	private final SendMoneyService sendMoneyService =
-			new SendMoneyService(loadAccountPort, accountLock, updateAccountStatePort, moneyTransferProperties());
+    private final SendMoneyService sendMoneyService =
+            new SendMoneyService(loadAccountPort, accountLock, updateAccountStatePort, moneyTransferProperties());
 
-	@Test
-	void givenWithdrawalFails_thenOnlySourceAccountIsLockedAndReleased() {
+    @Test
+    void givenWithdrawalFails_thenOnlySourceAccountIsLockedAndReleased() {
 
-		AccountId sourceAccountId = new AccountId(41L);
-		Account sourceAccount = givenAnAccountWithId(sourceAccountId);
+        AccountId sourceAccountId = new AccountId(41L);
+        Account sourceAccount = givenAnAccountWithId(sourceAccountId);
 
-		AccountId targetAccountId = new AccountId(42L);
-		Account targetAccount = givenAnAccountWithId(targetAccountId);
+        AccountId targetAccountId = new AccountId(42L);
+        Account targetAccount = givenAnAccountWithId(targetAccountId);
 
-		givenWithdrawalWillFail(sourceAccount);
-		givenDepositWillSucceed(targetAccount);
+        givenWithdrawalWillFail(sourceAccount);
+        givenDepositWillSucceed(targetAccount);
 
-		SendMoneyCommand command = new SendMoneyCommand(
-				sourceAccountId,
-				targetAccountId,
-				Money.of(300L));
+        SendMoneyCommand command = new SendMoneyCommand(
+                sourceAccountId,
+                targetAccountId,
+                Money.of(300L));
 
-		boolean success = sendMoneyService.sendMoney(command);
+        boolean success = sendMoneyService.sendMoney(command);
 
-		assertThat(success).isFalse();
+        assertThat(success).isFalse();
 
-		then(accountLock).should().lockAccount(eq(sourceAccountId));
-		then(accountLock).should().releaseAccount(eq(sourceAccountId));
-		then(accountLock).should(times(0)).lockAccount(eq(targetAccountId));
-	}
+        then(accountLock).should().lockAccount(eq(sourceAccountId));
+        then(accountLock).should().releaseAccount(eq(sourceAccountId));
+        then(accountLock).should(times(0)).lockAccount(eq(targetAccountId));
+    }
 
-	@Test
-	void transactionSucceeds() {
+    @Test
+    void transactionSucceeds() {
 
-		Account sourceAccount = givenSourceAccount();
-		Account targetAccount = givenTargetAccount();
+        Account sourceAccount = givenSourceAccount();
+        Account targetAccount = givenTargetAccount();
 
-		givenWithdrawalWillSucceed(sourceAccount);
-		givenDepositWillSucceed(targetAccount);
+        givenWithdrawalWillSucceed(sourceAccount);
+        givenDepositWillSucceed(targetAccount);
 
-		Money money = Money.of(500L);
+        Money money = Money.of(500L);
 
-		SendMoneyCommand command = new SendMoneyCommand(
-				sourceAccount.getId().get(),
-				targetAccount.getId().get(),
-				money);
+        SendMoneyCommand command = new SendMoneyCommand(
+                sourceAccount.getId().get(),
+                targetAccount.getId().get(),
+                money);
 
-		boolean success = sendMoneyService.sendMoney(command);
+        boolean success = sendMoneyService.sendMoney(command);
 
-		assertThat(success).isTrue();
+        assertThat(success).isTrue();
 
-		AccountId sourceAccountId = sourceAccount.getId().get();
-		AccountId targetAccountId = targetAccount.getId().get();
+        AccountId sourceAccountId = sourceAccount.getId().get();
+        AccountId targetAccountId = targetAccount.getId().get();
 
-		then(accountLock).should().lockAccount(eq(sourceAccountId));
-		then(sourceAccount).should().withdraw(eq(money), eq(targetAccountId));
-		then(accountLock).should().releaseAccount(eq(sourceAccountId));
+        then(accountLock).should().lockAccount(eq(sourceAccountId));
+        then(sourceAccount).should().withdraw(eq(money), eq(targetAccountId));
+        then(accountLock).should().releaseAccount(eq(sourceAccountId));
 
-		then(accountLock).should().lockAccount(eq(targetAccountId));
-		then(targetAccount).should().deposit(eq(money), eq(sourceAccountId));
-		then(accountLock).should().releaseAccount(eq(targetAccountId));
+        then(accountLock).should().lockAccount(eq(targetAccountId));
+        then(targetAccount).should().deposit(eq(money), eq(sourceAccountId));
+        then(accountLock).should().releaseAccount(eq(targetAccountId));
 
-		thenAccountsHaveBeenUpdated(sourceAccountId, targetAccountId);
-	}
+        thenAccountsHaveBeenUpdated(sourceAccountId, targetAccountId);
+    }
 
 }
 ```
@@ -213,26 +213,26 @@ class SendMoneyServiceTest {
 @WebMvcTest(controllers = SendMoneyController.class)
 class SendMoneyControllerTest {
 
-	@Autowired
-	private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-	@MockBean
-	private SendMoneyUseCase sendMoneyUseCase;
+    @MockBean
+    private SendMoneyUseCase sendMoneyUseCase;
 
-	@Test
-	void testSendMoney() throws Exception {
+    @Test
+    void testSendMoney() throws Exception {
 
-		mockMvc.perform(post("/accounts/send/{sourceAccountId}/{targetAccountId}/{amount}",
-				41L, 42L, 500)
-				.header("Content-Type", "application/json"))
-				.andExpect(status().isOk());
+        mockMvc.perform(post("/accounts/send/{sourceAccountId}/{targetAccountId}/{amount}",
+                41L, 42L, 500)
+                .header("Content-Type", "application/json"))
+                .andExpect(status().isOk());
 
-		then(sendMoneyUseCase).should()
-				.sendMoney(eq(new SendMoneyCommand(
-						new AccountId(41L),
-						new AccountId(42L),
-						Money.of(500L))));
-	}
+        then(sendMoneyUseCase).should()
+                .sendMoney(eq(new SendMoneyCommand(
+                        new AccountId(41L),
+                        new AccountId(42L),
+                        Money.of(500L))));
+    }
 
 }
 ```
@@ -257,38 +257,38 @@ class SendMoneyControllerTest {
 @Import({AccountPersistenceAdapter.class, AccountMapper.class})
 class AccountPersistenceAdapterTest {
 
-	@Autowired
-	private AccountPersistenceAdapter adapterUnderTest;
+    @Autowired
+    private AccountPersistenceAdapter adapterUnderTest;
 
-	@Autowired
-	private ActivityRepository activityRepository;
+    @Autowired
+    private ActivityRepository activityRepository;
 
-	@Test
-	@Sql("AccountPersistenceAdapterTest.sql")
-	void loadsAccount() {
-		Account account = adapterUnderTest.loadAccount(new AccountId(1L), LocalDateTime.of(2018, 8, 10, 0, 0));
+    @Test
+    @Sql("AccountPersistenceAdapterTest.sql")
+    void loadsAccount() {
+        Account account = adapterUnderTest.loadAccount(new AccountId(1L), LocalDateTime.of(2018, 8, 10, 0, 0));
 
-		assertThat(account.getActivityWindow().getActivities()).hasSize(2);
-		assertThat(account.calculateBalance()).isEqualTo(Money.of(500));
-	}
+        assertThat(account.getActivityWindow().getActivities()).hasSize(2);
+        assertThat(account.calculateBalance()).isEqualTo(Money.of(500));
+    }
 
-	@Test
-	void updatesActivities() {
-		Account account = defaultAccount()
-				.withBaselineBalance(Money.of(555L))
-				.withActivityWindow(new ActivityWindow(
-						defaultActivity()
-								.withId(null)
-								.withMoney(Money.of(1L)).build()))
-				.build();
+    @Test
+    void updatesActivities() {
+        Account account = defaultAccount()
+                .withBaselineBalance(Money.of(555L))
+                .withActivityWindow(new ActivityWindow(
+                        defaultActivity()
+                                .withId(null)
+                                .withMoney(Money.of(1L)).build()))
+                .build();
 
-		adapterUnderTest.updateActivities(account);
+        adapterUnderTest.updateActivities(account);
 
-		assertThat(activityRepository.count()).isEqualTo(1);
+        assertThat(activityRepository.count()).isEqualTo(1);
 
-		ActivityJpaEntity savedActivity = activityRepository.findAll().get(0);
-		assertThat(savedActivity.getAmount()).isEqualTo(1L);
-	}
+        ActivityJpaEntity savedActivity = activityRepository.findAll().get(0);
+        assertThat(savedActivity.getAmount()).isEqualTo(1L);
+    }
 
 }
 ```
@@ -304,52 +304,52 @@ class AccountPersistenceAdapterTest {
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class SendMoneySystemTest {
 
-	@Autowired
-	private TestRestTemplate restTemplate;
+    @Autowired
+    private TestRestTemplate restTemplate;
 
-	@Autowired
-	private LoadAccountPort loadAccountPort;
+    @Autowired
+    private LoadAccountPort loadAccountPort;
 
-	@Test
-	@Sql("SendMoneySystemTest.sql")
-	void sendMoney() {
+    @Test
+    @Sql("SendMoneySystemTest.sql")
+    void sendMoney() {
 
-		Money initialSourceBalance = sourceAccount().calculateBalance();
-		Money initialTargetBalance = targetAccount().calculateBalance();
+        Money initialSourceBalance = sourceAccount().calculateBalance();
+        Money initialTargetBalance = targetAccount().calculateBalance();
 
-		ResponseEntity response = whenSendMoney(
-				sourceAccountId(),
-				targetAccountId(),
-				transferredAmount());
+        ResponseEntity response = whenSendMoney(
+                sourceAccountId(),
+                targetAccountId(),
+                transferredAmount());
 
-		then(response.getStatusCode())
-				.isEqualTo(HttpStatus.OK);
+        then(response.getStatusCode())
+                .isEqualTo(HttpStatus.OK);
 
-		then(sourceAccount().calculateBalance())
-				.isEqualTo(initialSourceBalance.minus(transferredAmount()));
+        then(sourceAccount().calculateBalance())
+                .isEqualTo(initialSourceBalance.minus(transferredAmount()));
 
-		then(targetAccount().calculateBalance())
-				.isEqualTo(initialTargetBalance.plus(transferredAmount()));
+        then(targetAccount().calculateBalance())
+                .isEqualTo(initialTargetBalance.plus(transferredAmount()));
 
-	}
+    }
 
-	private ResponseEntity whenSendMoney(
-			AccountId sourceAccountId,
-			AccountId targetAccountId,
-			Money amount) {
-		HttpHeaders headers = new HttpHeaders();
-		headers.add("Content-Type", "application/json");
-		HttpEntity<Void> request = new HttpEntity<>(null, headers);
+    private ResponseEntity whenSendMoney(
+            AccountId sourceAccountId,
+            AccountId targetAccountId,
+            Money amount) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "application/json");
+        HttpEntity<Void> request = new HttpEntity<>(null, headers);
 
-		return restTemplate.exchange(
-				"/accounts/send/{sourceAccountId}/{targetAccountId}/{amount}",
-				HttpMethod.POST,
-				request,
-				Object.class,
-				sourceAccountId.getValue(),
-				targetAccountId.getValue(),
-				amount.getAmount());
-	}
+        return restTemplate.exchange(
+                "/accounts/send/{sourceAccountId}/{targetAccountId}/{amount}",
+                HttpMethod.POST,
+                request,
+                Object.class,
+                sourceAccountId.getValue(),
+                targetAccountId.getValue(),
+                amount.getAmount());
+    }
 
 }
 ```

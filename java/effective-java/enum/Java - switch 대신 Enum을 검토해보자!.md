@@ -202,7 +202,7 @@ enum PayrollDay {
      PayrollDya(PayType payTyoe) {this.payType = payType;}
      
      int pay(int minutesWorked, int payRate) {
-     	return payType.pay(minutesWorked, payRate);
+         return payType.pay(minutesWorked, payRate);
      }
      
      enum PayType {

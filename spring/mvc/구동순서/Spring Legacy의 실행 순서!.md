@@ -11,36 +11,36 @@ web.xml은 WAS가 최초 구동될 때 사용하는 웹 애플리케이션 설�
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://Java.sun.com/xml/ns/javaee https://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://Java.sun.com/xml/ns/javaee https://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
 
-	<!-- 첫번째 -->
-	<context-param>
-		<param-name>contextConfigLocation</param-name>
-		<param-value>/WEB-INF/spring/root-context.xml</param-value>
-	</context-param>
-	
-	<!-- 두번째 -->
-	<listener>
-		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
-	</listener>
+    <!-- 첫번째 -->
+    <context-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>/WEB-INF/spring/root-context.xml</param-value>
+    </context-param>
+    
+    <!-- 두번째 -->
+    <listener>
+        <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+    </listener>
 
-	<!-- 세번째 -->
-	<servlet>
-		<servlet-name>appServlet</servlet-name>
-		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
-		<init-param>
-			<param-name>contextConfigLocation</param-name>
-			<param-value>/WEB-INF/spring/appServlet/servlet-context.xml</param-value>
-		</init-param>
-		<load-on-startup>1</load-on-startup>
-	</servlet>
+    <!-- 세번째 -->
+    <servlet>
+        <servlet-name>appServlet</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>/WEB-INF/spring/appServlet/servlet-context.xml</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
 
-	<!-- 네번째 -->
-	<servlet-mapping>
-		<servlet-name>appServlet</servlet-name>
-		<url-pattern>*.do</url-pattern>
-	</servlet-mapping>
+    <!-- 네번째 -->
+    <servlet-mapping>
+        <servlet-name>appServlet</servlet-name>
+        <url-pattern>*.do</url-pattern>
+    </servlet-mapping>
 
 </web-app>
 ```
@@ -93,29 +93,29 @@ public class ContextLoaderListener extends ContextLoader implements ServletConte
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <beans:beans xmlns="http://www.springframework.org/schema/mvc"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns:beans="http://www.springframework.org/schema/beans"
-	xmlns:context="http://www.springframework.org/schema/context"
-	xsi:schemaLocation="http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
-		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-		http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:beans="http://www.springframework.org/schema/beans"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
 
-	<!-- DispatcherServlet Context: defines this servlet's request-processing infrastructure -->
-	
-	<!-- Enables the Spring MVC @Controller programming model -->
-	<annotation-driven />
+    <!-- DispatcherServlet Context: defines this servlet's request-processing infrastructure -->
+    
+    <!-- Enables the Spring MVC @Controller programming model -->
+    <annotation-driven />
 
-	<!-- Handles HTTP GET requests for /resources/** by efficiently serving up static resources in the ${webappRoot}/resources directory -->
-	<resources mapping="/resources/**" location="/resources/" />
+    <!-- Handles HTTP GET requests for /resources/** by efficiently serving up static resources in the ${webappRoot}/resources directory -->
+    <resources mapping="/resources/**" location="/resources/" />
 
-	<!-- Resolves views selected for rendering by @Controllers to .jsp resources in the /WEB-INF/views directory -->
-	<beans:bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
-		<beans:property name="prefix" value="/WEB-INF/views/" />
-		<beans:property name="suffix" value=".jsp" />
-	</beans:bean>
-	
-	<context:component-scan base-package="com.company.devpad" />
-	
+    <!-- Resolves views selected for rendering by @Controllers to .jsp resources in the /WEB-INF/views directory -->
+    <beans:bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <beans:property name="prefix" value="/WEB-INF/views/" />
+        <beans:property name="suffix" value=".jsp" />
+    </beans:bean>
+    
+    <context:component-scan base-package="com.company.devpad" />
+    
 </beans:beans>
 ```
 

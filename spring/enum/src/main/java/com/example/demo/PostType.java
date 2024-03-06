@@ -1,5 +1,5 @@
 package com.example.demo;
 
 public enum PostType {
-	PUBLIC, PRIVATE
+    PUBLIC, PRIVATE
 }

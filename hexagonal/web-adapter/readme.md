@@ -49,21 +49,21 @@ DDD, 클린 아키텍처를 보면 Service가 세분화 되어 있을 수록 유
 @RequiredArgsConstructor
 class SendMoneyController {
 
-	private final SendMoneyUseCase sendMoneyUseCase;
+    private final SendMoneyUseCase sendMoneyUseCase;
 
-	@PostMapping(path = "/accounts/send/{sourceAccountId}/{targetAccountId}/{amount}")
-	void sendMoney(
-			@PathVariable("sourceAccountId") Long sourceAccountId,
-			@PathVariable("targetAccountId") Long targetAccountId,
-			@PathVariable("amount") Long amount) {
+    @PostMapping(path = "/accounts/send/{sourceAccountId}/{targetAccountId}/{amount}")
+    void sendMoney(
+            @PathVariable("sourceAccountId") Long sourceAccountId,
+            @PathVariable("targetAccountId") Long targetAccountId,
+            @PathVariable("amount") Long amount) {
 
-		SendMoneyCommand command = new SendMoneyCommand(
-				new AccountId(sourceAccountId),
-				new AccountId(targetAccountId),
-				Money.of(amount));
+        SendMoneyCommand command = new SendMoneyCommand(
+                new AccountId(sourceAccountId),
+                new AccountId(targetAccountId),
+                Money.of(amount));
 
-		sendMoneyUseCase.sendMoney(command);
-	}
+        sendMoneyUseCase.sendMoney(command);
+    }
 
 }
 

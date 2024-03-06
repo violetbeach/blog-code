@@ -5,7 +5,7 @@
 ```java
 // 1. 컨테이너 초기화
 AnnotationConfigApplicationContext ctx = 
-	new AnnotationConfigApplicationContext(AppContext.class);
+    new AnnotationConfigApplicationContext(AppContext.class);
 
 // 2. 컨테이너에서 빈 객체를 구해서 사용
 Greeter g = ctx.getBean("greeter", Greeter.class);
@@ -111,8 +111,8 @@ class MySpringBean {
 @Scope("prototype")
 public Client client() {
     Client client = new Client();
-	client.setHost("host");
-	return client;
+    client.setHost("host");
+    return client;
 }
 ```
 

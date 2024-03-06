@@ -60,38 +60,38 @@
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Account {
     
-	@Getter private final AccountId id;
-	@Getter private final Money baselineBalance;
-	@Getter private final ActivityWindow activityWindow;
+    @Getter private final AccountId id;
+    @Getter private final Money baselineBalance;
+    @Getter private final ActivityWindow activityWindow;
     
-	public static Account withoutId(
-					Money baselineBalance,
-					ActivityWindow activityWindow) {
+    public static Account withoutId(
+                    Money baselineBalance,
+                    ActivityWindow activityWindow) {
         // ...
-	}
+    }
     
-	public static Account withId(
-					AccountId accountId,
-					Money baselineBalance,
-					ActivityWindow activityWindow) {
+    public static Account withId(
+                    AccountId accountId,
+                    Money baselineBalance,
+                    ActivityWindow activityWindow) {
         // ...
-	}
+    }
 
-	public Optional<AccountId> getId(){
+    public Optional<AccountId> getId(){
         // ...
-	}
+    }
     
-	public Money calculateBalance() {
+    public Money calculateBalance() {
         // ...
-	}
+    }
     
-	public boolean withdraw(Money money, AccountId targetAccountId) {
+    public boolean withdraw(Money money, AccountId targetAccountId) {
         // ...
-	}
+    }
     
-	public boolean deposit(Money money, AccountId sourceAccountId) {
-		// ...
-	}
+    public boolean deposit(Money money, AccountId sourceAccountId) {
+        // ...
+    }
 
 }
 ```
@@ -110,9 +110,9 @@ Account 클래스는 getter와 setter만 가진 데이터 클래스가 아니며
 @NoArgsConstructor
 class AccountJpaEntity {
 
-	@Id
-	@GeneratedValue
-	private Long id;
+    @Id
+    @GeneratedValue
+    private Long id;
 
 }
 ```
@@ -125,24 +125,24 @@ class AccountJpaEntity {
 @NoArgsConstructor
 class ActivityJpaEntity {
 
-	@Id
-	@GeneratedValue
-	private Long id;
+    @Id
+    @GeneratedValue
+    private Long id;
 
-	@Column
-	private LocalDateTime timestamp;
+    @Column
+    private LocalDateTime timestamp;
 
-	@Column
-	private Long ownerAccountId;
+    @Column
+    private Long ownerAccountId;
 
-	@Column
-	private Long sourceAccountId;
+    @Column
+    private Long sourceAccountId;
 
-	@Column
-	private Long targetAccountId;
+    @Column
+    private Long targetAccountId;
 
-	@Column
-	private Long amount;
+    @Column
+    private Long amount;
 
 }
 ```
@@ -156,28 +156,28 @@ class ActivityJpaEntity {
 ```java
 interface ActivityRepository extends JpaRepository<ActivityJpaEntity, Long> {
 
-	@Query("select a from ActivityJpaEntity a " +
-			"where a.ownerAccountId = :ownerAccountId " +
-			"and a.timestamp >= :since")
-	List<ActivityJpaEntity> findByOwnerSince(
-			@Param("ownerAccountId") Long ownerAccountId,
-			@Param("since") LocalDateTime since);
+    @Query("select a from ActivityJpaEntity a " +
+            "where a.ownerAccountId = :ownerAccountId " +
+            "and a.timestamp >= :since")
+    List<ActivityJpaEntity> findByOwnerSince(
+            @Param("ownerAccountId") Long ownerAccountId,
+            @Param("since") LocalDateTime since);
 
-	@Query("select sum(a.amount) from ActivityJpaEntity a " +
-			"where a.targetAccountId = :accountId " +
-			"and a.ownerAccountId = :accountId " +
-			"and a.timestamp < :until")
-	Long getDepositBalanceUntil(
-			@Param("accountId") Long accountId,
-			@Param("until") LocalDateTime until);
+    @Query("select sum(a.amount) from ActivityJpaEntity a " +
+            "where a.targetAccountId = :accountId " +
+            "and a.ownerAccountId = :accountId " +
+            "and a.timestamp < :until")
+    Long getDepositBalanceUntil(
+            @Param("accountId") Long accountId,
+            @Param("until") LocalDateTime until);
 
-	@Query("select sum(a.amount) from ActivityJpaEntity a " +
-			"where a.sourceAccountId = :accountId " +
-			"and a.ownerAccountId = :accountId " +
-			"and a.timestamp < :until")
-	Long getWithdrawalBalanceUntil(
-			@Param("accountId") Long accountId,
-			@Param("until") LocalDateTime until);
+    @Query("select sum(a.amount) from ActivityJpaEntity a " +
+            "where a.sourceAccountId = :accountId " +
+            "and a.ownerAccountId = :accountId " +
+            "and a.timestamp < :until")
+    Long getWithdrawalBalanceUntil(
+            @Param("accountId") Long accountId,
+            @Param("until") LocalDateTime until);
 
 }
 ```
@@ -190,8 +190,8 @@ interface ActivityRepository extends JpaRepository<ActivityJpaEntity, Long> {
 @RequiredArgsConstructor
 @PersistenceAdapter
 class AccountPersistenceAdapter implements
-		LoadAccountPort,
-		UpdateAccountStatePort {
+        LoadAccountPort,
+        UpdateAccountStatePort {
 
     private final SpringDataAccountRepository accountRepository;
     private final ActivityRepository activityRepository;

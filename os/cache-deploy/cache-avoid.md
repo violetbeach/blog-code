@@ -81,8 +81,8 @@ document.write('<img src="./images/domdomi.jpg?"'+rand+'" />');
 WebPack을 사용한 프로젝트의 경우 webpack.config.js에서 아래 설정을 넣어주면 더 쉽게 반영할 수 있다.
 ```javascript
 output: {
-	path: path.join(__dirname, '/src/'),
-	filename: '[name].[chunkhash:8].js',
+    path: path.join(__dirname, '/src/'),
+    filename: '[name].[chunkhash:8].js',
 },
 ```
 

@@ -197,9 +197,9 @@ WHERE `fk_pop3_pull_list_no` = 3252 FOR UPDATE;
 ```php
 $lock_name = 'pop3_pull_processes_lock_' . $fk_pop3_pull_list_no;
 $sql = "SELECT GET_LOCK(?, 10);
-		INSERT INTO `external_mail`.`pop3_pull_processes` (server_name, fk_pop3_pull_list_no, start_date, update_date)
-		    VALUES(?, ? , NOW(), NOW()) ON DUPLICATE KEY UPDATE update_date = NOW();
-		SELECT RELEASE_LOCK(?)";
+        INSERT INTO `external_mail`.`pop3_pull_processes` (server_name, fk_pop3_pull_list_no, start_date, update_date)
+            VALUES(?, ? , NOW(), NOW()) ON DUPLICATE KEY UPDATE update_date = NOW();
+        SELECT RELEASE_LOCK(?)";
 ```
 
 위와 같이 NamedLock을 사용한다면 어떨까..? 자주 실행되는 메서드의 경우 (위 메서드는 초당 100번도 실행될 수 있었다.) 성능 저하가 발생할 수도 있었고, 서버를 재시작하는 상황 등에서 RELEASE_LOCK이 반드시 실행된다는 보장도 없었다.

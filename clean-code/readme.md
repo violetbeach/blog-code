@@ -156,7 +156,7 @@ public interface StockExchange {
 public class Portfolio {
     private StockExchange exchange;
     public Portfolio(StockExchange exchange) {
-    	this.exchange = exchange;
+        this.exchange = exchange;
     }
     // ... 생략
 }
@@ -171,15 +171,15 @@ public class PortfolioTest {
     
     @Before
     protected void setUp() throws Exception {
-    	exchange = new FixedStockExchangeStub();
-    	exchange.fix("MSFT", 100);
-    	portfolio = new Portfolio(exchange);
+        exchange = new FixedStockExchangeStub();
+        exchange.fix("MSFT", 100);
+        portfolio = new Portfolio(exchange);
     }  
     
     @Test
     public void GivenFiveMSFTTotalShouldBe500() throws Exception {
-    	portfolio.add(5, "MSFT");
-    	Assert.assertEquals(500, portfolio.value());
+        portfolio.add(5, "MSFT");
+        Assert.assertEquals(500, portfolio.value());
     }
 }
 ```

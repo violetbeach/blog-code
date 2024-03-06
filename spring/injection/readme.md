@@ -46,7 +46,7 @@ public class MemberController {
     
     @Autowired
     public void setMemberService(MemberService MemberService){
-    	this.MemberService = MemberService;
+        this.MemberService = MemberService;
     }
     
 }
@@ -73,7 +73,7 @@ public class MemberController {
     private final MemberService MemberService;
     
     public MemberController(MemberService MemberService){
-    	this.MemberService = MemberService;
+        this.MemberService = MemberService;
     }
     
 }

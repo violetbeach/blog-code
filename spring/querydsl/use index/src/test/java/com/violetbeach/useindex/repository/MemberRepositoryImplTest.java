@@ -4,12 +4,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 class MemberRepositoryImplTest extends RepositoryTestSupport {
-	@Autowired
-	MemberRepository memberRepository;
+    @Autowired
+    MemberRepository memberRepository;
 
-	@Test
-	void search() {
-		memberRepository.search("hi");
-	}
+    @Test
+    void search() {
+        memberRepository.search("hi");
+    }
 
 }

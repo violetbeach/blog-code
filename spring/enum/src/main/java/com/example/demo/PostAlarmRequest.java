@@ -7,6 +7,6 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class PostAlarmRequest {
-	private String content;
-	private int type;
+    private String content;
+    private int type;
 }

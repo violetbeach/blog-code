@@ -210,27 +210,27 @@ JUnit 코드를 읽고 디버깅을 하면서 알게 된 사실은 `SpringBootTe
 ```java
 public class EmbeddedKafkaContextCustomizerFactory implements ContextCustomizerFactory {
 
-	private final IsNestedTestClass isNestedTestClass = new IsNestedTestClass();
+    private final IsNestedTestClass isNestedTestClass = new IsNestedTestClass();
 
-	@Override
-	public ContextCustomizer createContextCustomizer(Class<?> testClass,
-			List<ContextConfigurationAttributes> configAttributes) {
-		EmbeddedKafka embeddedKafka =
-				AnnotatedElementUtils.findMergedAnnotation(testClass, EmbeddedKafka.class);
-		if(embeddedKafka != null) {
-			return new EmbeddedKafkaContextCustomizer(embeddedKafka);
-		}
+    @Override
+    public ContextCustomizer createContextCustomizer(Class<?> testClass,
+            List<ContextConfigurationAttributes> configAttributes) {
+        EmbeddedKafka embeddedKafka =
+                AnnotatedElementUtils.findMergedAnnotation(testClass, EmbeddedKafka.class);
+        if(embeddedKafka != null) {
+            return new EmbeddedKafkaContextCustomizer(embeddedKafka);
+        }
 
-		Class<?> search = testClass;
-		while(isNestedTestClass.test(search)) {
-			search = search.getDeclaringClass();
-			embeddedKafka = AnnotatedElementUtils.findMergedAnnotation(search, EmbeddedKafka.class);
-			if(embeddedKafka != null) {
-				return new EmbeddedKafkaContextCustomizer(embeddedKafka);
-			}
-		}
-		return null;
-	}
+        Class<?> search = testClass;
+        while(isNestedTestClass.test(search)) {
+            search = search.getDeclaringClass();
+            embeddedKafka = AnnotatedElementUtils.findMergedAnnotation(search, EmbeddedKafka.class);
+            if(embeddedKafka != null) {
+                return new EmbeddedKafkaContextCustomizer(embeddedKafka);
+            }
+        }
+        return null;
+    }
 
 }
 ```
@@ -257,25 +257,25 @@ public class EmbeddedKafkaContextCustomizerFactory implements ContextCustomizerF
 @EmbeddedKafka
 @DirtiesContext
 public class WithSpringTestContextTests {
-	@Test
-	void canAutowireBrokerInMethod(@Autowired EmbeddedKafkaBroker broker) {
-		assertThat(broker).isNotNull();
-	}
+    @Test
+    void canAutowireBrokerInMethod(@Autowired EmbeddedKafkaBroker broker) {
+        assertThat(broker).isNotNull();
+    }
 
-	@Nested
-	class NestedClass {
+    @Nested
+    class NestedClass {
 
-		@Test
-		void canAutowireBrokerInMethod(@Autowired EmbeddedKafkaBroker broker) {
-			assertThat(broker).isNotNull();
-		}
+        @Test
+        void canAutowireBrokerInMethod(@Autowired EmbeddedKafkaBroker broker) {
+            assertThat(broker).isNotNull();
+        }
 
-	}
+    }
 
-	@Configuration
-	static class Config {
+    @Configuration
+    static class Config {
 
-	}
+    }
 }
 ```
 
@@ -290,41 +290,41 @@ public class WithSpringTestContextTests {
 @SpringJUnitConfig(WithNestedClassContextTests.Config.class)
 class WithNestedClassContextTests {
 
-	private static final AtomicInteger counter = new AtomicInteger();
+    private static final AtomicInteger counter = new AtomicInteger();
 
-	@Autowired
-	private TestClass outer;
+    @Autowired
+    private TestClass outer;
 
-	@Nested
-	class NestedClass {
+    @Nested
+    class NestedClass {
 
-		@Test
-		void equalsInjected(@Autowired TestClass inner) {
-			assertThat(inner).isEqualTo(outer);
-		}
+        @Test
+        void equalsInjected(@Autowired TestClass inner) {
+            assertThat(inner).isEqualTo(outer);
+        }
 
-		@Test
-		void equalsSize(@Autowired List<TestClass> classes) {
-			assertThat(classes).hasSize(1);
-		}
+        @Test
+        void equalsSize(@Autowired List<TestClass> classes) {
+            assertThat(classes).hasSize(1);
+        }
 
-		@Test
-		void equalsCount() {
-			assertThat(counter.get()).isEqualTo(1);
-		}
-	}
+        @Test
+        void equalsCount() {
+            assertThat(counter.get()).isEqualTo(1);
+        }
+    }
 
-	public static class TestClass {
-	}
+    public static class TestClass {
+    }
 
-	@Configuration
-	static class Config {
-		@Bean
-		public TestClass testClass() {
-			counter.incrementAndGet();
-			return new TestClass();
-		}
-	}
+    @Configuration
+    static class Config {
+        @Bean
+        public TestClass testClass() {
+            counter.incrementAndGet();
+            return new TestClass();
+        }
+    }
 }
 ```
 

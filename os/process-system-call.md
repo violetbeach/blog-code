@@ -18,15 +18,15 @@ Process의 생성과 제어를 위한 4가지 SystemCall에 대해 알아보자.
 int main(int argc, char *argv[]) {
     printf("pid : %d", (int) getpid()); // pid : 29146
     
-    int rc = fork();					// 주목
+    int rc = fork();                    // 주목
     
     if (rc < 0) {
         exit(1);
-    }									// (1) fork 실패
-    else if (rc == 0) {					// (2) child 인 경우 (fork 값이 0)
+    }                                    // (1) fork 실패
+    else if (rc == 0) {                    // (2) child 인 경우 (fork 값이 0)
         printf("child (pid : %d)", (int) getpid());
     }
-    else {								// (3) parent case
+    else {                                // (3) parent case
         printf("parent of %d (pid : %d)", rc, (int)getpid());
     }
 }
@@ -56,16 +56,16 @@ child 프로세스가 종료될 때까지 기다린다.
 int main(int argc, char *argv[]) {
     printf("pid : %d", (int) getpid()); // pid : 29146
     
-    int rc = fork();					// 주목
+    int rc = fork();                    // 주목
     
     if (rc < 0) {
         exit(1);
-    }									// (1) fork 실패
-    else if (rc == 0) {					// (2) child 인 경우 (fork 값이 0)
+    }                                    // (1) fork 실패
+    else if (rc == 0) {                    // (2) child 인 경우 (fork 값이 0)
         printf("child (pid : %d)", (int) getpid());
     }
-    else {								// (3) parent case
-        int wc = wait(NULL)				// 추가된 부분
+    else {                                // (3) parent case
+        int wc = wait(NULL)                // 추가된 부분
         printf("parent of %d (wc : %d / pid : %d)", wc, rc, (int)getpid());
     }
 }
@@ -95,22 +95,22 @@ child에서는 parent와 다른 동작을 하고 싶을 때는 exec을 사용할
 int main(int argc, char *argv[]) {
     printf("pid : %d", (int) getpid()); // pid : 29146
     
-    int rc = fork();					// 주목
+    int rc = fork();                    // 주목
     
     if (rc < 0) {
         exit(1);
-    }									// (1) fork 실패
-    else if (rc == 0) {					// (2) child 인 경우 (fork 값이 0)
+    }                                    // (1) fork 실패
+    else if (rc == 0) {                    // (2) child 인 경우 (fork 값이 0)
         printf("child (pid : %d)", (int) getpid());
         char *myargs[3];
-        myargs[0] = strdup("wc");		// 내가 실행할 파일 이름
-        myargs[1] = strdup("p3.c");		// 실행할 파일에 넘겨줄 argument
-        myargs[2] = NULL;				// end of array
-        execvp(myarges[0], myargs);		// wc 파일 실행.
+        myargs[0] = strdup("wc");        // 내가 실행할 파일 이름
+        myargs[1] = strdup("p3.c");        // 실행할 파일에 넘겨줄 argument
+        myargs[2] = NULL;                // end of array
+        execvp(myarges[0], myargs);        // wc 파일 실행.
         printf("this shouldn't print out") // 실행되지 않음.
     }
-    else {								// (3) parent case
-        int wc = wait(NULL)				// 추가된 부분
+    else {                                // (3) parent case
+        int wc = wait(NULL)                // 추가된 부분
         printf("parent of %d (wc : %d / pid : %d)", wc, rc, (int)getpid());
     }
 }
