@@ -128,8 +128,58 @@ public class SseController {
 
 ![img_4.png](img_4.png)
 
+더 상세한 응답을 하고 싶다면 `ServerSentEventBuilder`를 사용해서 `ServerSentEvent`를 생성해서 직접 반환하면 된다.
 
+```java
+public interface Builder<T> {
+    Builder<T> id(String id);
 
+    Builder<T> event(String event);
+
+    Builder<T> retry(Duration retry);
+
+    Builder<T> comment(String comment);
+
+    Builder<T> data(@Nullable T data);
+    
+    ServerSentEvent<T> build();
+}
+```
+
+## 알림 서버 구현
+
+ServerSentEvent는 Chunk 단위의 데이터를 내려주는 것에도 의미가 있지만, 처음 언급했던 대로 알림 서버를 구현하는 데 사용할 수 있다.
+
+```java
+@RestController
+@RequestMapping("/api/notifications")
+@RequiredArgsConstructor
+public class NotificationController {
+    private static AtomicInteger lastEventId = new AtomicInteger(1);
+    private final NotificationService notificationService;
+
+    @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> getNotifications() {
+        return notificationService.getMessageFromSink()
+                .map(message -> {
+                    String id = lastEventId.getAndIncrement() + "";
+                    return ServerSentEvent
+                            .builder(message)
+                            .event("notification")
+                            .id(id)
+                            .comment("this is notification")
+                            .build();
+                });
+    }
+
+    @PostMapping
+    public Mono<String> addNotification(@RequestBody Event event) {
+        String message = event.getType() + ": " + event.getMessage();
+        notificationService.tryEmitNext(message);
+        return Mono.just("ok");
+    }
+}
+```
 
 ## 참고
 
