@@ -1,22 +1,20 @@
 ### 동적 데이터 소스와 스키마 이름
 
-팀에서 API를 개발할 때 **Java Spring**으로 프로젝트를 진행하고 싶었는데 어려움이 있었다.
+API를 개발할 때 **Java Spring**으로 프로젝트를 진행하고 싶었는데 어려움이 있었다.
 
-서비스의 DB구조 때문이다. 아래는 운영중인 서비스의 DB 구조와 동일하게 만든 것이다.
+해당 문제를 해결하고 세미나에서 발표한 내용에 대해 정리한다.
+- 모든 아키텍처나 코드는 실제 서비스와 무관하며 설명을 위해 만든 부분임을 알린다.
 
-![img_2.png](images/img_2.png)
+API를 Java Spring으로 할 수 없었던 이유는 서비스의 DB구조 때문이었다.
+
+![img.png](images/img.png)
 
 구조를 보면 DB 서버를 여러 대로 **샤딩(Sharding)** 하고 있고, **스키마도 분산**되어 있다.
-- 사내에서는 아주 오래 전부터 해당과 같은 구조라고 했다.
 
-데이터를 저장할 때 유저가 속한 **회사별**로 데이터를 **특정 DB서버**의 **특정 스키마**에 저장해서 사용한다.
-- `mail_01`에서 `01`을 파티션이라는 용어로 사용한다.
+데이터를 저장할 때 유저가 속한 **지역별**로 데이터를 **특정 DB서버**의 **특정 스키마**에 저장해서 사용한다.
+- `board_01`에서 `01`을 파티션이라고 칭한다.
 
-구조를 정리하면 아래와 같다. (사내 기술 세미나에서 내가 발표한 내용의 일부이다.)
-
-![img_3.png](images/img_3.png)
-
-해당 유저의 정보가 **어떤 DB 서버**의 **몇 번째 파티션(스키마)** 에 저장되어 있는지는 MasterDB라고 부르는 DB 서버에 저장되어 있고, DB를 조회할 때마다 매번 Master DB를 질의하면 비효율적이므로 **JWT**에 발급해서 사용한다.
+특정 유저의 정보가 **어떤 DB 서버**의 **몇 번째 파티션(스키마)** 에 저장되어 있는지는 Region DB에 저장되어 있고, DB를 조회할 때마다 매번 Region DB를 질의하면 비효율적이므로 **JWT**에 발급해서 사용한다.
 
 즉, 정리하면 아래 두 가지 작업을 처리했어야 했다.
 1. DB 서버 매핑 (Sharding)
@@ -24,19 +22,15 @@
 
 ### 기존 프로젝트에서 처리한 방식
 
-**PHP** 프로젝트의 경우 **요청이 들어올 때마다 실행되는 모델**이기 때문에 Thread-Safety에 대한 걱정이 없었다.
+#### PHP 프로젝트
 
-![img_10.png](images/img_10.png)
+PHP는 요청이 들어올 때마다 실행되는 모델이기 때문에 Thread-Safety에 대한 걱정이 없었다. 그래서 **PHP 스크립트가 실행될 때 JWT에 있는 값으로 DB 설정에 반영**해주면 되었다.
 
-그래서 **실행될 때 JWT에 있는 값으로 DB 설정에 반영**만 해주면 되었다.
+#### NodeJS + Sequelize
 
-**NodeJS의 Sequelize**의 경우 **런타임 중 동적으로 생성**할 수 있었다.
+NodeJS에서는 Entity 모델을 런타임 중 동적으로 생성할 수 있었다. 그래서 Map에 모델 객체들을 미리 생성하고 특정 DB 서버로의 커넥션을 부여했다.
 
-![img_11.png](images/img_11.png)
-
-**모델에게 특정 DB 서버로의 커넥션과 파티션 번호를 부여**한다. **서비스에서는 해당 모델을 꺼내서 사용**하면 된다.
-
-즉, 모델을 DB 서버 수 x 파티션 수 만큼 메모리에 올리는 문제가 있었지만 **처리는 가능**했다.
+즉, JWT에 있는 값을 기반으로 모델을 꺼내서 사용하면 된다. 모델을 DB 서버 수 x 파티션 수 만큼 메모리에 올리는 문제가 있었지만 **처리는 가능**했다.
 
 ### JPA를 사용할 수 없는 이유
 
@@ -330,6 +324,10 @@ public interface LoadDbInfoProcess {
 
 **ThreadLocal**을 사용해도 되고, **Security Context**를 사용하거나 Spring Batch를 사용한다면 **JobScope에서 ip와 partition을 꺼내는 등** 원하는 방식으로 구현하면 된다.
 
+아래는 테스트 결과이다.
+
+![img_1.png](images/img_1.png)
+
 이렇게 해서 **샤딩 문제가 해결**되었다!
 
 ## 2. Dynamic Schema Name
@@ -343,7 +341,7 @@ public class PartitionInspector implements StatementInspector {
     @Override
     public String inspect(String sql) {
         String partition = DBContextHolder.getPartition();
-        return sql.replaceAll("#partition#", partition);
+        return sql.replaceAll("@@partition_number", partition);
     }
 }
 ```
@@ -368,7 +366,7 @@ Entity는 아래와 같이 설정한다.
 
 ```java
 @Entity
-@Table(schema = "member_#partition#", name = "member")
+@Table(schema = "member_@@partition_number", name = "member")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member {
     @Id
@@ -385,6 +383,14 @@ public class Member {
 MySQL에서는 `@Table` 애노테이션의 `schema` 옵션이 동작하지 않는다. 대신 `catalog` 옵션을 사용해야 한다.
 - 참고: https://junhyunny.github.io/spring-boot/jpa/database/connect-multi-schema-in-mysql
 
+아래는 테스트 결과이다.
+
+![img_2.png](images/img_2.png)
+
+쿼리도 문제 없이 나가고 DB 반영도 잘된다.
+
+![img_3.png](images/img_3.png)
+
 이제 Dyanmic Schema name 문제까지도 모두 해결되었다.
 
 ## 결과
@@ -393,17 +399,7 @@ MySQL에서는 `@Table` 애노테이션의 `schema` 옵션이 동작하지 않�
 
 ![img_4.png](images/img_4.png)
 
-트랜잭션 결과도 아래와 같이 잘 나왔다.
-
-![img_5.png](images/img_5.png)
-
-![img_6.png](images/img_6.png)
-
-쿼리도 문제 없이 나가고 DB 반영도 잘 된다.
-
-![img_7.png](images/img_7.png)
-
-이후 수행한 nGrinder로 운영 환경에서의 테스트도 잘 통과했고, **지금은 1년 넘게 문제 없이 잘 사용하고 있다**. 
+이후 수행한 nGrinder로 운영 환경에서의 테스트도 잘 통과했고, **지금은 1년 반 넘게 문제 없이 사용하고 있다**. 
 
 
 ## 번외 1 - afterPropertiesSet
@@ -458,7 +454,7 @@ taskExecutor.setTaskDecorator(new DBContextHolderDecorator());
 
 ## 정리
 
-위 코드는 실제 프로젝트에 적용된 코드는 아니고 설명을 위해 간소화된 코드입니다.
+코드는 실제 프로젝트에 적용된 코드는 아니고 설명을 위해 간소화된 코드입니다.
 
 코드는 아래에서 확인할 수 있습니다.
 - https://github.com/violetbeach/blog-code/tree/master/sub-db/project
