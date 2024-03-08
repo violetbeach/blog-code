@@ -40,9 +40,9 @@ Spring 컨테이너 안에서 JPA를 사용하는 경우 위 예시처럼 DB 정
 
 ![img_12.png](images/img_12.png)
 
-**Schema name**도 아래와 같이 **애노테이션에 명시**하는 방법을 사용한다.
+**Schema name**도 아래와 같이 **애노테이션에 명시**하면 앱이 실행될 때 Proxy를 생성한다.
 
-![img_13.png](images/img_13.png)
+![img_5.png](images/img_5.png)
 
 그래서 **DB 서버랑 스키마 명을 동적으로 어떻게 매핑**할 수 있을 지에 대한 확신이 없었다.
 
@@ -65,23 +65,33 @@ Spring 컨테이너 안에서 JPA를 사용하는 경우 위 예시처럼 DB 정
 
 정보나 라이브러리를 찾으면서 **삽질**을 하던 중 `Spring Jdbc`에서 **AbstractRoutingDataSource** 라는 클래스를 확인할 수 있었다.
 
-해당 클래스는 여러 개의 `DataSource`를 등록하고 `key`로 특정 `DataSource`와 커넥션을 맺을 수 있는 `DataSource` 이다.
+클래스 설명을 보면 Lookup key에 기반하여 Datasources 중에 1개에 대한 `getConnection()`을 호출해주는 클래스이다. (일반적으로 Thread에 할당된 TransactionContext를 사용한다고 명시되어있다.)
+
+![img.png](img.png)
 
 아래는 공식문서이다.
 - https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/jdbc/datasource/lookup/AbstractRoutingDataSource.html
 
-정리하면 Java Application에서 **Sharding된 DataSource를 선택해서 커넥션**을 할 수 있는 클래스였다.
+![img_1.png](img_1.png)
 
-해당 부분을 검토해보기로 했다.
+세부 구현을 살펴보면 `determineTargetDataSources()`라는 메서드로 DataSource를 선택한다.
+
+![img_2.png](img_2.png)
+
+해당 메서드를 보면 `determineCurrentLookupKey()`가 데이터 소스 Map의 Key가 되어서 데이터 소스를 선택하는 방식이다.
+
+그래서 'JWT에 있는 DB Host를 LookupKey로 해서 Connection을 하면 되지 않을까?!'라는 생각을 가지게 되었다.
 
 #### ThreadLocal
 
-`AbstractRoutingDataSource`의 Key를 관리하는 방법으로 `ThreadLocal`을 선택하게 되었다.
-- 해당 유저의 DB 정보를 구할 수 있어야 한다. (인자를 받을 수 없다.)
+내용을 정리해보면 추상 메서드인 `determineCurrentLookupKey()`를 구현하면 되었다. 하지만 해당 메서드는 파라미터가 없고, `getConnection()` 내부에서 호출하는 방식이다.
+
+Key를 정적인 필드에서 가져와야 했고, 각 요청(사용자)마다 다른 Key를 가져와야 했다. 
+
+그래서 `ThreadLocal`을 선택하게 되었다.
 - Request Scope Bean vs ThreadLocal을 검토 하다가 ThreadLocal을 선택하게 되었다.
   - Request Scope의 Bean도 내부적으로 ThreadLocal을 사용
   - ThreadLocal은 샤딩 솔루션에 많이 사용되고 있었다.
-
 
 아래는 `AbstractRoutingDataSource`의 구현체이다.
 
@@ -94,7 +104,7 @@ class MultiDataSource extends AbstractRoutingDataSource {
 }
 ```
 
-아래와 같이 ThreadLocal에 정적으로 접근할 수 있는 Util 클래스를 만든다.
+아래와 같이 ThreadLocal에 정적으로 접근할 수 있는 Holder 클래스를 만든다.
 
 ```java
 public class DBContextHolder {
@@ -263,7 +273,7 @@ public class ShardingFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } finally {
-            // ThreadPool을 사용하기 때문에 다른 요청이 재사용할 수 없도록 반드시 clear()를 호출해야 한다.
+            // ThreadPool을 사용하기 때문에 다른 요청에서 재사용할 수 없도록 반드시 clear()를 호출해야 한다.
             DBContextHolder.clear();
         }
     }
@@ -398,8 +408,7 @@ MySQL에서는 `@Table` 애노테이션의 `schema` 옵션이 동작하지 않�
 
 ![img_4.png](images/img_4.png)
 
-이후 수행한 nGrinder로 운영 환경에서의 테스트도 잘 통과했고, **지금은 1년 반 넘게 문제 없이 사용하고 있다**. 
-
+이후 수행한 nGrinder로 운영 환경에서의 테스트도 잘 통과했고, **지금은 1년 반 넘게 문제 없이 사용하고 있다**.
 
 ## 번외 1 - afterPropertiesSet
 
