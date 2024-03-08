@@ -358,7 +358,6 @@ public class HibernateConfig {
             properties.put(AvailableSettings.STATEMENT_INSPECTOR, new PartitionInspector());
         };
     }
-
 }
 ```
 
@@ -395,7 +394,7 @@ MySQL에서는 `@Table` 애노테이션의 `schema` 옵션이 동작하지 않�
 
 ## 결과
 
-다음은 통합 테스트의 결과이다. 전부 성공했다.
+다음은 통합 테스트의 결과이다. 전부 PASS했다.
 
 ![img_4.png](images/img_4.png)
 
