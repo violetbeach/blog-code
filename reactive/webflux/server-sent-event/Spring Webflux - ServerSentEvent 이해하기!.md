@@ -175,11 +175,22 @@ public class NotificationController {
     @PostMapping
     public Mono<String> addNotification(@RequestBody Event event) {
         String message = event.getType() + ": " + event.getMessage();
-        notificationService.tryEmitNext(message);
+        notificationService.addMessage(message);
         return Mono.just("ok");
     }
 }
 ```
+
+결과적으로 사용자는 `GET /api/notifications`를 1번 호출하는 것 만으로 이후의 Notification을 지속적으로 받아올 수 있다.
+
+## Websocket API
+
+SSE(Server Sent Event) 방식과 유사한 방법 방식으로 Websocket이 있다.
+
+SSE는 서버에서 클라이언트로만 메시지를 보내는 반면, Websocket 방식은 양방향 통신이 가능하다.하지만, SSE는 HTTP 위에서 동작하고 효율적이라는 장점이 있다.
+
+Webflux에서는 Websocket을 매우 편리하게 구성하기 도구를 제공한다. 이 부분에 대해서는 아래 공식 문서를 참고하자.
+- https://docs.spring.io/spring-framework/reference/web/webflux-websocket.html
 
 ## 참고
 
