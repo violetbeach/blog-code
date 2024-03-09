@@ -22,7 +22,7 @@ Long Polling 방식은 서버가 요청을 받은 후 데이터가 생길 때까
 
 이 방식은 불필요한 요청 수를 줄이고 실시간성을 보장할 수 있게 된다.
 
-TODO 삭제? 하지만, Connection을 유지하기 위한 리소스가 낭비되는 문제가 있다. 그리고 브라우저나 게이트웨이의 Timeout도 고려해야 한다.
+하지만, Event의 빈도가 잦다면 여전히 연결이 아주 많이 발생하는 문제가 있다. 
 
 ## Http Streaming
 
@@ -45,9 +45,11 @@ Http Streaming 방식은 위 문제들을 해결한 방식이다.
 - Content-Length를 알 수 없다.
 - 데이터를 청크 단위로 전송하므로 서버 입장에서 효율적으로 튜닝이 가능해진다.
 
-이렇게하면 이벤트를 클라이언트에게 효율적으로 내려줄 수 있다. 하지만, 커넥션을 지속해야 하는 점은 계속 존재한다.
+이렇게하면 이벤트를 클라이언트에게 효율적으로 내려줄 수 있다.
 
 ## Server Sent Event
+
+Spring WebFlux에서 ServerSentEvent를 사용해서 HTTP Streaming을 구현할 수 있다.
 
 Spring WebFlux에서는 Handler의 Return Type으로 `Flux<ServerSentEvent>`, `Observable<ServerSentEvent>`를 지원한다.
 
