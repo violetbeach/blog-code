@@ -40,7 +40,7 @@ class Controller {
 
 ![img.png](img.png)
 
-## Log 기준
+## 이벤트 발생 기준
 
 아래처럼 Exception을 감싸면 Sentry로 전달되지 않는다.
 
@@ -123,6 +123,13 @@ public class SentryExceptionResolver implements HandlerExceptionResolver, Ordere
 sentry.exception-resolver-order: 1
 ```
 
+Sentry는 ExceptionResolver 뿐만 아니라 다양한 방법으로 비동기로 Sentry 서버에 이벤트를 전달한다.
+- SentryExceptionResolver
+- SentrySpringFilter
+- SentryWebExceptionHandler
+- SentryCaptureExceptionParameterAdvice
+- ...
+
 ## 설정
 
 설정은 프로퍼티나 YML 말고도 JVM 언어 등 프로그래밍 언어로도 가능하다.
@@ -204,7 +211,12 @@ class CustomBeforeSendCallback : SentryOptions.BeforeSendCallback {
 }
 ```
 
+사실 간단한 부분의 경우에는 Sentry 서버에서 Ignore 처리하는 방법도 있다.
+
+![img_1.png](img_1.png)
+
+편리하긴 하지만, 클라리언트에서는 이벤트를 발행하고 서버에서는 적재되므로 성능이 낭비된다는 단점이 있다.
+
 ## 참고
 
-- https://docs.sentry.io/
-
+- https://docs.sentry.io/platforms/java/guides/spring-boot
