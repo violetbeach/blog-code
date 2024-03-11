@@ -257,6 +257,8 @@ sentry.logging.minimum-breadcrumb-level=info
 </configuration>
 ```
 
+TODO https://docs.sentry.io/platforms/java/guides/spring-boot/logging-frameworks/
+
 ## 참고
 
 - https://docs.sentry.io/platforms/java/guides/spring-boot
