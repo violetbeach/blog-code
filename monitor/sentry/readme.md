@@ -217,6 +217,46 @@ class CustomBeforeSendCallback : SentryOptions.BeforeSendCallback {
 
 편리하긴 하지만, 클라리언트에서는 이벤트를 발행하고 서버에서는 적재되므로 성능이 낭비된다는 단점이 있다.
 
+## 로그 통합
+
+예외가 전파되면 Sentry 이벤트를 발행하겠지만, 로그 통합 기능을 사용할 수 있는 방법도 있다.
+
+아래 의존성을 추가한다.
+
+```groovy
+implementation 'io.sentry:sentry-logback:7.6.0'
+```
+
+이후 아래 설정을 사용할 수 있다.
+
+```properties
+# 에러 수준이 error 이상일 때 이벤트 발행
+sentry.logging.minimum-event-level=error
+# 에러 수준이 debug 이상인 대상만 탐색에 포함
+sentry.logging.minimum-breadcrumb-level=info
+```
+
+`logback-spring.xml`로 로그 설정을 통합할 수도 있다.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+
+  <appender name="SENTRY" class="io.sentry.logback.SentryAppender">
+      <minimumEventLevel>ERROR</minimumEventLevel>
+      <minimumBreadcrumbLevel>INFO</minimumBreadcrumbLevel>
+  </appender>
+          
+
+  <root level="info">
+    <appender-ref ref="CONSOLE" />
+    <appender-ref ref="SENTRY" />
+  </root>
+</configuration>
+```
+
 ## 참고
 
 - https://docs.sentry.io/platforms/java/guides/spring-boot
