@@ -10,7 +10,7 @@
 
 ![img_1.png](img_1.png)
 
-코루틴은 작업 하나하나에 Thread를 할당하는 것이 아니라 **Object**를 할당학고, 쓰레드가 Object를 스위칭함으로써 Context Swiching 비용을 대폭 줄인다.
+코루틴은 작업 하나하나에 Thread를 할당하는 것이 아니라 **Object**를 할당하고, 쓰레드가 Object를 스위칭함으로써 Context Swiching 비용을 대폭 줄인다.
 
 ![img_2.png](img_2.png)
 
