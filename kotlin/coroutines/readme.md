@@ -90,3 +90,42 @@ runBlocking {
 
 예시 코드에서 Scope를 생성한 이유는 `runBlocking {}`에서는 GlobalScope를 사용하고 있는데, GlobalScope의 CoroutineExceptionHandler는 대체가 불가능하기 때문이다.
 
+
+#### ThreadLocal
+
+다른 쓰레드에서 코루틴을 실행할 때 threadLocal을 유지할 수 있는 방법이 있다.
+
+아래 코드는 `Dispatcher.IO`를 사용해서 별도 Thread에서 코루틴을 수행한다.
+
+```kotlin
+val threadLocal = ThreadLocal<String>()
+threadLocal.set("hello")
+log.info("thread: {}", Thread.currentThread().name)
+log.info("threadLocal: {}", threadLocal.get())
+
+runBlocking {
+    val context = CoroutineName("custom name") +
+            Dispatchers.IO +
+            threadLocal.asContextElement()
+
+    launch(context) {
+        log.info("thread: {}", Thread.currentThread().name)
+        log.info("threadLocal: {}", threadLocal.get())
+        log.info("coroutine name: {}",
+            coroutineContext[CoroutineName])
+    }
+}
+```
+
+하지만 결과는 코루티 내부에서도 아래와 같이 threadLocal 값이 잘 할당되어 있다.
+
+```kotlin
+12:31 [main] - thread: main
+12:31 [main] - threadLocal: hello
+12:31 [DefaultDispatcher-worker-1] - thread: DefaultDispatcher-worker-1
+12:31 [DefaultDispatcher-worker-1] - threadLocal: hello
+12:31 [DefaultDispatcher-worker-1] - coroutine name: CoroutineName(custom name)
+```
+
+해당 부분은 `threadLocal.asContextElement()`를 사용했기 때문이다. `kotlinx.coroutines.ThreadContextElement`를 사용하면 ThreadLocal을 보존할 수 있다.
+
