@@ -260,6 +260,40 @@ fun main() = runBlocking {
 
 내부 코루틴에서도 `CancellationException`이 발생해서 로그가 찍힌 것을 볼 수 있다.
 
+## 심화
+
+#### flow
+
+코틀린은 Reactor의 `Flux`와 유사한 `Flow`를 제공한다. Flow를 사용하여서 block 내에서 suspend 함수를 실행한다.
+
+```kotlin
+private fun range(n: Int): Flow<Int> {
+    return flow {
+        for (i in 0 until n) {
+            delay(100)
+            emit(i)
+        }
+    }
+}
+
+fun main() = runBlocking {
+    log.info("Start runBlocking")
+    range(5).collect {
+        log.info("item: {}", it)
+    }
+    log.info("Finish runBlocking")
+
+}
+```
+
+`emit`을 통해 값을 전달하면 받는 쪽에서 `collect`를 사용해서 item을 사용할 수 있다.
+
+Flux처럼 다양한 연산도 제공하고 있다.
+- 중간 연산자 - map, flatMap, take, drop, transform
+- 종료 연산자 - collect, toList, toSet, reduce, fold, first, single
+
+
+
 ## 참고
 
 - https://fastcampus.co.kr/courses/216172
