@@ -16,11 +16,77 @@
 
 ## suspend 키워드
 
-suspend는 코루틴 안에서만 실행할 수 있는 코루틴 전용 메서드에 사용한다.
+suspend는 coroutine 혹은 다른 suspend 함수에서 사용한다.
 
 ![img.png](img.png)
 
 suspend를 사용하면 해당 작업을 suspend 시키고, 그 시간 동안 다른 작업에 Thread를 할당할 수 있다.
+
+suspend의 내부 구현을 이해하려면 Kotlin compiler과 Finite state machine, CPS(Continuation passing style)를 알아야 한다.
+
+#### CPS(Continuation passing style)
+
+코루틴에서 사용하는 Continuation passing style는 Direct style과 유사하다. Direct style의 특징은 아래와 같다.
+- Caller가 callee를 호출하는 상황에서 Callee는 값을 계산하여 반환
+- Caller는 callee가 반환한 결과를 사용
+- 일반적인 동기 스타일
+
+아래는 Continuation passing style의 특징이다.
+- Caller가 callee를 호출하는 상황에서 Callee는 값을 계산하여 Continuation을 실행하고 인자로 값을 전달
+- continuation은 callee 마지막에서 한 번만 실행한다.
+
+아래 코드를 보자.
+
+```kotlin
+object CpsCalculator {
+    fun calculate(initialValue: Int, continuation: (Int) -> Unit) {
+        initialize(initialValue) { initial ->
+            plusOne(initial) { added ->
+                double(added) { multiplied ->
+                    continuation(multiplied)
+                }
+            }
+        }
+    }
+
+    private fun initialize(value: Int, continuation: (Int) -> Unit) {
+        continuation(value)
+    }
+
+    private fun plusOne(value: Int, continuation: (Int) -> Unit) {
+        continuation(value + 1)
+    }
+
+    private fun double(value: Int, continuation: (Int) -> Unit) {
+        continuation(value * 2)
+    }
+}
+
+fun main() {
+    CpsCalculator.calculate(5) { result ->
+        log.info("Result: {}", result)
+    }
+}
+```
+
+Continuation은 Callback과 유사한 방식이다.
+
+Callback은 추가로 무엇을 해야 하는 지를 호출하는 것이고 여러번 호출할 수 있다. 반면, Continuation은 최종적으로 로직의 제어를 넘기기 위해 한 번 호출된다는 차이가 있다.
+
+#### Contiunation
+
+아래는 Kotlin coroutines에서 사용하는 `Continuation` 인터페이스이다.
+
+```kotlin
+public interface Continuation<in T> {
+    public val context: CoroutineContext
+    public fun resumeWith(result: Result<T>)
+}
+```
+
+내부적으로 coroutineContext를 포함하고, `resumeWith()`는 마지막 suspend 함수의 결과를 전달받을 수 있게 해주는 함수이다.
+
+코틀린은 `suspend` 키워드가 있는 메서드에 대해서 컴파일러가 
 
 ## CoroutineDispatcher
 
