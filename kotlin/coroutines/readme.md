@@ -292,7 +292,38 @@ Flux처럼 다양한 연산도 제공하고 있다.
 - 중간 연산자 - map, flatMap, take, drop, transform
 - 종료 연산자 - collect, toList, toSet, reduce, fold, first, single
 
+#### channel
 
+채널은 파이프라인을 생각하면 된다. 채널은 아래 특징을 가진다.
+- send와 receive가 가능하다.
+- 여러 coroutine, thread에서 동시에 실행해도 안전하다.
+- capacity와 BufferOverflow 인자를 전달하여 크기를 조절할 수 있다.
+
+아래 코드를 보자.
+
+```kotlin
+suspend fun main() = runBlocking {
+    val channel = Channel<Int>()
+    launch {
+        delay(100)
+
+        for (i in 0 until 5) {
+            channel.send(i)
+        }
+        channel.close()
+    }
+
+    delay(500)
+
+    for (i in channel) {
+        log.info("item: {}", i)
+    }
+}
+```
+
+for를 사용해서 channel의 값을 꺼내어서 사용할 수 있다.
+
+Channel을 사용하면 실시간으로 값을 공유하고 전달받아야 할 때 유용하게 사용할 수 있다.
 
 ## 참고
 
