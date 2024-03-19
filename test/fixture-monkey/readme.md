@@ -1,3 +1,5 @@
+![img.png](img.png)
+
 테스트를 위한 객체를 생성하는 패턴이나 라이브러리가 필요하게 되었고, 훌륭하신 팀원 분이 FixtureMonkey를 추천해주셔서 POC를 진행하게 되었다.
 
 ## FixtureMonkey
