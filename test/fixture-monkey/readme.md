@@ -69,10 +69,45 @@ Foo foo = FixtureMonkey.create().giveMeOne(Foo.class);
 3. 랜덤성
 4. 다용도성
 
-## 의아한 점
+## 유효성
 
-객체의 정상 상태를 보장하기 위해 코드가 복잡할 것 같다.
+FixtureMonkey는 `jakarta.validation.constraints` 기반의 어노테이션을 지원한다.
 
-테스트가 멱등하지 않을 것 같다.
+아래와 같은 엔터티 객체가 있다.
+
+```java
+@Value
+public class Money {
+    @Min(0)
+    long amount;
+}
+```
+
+아래 의존을 추가한다. 
+```
+testImplementation("com.navercorp.fixturemonkey:fixture-monkey-jakarta-validation:1.0.14")
+```
+
+그러면 해당 Validation을 통과하는 범위의 객체를 생성할 수 있다.
+
+```java
+@Test
+void test() {
+    // given
+    FixtureMonkey fixtureMonkey = FixtureMonkey.builder()
+        .objectIntrospector(ConstructorPropertiesArbitraryIntrospector.INSTANCE)
+        .plugin(new JakartaValidationPlugin())
+        .build();
+
+    // when
+    Product actual = fixtureMonkey.giveMeOne(Money.class);
+
+    // then
+    then(actual).isNotNull();
+    then(actual.getPrice()).isMoreThanOrEqualTo(0);
+}
+```
+
+생성자의 `verifyAmount()`와 같은 메서드를 통과할 때는 사용하기 어려울 것 같다.
 
 
