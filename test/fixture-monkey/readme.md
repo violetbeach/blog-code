@@ -110,4 +110,29 @@ void test() {
 
 생성자의 `verifyAmount()`와 같은 메서드를 통과할 때는 사용하기 어려울 것 같다.
 
+## 커스텀 객체
+
+특정 단위 테스트에 필요한 객체를 만들 때는 Builder의 `set()`을 사용할 수 있다.
+
+```java
+@Test
+void test() {
+    // given
+    FixtureMonkey fixtureMonkey = FixtureMonkey.builder()
+        .objectIntrospector(ConstructorPropertiesArbitraryIntrospector.INSTANCE)
+        .build();
+    long amount = 10000;
+
+    // when
+    Product actual = fixtureMonkey.giveMeBuilder(Money.class)
+        .set("amount", amount)
+        .sample();
+
+    // then
+    then(actual.getAmount()).isEqualTo(1000);
+}
+```
+
+보통 도메인에서 Setter의 가시성을 닫기 때문에, 내부적으로 Reflection을 사용한다. 그래서 문자열로 필드명을 주게 되는데, 필드명이 바뀌게 되면 테스트가 깨질 것이라서 다소 아쉬운 것 같다.
+
 
