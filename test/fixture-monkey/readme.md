@@ -135,4 +135,97 @@ void test() {
 
 보통 도메인에서 Setter의 가시성을 닫기 때문에, 내부적으로 Reflection을 사용한다. 그래서 문자열로 필드명을 주게 되는데, 필드명이 바뀌게 되면 테스트가 깨질 것이라서 다소 아쉬운 것 같다.
 
+단, 코틀린을 사용하면 다르다. 코틀린에서는 프로퍼티를 참조해서 객체를 커스텀할 수 있다.
+
+```kotlin
+@Test
+fun test() {
+    // given
+    val fixtureMonkey = FixtureMonkey.builder()
+        .plugin(KotlinPlugin())
+        .build();
+  
+    // when
+    val actual = fixtureMonkey.giveMeBuilder<Money>()
+        .setExp(Product::amount, 1000L)
+        .sample()
+  
+    // then
+    then(actual.amount).isEqualTo(1000L)
+}
+```
+
+즉, 코틀린을 사용하면 필드명이 변경되어도 테스트에도 반영하기가 쉽다.
+
+## 사용 방법
+
+#### giveMeOne
+
+특정 타입의 인스턴스가 필요하다면 `giveMeOne()`을 사용한다.
+
+```kotlin
+val product: Product = fixtureMonkey.giveMeOne()
+val strList: List<String> = fixtureMonkey.giveMeOne()
+```
+
+#### giveMe
+
+여러 개의 인스턴스가 필요하다면 `giveMe()`을 사용한다.
+
+```kotlin
+val productList: List<Product> = fixtureMonkey.giveMe(3)
+val productSequence: Sequence<Product> = fixtureMonkey.giveMe()
+```
+
+#### giveMeBuilder
+
+인스턴스를 커스텀할 경우 `giveMeBuilder()`를 사용한다.
+
+```kotlin
+val productBuilder: ArbitraryBuilder<Product> = fixtureMonkey.giveMeBuilder()
+```
+
+해당 빌더는 아래와 인스턴스를 생성하는 데 사용할 수 있다.
+
+```kotlin
+val product = productBuilder.sample()
+val productList = productBuilder.sampleList(3)
+val productStream = productBuilder.sampleStream()
+```
+
+해당 빌더를 잘 정의해서 const화 시키면 유효한 여러가지 Case의 객체를 손쉽게 만들 수 있을 것으로 보인다.
+
+## 메서드 지정
+
+생성자 오버로딩, 정적 팩토리 메서드 등 다양한 방식으로 클래스를 정의했을 수 있다.
+
+이 경우 아래와 같이 메서드를 지정할 수 있다.
+
+```kotlin
+// 생성자 지정
+ val product = fixtureMonkey.giveMeBuilder<Money>()
+     .instantiateBy { 
+         constructor<Money> { 
+             parameter<Long>() 
+         } 
+     }
+    .sample()
+
+// 생성자 사용할 필드 지정
+val product2 = fixtureMonkey.giveMeBuilder<Money>()
+    .instantiateBy {
+        constructor<Money> {
+            parameter<Long>("amount")
+        }
+    }
+    .sample()
+
+// 팩토리 메서드 지정
+val product3 = fixtureMonkey.giveMeBuilder<Money>()
+    .instantiateBy {
+        factory<Money>("from")
+    }
+    .sample()
+```
+
 
