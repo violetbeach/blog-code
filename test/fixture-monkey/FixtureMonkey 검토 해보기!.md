@@ -1,25 +1,25 @@
 ![img.png](img.png)
 
-테스트를 위한 객체를 생성하는 패턴이나 라이브러리가 필요하게 되었고, 훌륭하신 팀원 분이 FixtureMonkey를 추천해주셔서 POC를 진행하게 되었다.
+새로운 팀에서 테스트를 위한 객체를 생성하는 패턴이나 라이브러리가 필요하게 되었다. 팀원 분이 FixtureMonkey를 추천해주셔서 POC를 진행하게 되었다.
 
 ## FixtureMonkey
 
 **FixtureMonkey**는 **Naver**에서 만든 테스트 객체를 쉽게 생성하고 조작할 수 있도록 도와주는 Java 및 Kotlin 라이브러리이다.
 
-네이버에서 만들었기 때문에 한국어 docs를 지원한다. 그래서 블로깅을 하는 게 큰 의미를 가지지는 않고, 요약 및 검토 정도로 봐주면 좋을 것 같다.
+FixtureMonkey는 한국어 docs를 지원한다. 내용도 크게 길지 않아서 한번 읽어보는 것도 추천드린다. 포스팅 내용은 요약 및 검토 정도로 봐주면 좋을 것 같다.
 - https://naver.github.io/fixture-monkey/v1-0-0-kor/docs/introduction
 
-## 사용하지 않았던 이유
+### 이전에 사용하지 않았던 이유
 
-예전에 해당 라이브러리르 한번 봤었고, 적용한다는 블로그를 많이 봤다. 하지만 버전과 Starts(인지도)가 모두 Minor 하다고 판단해서 적용하지 않기로 했었다.
+FixtureMonkey는 2년 전에 한번 봤었고 적용한다는 블로그를 많이 봤다. 하지만 버전이 낮고 Stars도 작아서 Minor 하다고 판단해서 적용하지 않았었다.
 
-추가로 아래 부분에 대한 의문이 해소되지 않았었다.
+아래 부분에 대한 의문이 해소되지 않았다.
 - 객체를 검증을 통과할 수 있는 상태로 생성하기 위해 코드가 복잡할 것 같음
   - 검증 로직과의 동기화 필요
 - 테스트가 멱등하지 않을 것 같다.
-- 가독성이 좋지 않을 것 같다. (코드가 짧아지지만, 의미를 노출하지 못할 것 같다.)
+- 가독성이 좋지 않을 것 같다. (코드가 짧아지지만 의미를 노출하지 못할 것 같다.)
 
-최근에 인기가 급상승 하고 있기도 하고, 요청도 있으니 한번 검토를 해보자!
+최근에 인기가 생기고 있고 요청도 있으니 한번 검토를 해보자!
 
 ## 컨셉
 
@@ -64,12 +64,7 @@ interface Foo {
 Foo foo = FixtureMonkey.create().giveMeOne(Foo.class);
 ```
 
-1. 간결함
-2. 재사용성
-3. 랜덤성
-4. 다용도성
-
-## 사용 방법
+## 메서드
 
 #### giveMeOne
 
@@ -97,7 +92,7 @@ val productSequence: Sequence<Product> = fixtureMonkey.giveMe()
 val productBuilder: ArbitraryBuilder<Product> = fixtureMonkey.giveMeBuilder()
 ```
 
-해당 빌더는 아래와 인스턴스를 생성하는 데 사용할 수 있다.
+빌더는 아래와 인스턴스를 생성하는 데 사용할 수 있다.
 
 ```kotlin
 val product = productBuilder.sample()
@@ -105,13 +100,11 @@ val productList = productBuilder.sampleList(3)
 val productStream = productBuilder.sampleStream()
 ```
 
-해당 빌더를 잘 정의해서 const화 시키면 유효한 여러가지 Case의 객체를 손쉽게 만들 수 있을 것으로 보인다.
+빌더를 잘 정의해서 const화 시키면 유효한 여러가지 Case의 객체를 손쉽게 만들 수 있을 것으로 보인다.
 
 ## 생성자 / 팩토리 메서드
 
-생성자 오버로딩, 정적 팩토리 메서드 등 다양한 방식으로 클래스를 정의했을 수 있다.
-
-이 경우 아래와 같이 메서드를 지정할 수 있다.
+생성자 오버로딩, 정적 팩토리 메서드 등 다양한 방식으로 클래스를 정의했을 수 있다. 아래와 같이 `instantiateBy()`를 사용해서 메서드를 지정할 수 있다.
 
 ```kotlin
 // 생성자 지정
@@ -179,7 +172,7 @@ void test() {
 }
 ```
 
-생성자의 `verifyAmount()`와 같은 메서드를 통과할 때는 사용하기 어려울 것 같다.
+생성자에서 호출하는 `verifyAmount()`와 같은 메서드를 통과할 때 활용하기는 어려울 것 같다.
 
 ## 객체 생성 Rule 적용
 
@@ -204,7 +197,7 @@ void test() {
 }
 ```
 
-보통 도메인에서 Setter의 가시성을 닫기 때문에, 내부적으로 Reflection을 사용한다. 그래서 문자열로 필드명을 주게 되는데, 필드명이 바뀌게 되면 테스트가 깨질 것이라서 다소 아쉬운 것 같다.
+보통 도메인에서 Setter를 사용하지 않기 때문에 FixtureMonkey에서도 내부적으로 Reflection을 사용한다. 그래서 문자열로 필드명을 주게 되는데 필드명이 바뀌면 테스트가 깨질 것이라서 다소 아쉬운 것 같다.
 
 단, 코틀린을 사용하면 다르다. 코틀린에서는 `setExp()`로 프로퍼티를 참조해서 커스텀한 객체를 생성할 수 있다.
 
@@ -226,9 +219,9 @@ fun test() {
 }
 ```
 
-즉, 코틀린을 사용하면 필드명이 변경되어도 테스트에도 반영하기가 쉽다.
+코틀린에서는 필드명이 변경되어도 IDE를 사용하고 있다면 테스트에 반영이 될 것이다.
 
-#### size
+#### Size
 
 `size()`를 사용하면 프로퍼티의 크기를 지정할 수 있다. 최소값이나 최대값 지정도 가능하다.
 
@@ -260,7 +253,7 @@ fixtureMonkey.giveMeBuilder<Product>()
 
 #### Post Condition
 
-복잡한 비즈니스 설정의 경우 아래와 같이 `Predicate`를 전달해서 조건을 만족하는 Fixture 객체를 생성할 수 있다.
+복잡한 비즈니스의 경우 아래와 같이 `Predicate`를 전달해서 조건을 만족하는 Fixture 객체를 생성할 수 있다.
 
 ```kotlin
 fixtureMonkey.giveMeBuilder(Product::class.java)
@@ -291,7 +284,7 @@ fixtureMonkey.giveMeBuilder<Product>()
 
 테스트 데이터를 위한 Fixture를 어떻게 관리할 지 고민을 했었다. 사실 개인적으로는 되게 편한 라이브러리면서도 다소 아쉬운 부분이 존재하는 것 같다.
 
-아래는 내가 라이브러리를 검토해보기 전에 의문이 들었던 부분에 대한 확인 결과이다.
+아래는 의문이 들었던 부분에 대한 정리이다.
 - 객체를 검증을 통과할 수 있는 상태로 생성하기 위해 코드가 복잡할 것 같음
   - 실제로 다소 복잡한 것이 맞는 것 같다.
   - Fixture와 실제 클래스 명세와 동기화 하는 것도 어려울 것 같다.
@@ -301,7 +294,7 @@ fixtureMonkey.giveMeBuilder<Product>()
 - 가독성이 좋지 않을 것 같다.
   - 이 부분은 private method를 잘 활용한다면 가독성이 괜찮게 관리될 수는 있을 것 같다. 
 
-그리고 FixtureMonkey는 Interface, Generic, Self reference class, Seald class 등 대부분의 상황에서 Fixture 생성을 지원한다. 그런 부분들은 충분히 장점인 것 같다.
+알게된 장점은 FixtureMonkey는 Interface, Generic, Self reference class, Seald class 등 대부분의 상황에서 Fixture 생성을 지원한다. 그런 부분들은 충분히 장점인 것 같다.
 
 코틀린에서는 프로퍼티를 설정할 때 변수명(String)을 사용하지 않을 수 있어서 리팩토링 내성 부분도 개선되는 것 같다.
 
