@@ -182,7 +182,7 @@ public void 연속_2번_테스트() throws Exception {
 
 다른 점은 InputStream을 **인자**로 넣어 줄 지 **블록 내**에서 선언할 지 밖에 없다.
 
-더 자세히 디버깅해본 결과 두 테스트가 `SharedFileInputStream` **인스턴스의 생명주기가 다른 것**의심 했다.
+더 자세히 디버깅해본 결과 두 테스트가 `SharedFileInputStream` **인스턴스의 생명주기가 다른 것**을 의심 했다.
 `MimeMessage`는 자식 **`SharedInputStream`** 에 대한 참조는 가지고 있지만, 부모 `SharedInputStream`에 대한 참조는 가지고 있지 않았다.
 
 `SharedFileInputStream`은 부모가 `close`되면 자식도 `close`된다.
