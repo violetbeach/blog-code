@@ -1,6 +1,10 @@
 ## 코루틴
 
-코루틴(Coroutine)은 일시 중단이 가능한(Suspendable) 작업 객체이다.
+코루틴(Coroutine)은 Co(함께, 서로) + routine(규칙적 작업의 집합) 2개가 합쳐진 단어로 함께 동작하며 규칙이 있는 작업의 집합을 의미한다.
+
+왜 `Koroutine`이 아니라 `Coroutine`인지 의아할 수 있는데 코루틴은 코틀린만의 것이 아니다. Python, C#, Go, Javascript 등 다양한 언어에서 지원하는 개념이다.
+
+JS의 async, await도 코루틴의 일부이며, 코루틴은 프로그래밍 초창기부터 존재하던 개념이다.
 
 ## vs Thread
 
@@ -10,19 +14,32 @@
 
 ![img_1.png](img_1.png)
 
-코루틴은 작업 하나하나에 Thread를 할당하는 것이 아니라 **Object**를 할당하고, 쓰레드가 Object를 스위칭함으로써 Context Swiching 비용을 대폭 줄인다.
+코루틴은 작업 하나하나에 Thread를 할당하는 것이 아니라 **Object**를 할당한다. 
 
 ![img_2.png](img_2.png)
 
+쓰레드가 Object를 스위칭함으로써 Context Swiching 비용을 대폭 줄인다.
+
+
+## Kotlin Coroutines
+
+코틀린에서는 코루틴을 위한 공식 라이브러리(`kotlinx.coroutines`)를 지원한다.
+
+Jetbrain에서는 멀티 쓰레딩 문제를 간소화된 방식으로 해결할 수 있도록 코틀린의 코루틴 라이브러리를 개발했다고 한다.
+
+코루틴은 높은 러닝커브를 가지는 `RxJava`와 같은 비동기 라이브러리보다 낮은 러닝커브로 동기적으로 코드를 작성할 수 있게 도움을 준다.
+
+코틀린에서는 `suspend` 키워드를 사용해서 코루틴을 제공하고 있다.
+
 ## suspend 키워드
 
-suspend는 coroutine 혹은 다른 suspend 함수에서 사용한다.
+suspend는 coroutine 혹은 다른 `suspend` 함수에서 사용한다.
 
 ![img.png](img.png)
 
-suspend를 사용하면 해당 작업을 suspend 시키고, 그 시간 동안 다른 작업에 Thread를 할당할 수 있다.
+`suspend` 키워드를 사용하면 해당 작업을 일시중단(suspend) 시키고, 그 시간 동안 다른 작업에 Thread를 할당할 수 있다.
 
-suspend의 내부 구현을 이해하려면 Kotlin compiler과 Finite state machine, CPS(Continuation passing style)를 알아야 한다.
+`suspend`의 내부 구현을 이해하려면 코틀린 컴파일러와 CPS(Continuation passing style)를 알아야 한다.
 
 ### CPS(Continuation passing style)
 
@@ -110,9 +127,15 @@ suspend fun execute(userId: Long, productIds: List<Long>): Order {
 }
 ```
 
-에 대해서 컴파일러가 `Continuation`를 활용한 CPS 구조의 코드로 변환하고, 일시 중단(suspend), 재개(resume)이 가능한 형태로 만든다.
+컴파일러가 `Continuation`를 활용한 CPS 구조의 코드로 변환하고, 일시 중단(suspend), 재개(resume)이 가능한 형태로 만든다.
+- suspend 키워드가 붙은 함수에 Continuation 인자 추가
+- 내부에서 다른 suspend 함수를 실행할 때 소유하고 있던 Continuation을 전달
 
 여기서 일시 중단과 재개 가능한 단위를 **코루틴(coroutine)**이라 한다.
+
+참고로 위 변환 과정으로 인해 suspend가 없는 함수에서는 다른 suspend 함수를 호출할 수 없다. 전달할 Continuation이 없기 때문이다.
+
+
 
 ## 참고
 - https://www.charlezz.com/?p=45962
