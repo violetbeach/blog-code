@@ -10,41 +10,21 @@ JS의 async, await도 동일한 개념이고 코루틴은 프로그래밍 초창
 
 코틀린에서는 코루틴을 위한 공식 라이브러리(`kotlinx.coroutines`)를 지원한다.
 
-아래는 Kotlin Coroutines에 대한 설명이다.
+아래는 Kotlin Coroutines의 특징이다.
 - 동시성을 위한 기능을 제공
 - Async Non-blocking으로 동작하는 코드를 동기 방식으로 작성할 수 있도록 지원
   - 코틀린 컴파일러에서 바이트 코드를 비동기 방식으로 변경
-- CoroutineContext를 통해 Dispatcher, error handling, threadLocal 등을 지원
-- CoroutineScope를 통해 structured concurrency, cancellation 제공
+- CoroutineContext를 통해 Dispatcher, Error handling, ThreadLocal 등을 지원
+- CoroutineScope를 통해 Structured concurrency, Cancellation 제공
 - flow, channel 등의 심화 기능 제공
-
-## vs Thread
-
-코루틴은 **경량 쓰레드**라고 부른다.
-
-아래는 여러 개의 쓰레드로 여러 개의 작업을 실행하는 방식이다.
-
-![img_1.png](img_1.png)
-
-코루틴은 작업 하나하나에 Thread를 할당하는 것이 아니라 **Object**를 할당하고, 쓰레드가 Object를 스위칭함으로써 Context Swiching 비용을 대폭 줄인다.
-
-![img_2.png](img_2.png)
-
-## suspend
-
-suspend는 코루틴 안에서만 실행할 수 있는 코루틴 전용 메서드에 사용한다.
-
-![img.png](img.png)
-
-코루틴은 `suspend` 키워드를 사용해서 특정 지점에서 일시중지(suspend) 하고, Thread는 다른 작업을 수행할 수 있다.
 
 ## CoroutineContext
 
 CoroutineContext는 coroutine에 필요한 정보를 제공해준다.
 - Coroutine 이름
 - CoroutineDispatcher
-- ThreadLocal
 - CoroutineExceptionHandler
+- ThreadLocal
 
 #### CoroutineDispatcher
 
@@ -208,7 +188,7 @@ fun main() = runBlocking {
 
 비동기 코드와 결과가 다른 점이 있는데, 코드의 마지막에 호출한 `Finish runBlocking`이 마지막에 호출된다는 것이다.
 
-이를 **구조화된 동시성(Structured concurrency)**이라고 한다. `coroutineScope` 키워드를 사용함으로써 **자식 코루틴(별도 쓰레드의 동작들)이 모두 종료되어야 해당 코루틴이 끝난 것으로 처리**된다. 
+이를 **구조화된 동시성(Structured concurrency)** 이라 한다. `coroutineScope` 키워드를 사용함으로써 **자식 코루틴(별도 쓰레드의 동작들)이 모두 종료되어야 해당 코루틴이 끝난 것으로 처리**된다. 
 
 구조화된 동시성의 또 하나의 특징은 **cancel이 발생하면 자식 coroutine까지 전파**한다는 점이다.
 
@@ -260,7 +240,7 @@ fun main() = runBlocking {
 
 내부 코루틴에서도 `CancellationException`이 발생해서 로그가 찍힌 것을 볼 수 있다.
 
-## 심화
+## 심화 기능
 
 #### flow
 
