@@ -36,4 +36,50 @@ class HelloController {
 
 ![img.png](img.png)
 
-`invokeSuspendingFunction()`는 `Mono`를 사용해서 함수를 처리하게 된다.
+`invokeSuspendingFunction()`는 `Mono`로 감싸서 함수를 처리하게 된다.
+
+## Mono 변환
+
+아래와 같이 `suspend` 함수가 있고, Mono를 반환하는 곳에서 해당 함수를 활용해야 한다면 어떻게 처리할까
+
+```kotlin
+suspend fun hello(): String {
+    delay(1000)
+    return "hello"
+}
+
+fun getHello(): Mono<String> {
+    // TODO
+}
+```
+
+`kotlin-coroutines-reactor`에서는 `mono()`를 제공한다. 해당 함수는 파라미터로 suspend 함수를 실행해서 Mono를 반환해준다.
+
+```kotlin
+public fun <T> mono(
+    context: CoroutineContext = EmptyCoroutineContext,
+    block: suspend CoroutineScope.() -> T?
+): Mono<T> {
+    require(context[Job] === null) {
+        "Mono context cannot contain job in it." + 
+        "Its lifecycle should be managed via Disposable handle. Had $context" }
+    return monoInternal(GlobalScope, context, block)
+}
+```
+
+그래서 아래와 같이 구현할 수 있다.
+
+```kotlin
+suspend fun hello(): String {
+    delay(1000)
+    return "hello"
+}
+
+fun getHello(): Mono<String> {
+    return mono { hello() }
+}
+```
+
+## 참고
+
+- https://fastcampus.co.kr/courses/216172
