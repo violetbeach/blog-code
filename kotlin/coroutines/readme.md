@@ -20,11 +20,101 @@ JS의 async, await도 동일한 개념이고 코루틴은 프로그래밍 초창
 
 ## CoroutineContext
 
-CoroutineContext는 coroutine에 필요한 정보를 제공해준다.
+이전 포스팅에서 코틀린 컴파일러는 `suspend` 키워드가 있는 함수를 `Continuation` 인터페이스 기반의 CPS를 구현해준다고 했다.
+
+```kotlin
+public interface Continuation<in T> {
+    public val context: CoroutineContext
+    public fun resumeWith(result: Result<T>)
+}
+```
+
+`Continuation`은 1개의 CoroutineContext를 포함한다. CoroutineContext는 자식 코루틴에 상태와 동작을 전파한다.
 - Coroutine 이름
 - CoroutineDispatcher
-- CoroutineExceptionHandler
 - ThreadLocal
+- CoroutineExceptionHandler
+
+자식 코루틴이 코루틴 컨텍스트를 꺼내는 방법은 아래와 같다.
+- Scope를 통한 접근
+- Continuation을 통한 접근
+
+예시 코드는 아래와 같다.
+
+```kotlin
+fun main() {
+    runBlocking {
+        log.info("context (Scope를 통한 호출): {}", this.coroutineContext)
+        sub()
+    }
+}
+private suspend fun sub() {
+    log.info("context (Continuation를 통한 호출): {}", coroutineContext)
+}
+```
+
+CoroutineContext는 병합하거나 분해할 수 있다.
+- EmptyCoroutineContext: Element가 없는 상태
+- Element: Element가 하나인 상태
+- CombinedContext: Element가 2개 이상인 상태
+- Key: Element를 구분할 때 사용하는 식별자
+
+아래는 CoroutineContext 인터페이스이다.
+
+```kotlin
+public interface CoroutineContext {
+    public operator fun <E : Element> get(key: Key<E>): E?
+
+    public fun <R> fold(initial: R, operation: (R, Element) -> R): R
+    
+    public operator fun plus(context: CoroutineContext): CoroutineContext
+    
+    public fun minusKey(key: Key<*>): CoroutineContext
+    
+    public interface Key<E : Element>
+}
+```
+
+아래 코드를 실행해보자.
+
+```kotlin
+fun main() {
+    val handler = CoroutineExceptionHandler { _, e ->
+        log.error("exception caught in handler")
+    }
+
+    val context1 = CoroutineName("custom name") +
+            Dispatchers.IO +
+            Job() +
+            handler
+    log.info("context: {}", context1)
+
+    val context2 = context1.minusKey(CoroutineExceptionHandler)
+    log.info("context2: {}", context2)
+
+    val context3 = context2.minusKey(Job)
+    log.info("context3: {}", context3)
+
+    val context4 = context3.minusKey(CoroutineDispatcher)
+    log.info("context4: {}", context4)
+
+    val context5 = context4.minusKey(CoroutineName)
+    log.info("context5: {}", context5)
+}
+```
+
+아래는 결과이다. 
+```kotlin
+22:43 [main] - context: [CoroutineName(custom name), JobImpl{Active}@5c1a8622, com.grizz.wooman.coroutine.context.ContextMinusExampleKt$main$$inlined$CoroutineExceptionHandler$1@5ad851c9, Dispatchers.IO]
+22:43 [main] - context2: [CoroutineName(custom name), JobImpl{Active}@5c1a8622, Dispatchers.IO]
+22:43 [main] - context3: [CoroutineName(custom name), Dispatchers.IO]
+22:43 [main] - context4: CoroutineName(custom name)
+22:43 [main] - context5: EmptyCoroutineContext
+```
+
+아래와 같이 각 코루틴 컨텍스트의 구성요소들은 `Element`를 상속하고, 내부적으로 가진 Key를 통해 관리된다.
+
+![img_3.png](img_3.png)
 
 #### CoroutineDispatcher
 
@@ -42,34 +132,35 @@ CoroutineContext는 coroutine에 필요한 정보를 제공해준다.
     - 읽기, 쓰기 작업에 최적화
     - Thread를 Block할 필요가 있는 경우
 
-#### CoroutineExceptionHandler
-
-CoroutineExceptionHandler는 코루틴 내부의 Exception을 핸들링하는 기능을 제공한다.
-
-아래 코드를 보자.
+아래 코드를 실행해보자.
 
 ```kotlin
-runBlocking {
-    val context = CoroutineName("custom name") +
-            CoroutineExceptionHandler { _, e ->
-                log.error("custom exception handle: {${e.javaClass}}")
-            }
+fun main() {
+    val threadLocal = ThreadLocal<String>()
+    threadLocal.set("hello")
 
-    CoroutineScope(Dispatchers.IO).launch(context) {
-        throw IllegalStateException()
+    runBlocking {
+        log.info("thread: {}", Thread.currentThread().name)
+        log.info("threadLocal: {}", threadLocal.get())
+
+        launch(Dispatchers.IO) {
+            log.info("thread: {}", Thread.currentThread().name)
+            log.info("threadLocal: {}", threadLocal.get())
+        }
     }
-    
 }
 ```
 
-결과는 아래와 같다.
+아래는 실행 결과이다.
 
 ```
-22:10 [DefaultDispatcher-worker-1] - custom exception handle: {class java.lang.IllegalStateException}
+34:21 [main] - thread: main
+34:21 [main] - threadLocal: hello
+34:21 [DefaultDispatcher-worker-1] - thread: DefaultDispatcher-worker-1
+34:21 [DefaultDispatcher-worker-1] - threadLocal: null
 ```
 
-예시 코드에서 Scope를 생성한 이유는 `runBlocking {}`에서는 GlobalScope를 사용하고 있는데, GlobalScope의 CoroutineExceptionHandler는 대체가 불가능하기 때문이다.
-
+`runBlocking`의 경우 main 쓰레드가 동작하고, `launch`에서는 `Dispatchers.IO`륾 명시해서 `DefaultDispatcher-worker-1` 스레드에서 코루틴이 실행되고 있다. 당연히 ThreadLocal에서 값을 꺼낼 수 없다.
 
 #### ThreadLocal
 
@@ -108,6 +199,35 @@ runBlocking {
 ```
 
 해당 부분은 `threadLocal.asContextElement()`를 사용했기 때문이다. `kotlinx.coroutines.ThreadContextElement`를 사용하면 ThreadLocal을 보존할 수 있다.
+
+
+#### CoroutineExceptionHandler
+
+CoroutineExceptionHandler는 코루틴 내부의 Exception을 핸들링하는 기능을 제공한다.
+
+아래 코드를 보자.
+
+```kotlin
+runBlocking {
+    val context = CoroutineName("custom name") +
+            CoroutineExceptionHandler { _, e ->
+                log.error("custom exception handle: {${e.javaClass}}")
+            }
+
+    CoroutineScope(Dispatchers.IO).launch(context) {
+        throw IllegalStateException()
+    }
+    
+}
+```
+
+결과는 아래와 같다.
+
+```
+22:10 [DefaultDispatcher-worker-1] - custom exception handle: {class java.lang.IllegalStateException}
+```
+
+예시 코드에서 Scope를 생성한 이유는 `runBlocking {}`에서는 GlobalScope를 사용하고 있는데, GlobalScope의 CoroutineExceptionHandler는 대체가 불가능하기 때문이다.
 
 ## Structured concurrency
 
@@ -308,3 +428,4 @@ Channel을 사용하면 실시간으로 값을 공유하고 전달받아야 할 
 ## 참고
 
 - https://fastcampus.co.kr/courses/216172
+- https://kotlinlang.org/docs/coroutines-overview.html
