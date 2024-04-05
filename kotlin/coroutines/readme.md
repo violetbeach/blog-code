@@ -116,6 +116,39 @@ fun main() {
 
 ![img_3.png](img_3.png)
 
+## Job
+
+CoroutineContext의 구성요소중 하나인 Job이다. Job은 Coroutine의 생명주기를 관리한다.
+
+아래는 코드를 보자.
+
+```kotlin
+public interface Job : CoroutineContext.Element {
+    public companion object Key : CoroutineContext.Key<Job>
+    
+    public val parent: Job?
+    
+    public val isActive: Boolean
+    
+    public val isCompleted: Boolean
+    
+    public val isCancelled: Boolean
+    
+    public fun start(): Boolean
+    
+    public fun cancel(cause: CancellationException? = null)
+
+    public val children: Sequence<Job>
+}
+```
+
+CoroutineContext의 Job에 대한 설명은 아래와 같다.
+
+- Active, Completed, Cancelled와 같은 상태를 갖는다.
+- 명시적으로 시작이나 취소를 할 수 있다.
+- child를 통해서 다른 Job의 생명주기를 관리한다.
+- launch, async 등의 coroutine builder를 통해 자식 Job을 생성가능하다.
+
 #### CoroutineDispatcher
 
 코루틴을 어떤 Thread에게 보낼 지 결정하는 컴포넌트를 Dispatcher라고 한다.
@@ -164,7 +197,7 @@ fun main() {
 
 #### ThreadLocal
 
-다른 쓰레드에서 코루틴을 실행할 때 threadLocal을 유지할 수 있는 방법이 있다.
+다른 쓰레드에서 코루틴을 실행할 때 threadLocal을 유지할 수 있는 방법이 있다. `ThreadLocalElement`를 활용하면 된다.
 
 아래 코드는 `Dispatcher.IO`를 사용해서 별도 Thread에서 코루틴을 수행한다.
 
@@ -198,7 +231,8 @@ runBlocking {
 12:31 [DefaultDispatcher-worker-1] - coroutine name: CoroutineName(custom name)
 ```
 
-해당 부분은 `threadLocal.asContextElement()`를 사용했기 때문이다. `kotlinx.coroutines.ThreadContextElement`를 사용하면 ThreadLocal을 보존할 수 있다.
+해당 부분은 `threadLocal.asContextElement()`를 사용해서 `ThreadLocalElement`를 만들어서 CoroutineContext에 추가했기 때문이다.
+`kotlinx.coroutines.ThreadContextElement`를 사용하면 해당 ThreadLocal을 보존할 수 있다.
 
 
 #### CoroutineExceptionHandler
