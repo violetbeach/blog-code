@@ -112,13 +112,17 @@ fun main() {
 22:43 [main] - context5: EmptyCoroutineContext
 ```
 
-아래와 같이 각 코루틴 컨텍스트의 구성요소들은 `Element`를 상속하고, 내부적으로 가진 Key를 통해 관리된다.
+아래와 같이 각 코루틴 컨텍스트의 요소들은 `Element`를 상속하고, 내부적으로 가진 Key를 통해 관리된다.
 
 ![img_3.png](img_3.png)
 
+이를 활용하면 코루틴 내부에서 값을 전달할 때 사용하는 것도 가능하다.
+
+다음은 Job에 대해 알아보자.
+
 ## Job
 
-CoroutineContext의 구성요소중 하나인 Job이다. Job은 Coroutine의 생명주기를 관리한다.
+CoroutineContext의 요소중 하나인 Job이다. Job은 Coroutine의 생명주기를 관리한다.
 
 아래는 코드를 보자.
 
@@ -237,9 +241,80 @@ runBlocking {
 
 #### CoroutineExceptionHandler
 
-CoroutineExceptionHandler는 코루틴 내부의 Exception을 핸들링하는 기능을 제공한다.
+Coroutine에서의 Exception을 알아보자.
 
 아래 코드를 보자.
+
+```kotlin
+fun main() {
+    runBlocking {
+        try {
+            launch {
+                throw IllegalStateException("exception in launch")
+            }
+        } catch (e: Exception) {
+            log.error("not caught maybe")
+        }
+    }
+}
+```
+
+결과를 보면 예외가 Catch 되지 않는다.
+
+![img_4.png](img_4.png)
+
+Coroutine은 Job을 통해서 Exception을 전파하는 방식이기 때문이다.
+
+**CoroutineExceptionHandler**는 CoroutineContext 요소 중 하나이고, 코루틴 내부의 Exception을 핸들링하는 기능을 제공한다.
+
+아래 코드를 보자.
+
+```kotlin
+fun main() {
+    val handler = CoroutineExceptionHandler { _, e ->
+        log.error("not caught maybe")
+    }
+    runBlocking {
+        CoroutineScope(handler).launch {
+            throw IllegalStateException("exception in launch")
+        }
+    }
+}
+```
+
+결과 아래와 같이 잘 에러가 핸들링된다.
+
+```
+24:40 [DefaultDispatcher-worker-1] - not caught maybe
+```
+
+#### 주의사항
+
+CoroutineExceptionHandler는 아래의 주의사항이 있다.
+- main runBlocking에서 launch되는 코루틴에서는 동작하지 않는다.
+  - 자식 코루틴에서 Exception이 발생하면 부모 코루틴이 취소되어 Exception을 Handling 할 수 없다.
+  - 자세한 내용은 [공식 문서](https://kotlinlang.org/docs/exception-handling.html#cancellation-and-exceptions)를 읽어보길 권장한다.
+- 루트가 아닌 코루틴에 적용되는 핸들러는 무시된다.
+- async에는 적용할 수 없다.
+
+아래 코드를 보자.
+
+```kotlin
+fun main() {
+    val handler = CoroutineExceptionHandler { _, e ->
+        log.error("custom exception handle: {${e.javaClass}}")
+    }
+    runBlocking(handler) {
+        throw IllegalStateException()
+    }
+}
+```
+
+![img_5.png](img_5.png)
+
+Exception이 핸들링 되지 않는다.
+
+아래에서는 CoroutineScope를 로 별도로 추가해서 사용했다.
 
 ```kotlin
 runBlocking {
@@ -258,10 +333,11 @@ runBlocking {
 결과는 아래와 같다.
 
 ```
-22:10 [DefaultDispatcher-worker-1] - custom exception handle: {class java.lang.IllegalStateException}
+22:10 [DefaultDispatcher-worker-1]
+    custom exception handle: {class java.lang.IllegalStateException}
 ```
 
-예시 코드에서 Scope를 생성한 이유는 `runBlocking {}`에서는 GlobalScope를 사용하고 있는데, GlobalScope의 CoroutineExceptionHandler는 대체가 불가능하기 때문이다.
+Exception이 잘 핸들링 되었다.
 
 ## Structured concurrency
 
