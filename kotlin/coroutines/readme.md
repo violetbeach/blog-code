@@ -155,19 +155,60 @@ CoroutineContext의 Job에 대한 설명은 아래와 같다.
 
 #### CoroutineDispatcher
 
-코루틴을 어떤 Thread에게 보낼 지 결정하는 컴포넌트를 Dispatcher라고 한다.
+CoroutineDispatcher는 코루틴을 어떤 Thread에게 보낼 지 결정한다.
 
 - Dispatcher.Default
-    - 리스트를 정렬하거나 Json Parsing 등 가공 작업에 주로 사용
-    - CPU를 많이 사용하는 무거운 작업에 최적화
-    - CPU 개수 만큼 스레드를 생성
-    - 현재는 CommonPool이 사용되며, 쓰레드 풀의 최대 크기가 시스템 코어수-1이다.
+  - CPU 개수 만큼 스레드를 생성
+  - 리스트를 정렬하거나 Json Parsing 등 가공 작업에 주로 사용
+  - CPU를 많이 사용하는 무거운 작업에 최적화
+  - 현재는 CommonPool이 사용되며, 쓰레드 풀의 최대 크기가 시스템 코어수-1이다.
 - Dispatcher.Main
     - 화면 UI 작업을 위해 사용
+    - Android 개발 모듈에서 주로 사용하고, 일반적으로 서버 개발에서는 사용할 수 없다.
 - Dispatcher.IO
-    - 네트워크 DB 작업할 경우 사용
-    - 읽기, 쓰기 작업에 최적화
-    - Thread를 Block할 필요가 있는 경우
+  - 최대 64개까지 늘어나는 가변 크기의 쓰레드 풀을 가진다.
+  - 네트워크 DB 작업할 경우 사용 (I/O 블로킹을 메인 쓰레드에서 격리시키기 위해 사용)
+  - 읽기, 쓰기 작업에 최적화
+  - Thread를 Block할 필요가 있는 경우
+
+Default와 IO 디스패처 간 차이는 쓰레드 풀의 쓰레드 개수 설정에 있다.
+복잡한 연산의 경우 CPU를 많이 사용하므로 쓰레드 개수가 많이 필요하지 않다. 반면, I/O 작업의 경우 CPU를 많이 점유하지 않고 쓰레드를 많이 필요로 한다.
+
+Dispatcher는 작업의 특성에 맞게 적절히 선택해야 한다고 생각하면 된다. (필요한 경우 ThreadPoolExecutor를 생성한 후 그걸 사용해서 Dispatcher를 생성하면 된다.)
+
+#### Default와 IO가 쓰레드가 동일한 이유
+
+아래 코드를 실행해보면 어떻게 될까?
+
+```kotlin
+fun main() {
+    runBlocking {
+        withContext(Dispatchers.Default) {
+            log.info("thread: {}", Thread.currentThread().name)
+            log.info("dispatcher: {}", this.dispatcher())
+        }
+
+        withContext(Dispatchers.IO) {
+            log.info("thread: {}", Thread.currentThread().name)
+            log.info("dispatcher: {}", this.dispatcher())
+        }
+    }
+}
+```
+
+아래는 결과이다.
+
+```
+11:42 [DefaultDispatcher-worker-1] - thread: DefaultDispatcher-worker-1
+11:42 [DefaultDispatcher-worker-1] - dispatcher: Dispatchers.Default
+11:42 [DefaultDispatcher-worker-1] - thread: DefaultDispatcher-worker-1
+11:42 [DefaultDispatcher-worker-1] - dispatcher: Dispatchers.IO
+```
+
+Dispatchers.Default와 Dispatchers.IO는 **동일한 쓰레드 풀**을 사용한다. 대신 **동시에 수행 가능한 쓰레드 수**가 다른 것이다.
+
+
+## ThreadLocal
 
 아래 코드를 실행해보자.
 
@@ -198,8 +239,6 @@ fun main() {
 ```
 
 `runBlocking`의 경우 main 쓰레드가 동작하고, `launch`에서는 `Dispatchers.IO`륾 명시해서 `DefaultDispatcher-worker-1` 스레드에서 코루틴이 실행되고 있다. 당연히 ThreadLocal에서 값을 꺼낼 수 없다.
-
-#### ThreadLocal
 
 다른 쓰레드에서 코루틴을 실행할 때 threadLocal을 유지할 수 있는 방법이 있다. `ThreadLocalElement`를 활용하면 된다.
 
