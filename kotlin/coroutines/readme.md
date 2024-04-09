@@ -378,6 +378,18 @@ runBlocking {
 
 Exception이 잘 핸들링 되었다.
 
+## Coroutine Scope
+
+CoroutineScope는 Coroutine들에 대한 Scope를 정의한다.
+- 각 Coroutine들은 Scope를 가진다.
+- Scope는 자식 Coroutine들에 대한 생명주기를 관리한다.
+- 자식 Coroutine이 모두 완료되어야 Scope도 완료된다.
+- 내부 CoroutineContext에 Job을 반드시 포함되어야 한다.
+
+CoroutineScope는 CoroutineContext를 가지는 범위라고 생각하면 된다. Scope를 통해 자식 코루틴에게 CoroutineContext를 전파할 수 있는 것이다.
+
+![img_7.png](img_7.png)
+
 ## Structured concurrency
 
 아래 비동기 코드를 보자.
@@ -578,3 +590,4 @@ Channel을 사용하면 실시간으로 값을 공유하고 전달받아야 할 
 
 - https://fastcampus.co.kr/courses/216172
 - https://kotlinlang.org/docs/coroutines-overview.html
+- https://write.agrevolution.in/kotlin-coroutines-part-3-coroutine-context-bd5543389190
