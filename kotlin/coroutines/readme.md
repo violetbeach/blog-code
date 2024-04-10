@@ -390,6 +390,67 @@ CoroutineScope는 CoroutineContext를 가지는 범위라고 생각하면 된다
 
 ![img_7.png](img_7.png)
 
+## Coroutine Builder
+
+Coroutine Builder는 CoroutineScope로부터 Coroutine을 생성한다. 생성된 Coroutine은 비동기로 동작하게 된다. 
+
+대표적인 예시로 launch가 있다. 
+
+#### launch
+
+launch의 동작은 아래와 같다.
+
+```kotlin
+public fun CoroutineScope.launch(
+    context: CoroutineContext = EmptyCoroutineContext,
+    start: CoroutineStart = CoroutineStart.DEFAULT,
+    block: suspend CoroutineScope.() -> Unit
+): Job {
+    // 새로운 Context를 생성
+    val newContext = newCoroutineContext(context)
+    // 새로운 Context로 코루틴 생성
+    val coroutine = if (start.isLazy)
+        LazyStandaloneCoroutine(newContext, block) else
+        StandaloneCoroutine(newContext, active = true)
+    coroutine.start(start, coroutine, block)
+    return coroutine
+}
+```
+
+아래 코드를 보자.
+
+```kotlin
+fun main() {
+    runBlocking {
+        val cs = CoroutineScope(EmptyCoroutineContext)
+        log.info("job: {}", cs.coroutineContext[Job])
+
+        val job = cs.launch {
+            // coroutine created
+            delay(100)
+            log.info("context: {}", this.coroutineContext)
+            log.info("class name: {}", this.javaClass.simpleName)
+            log.info("parentJob: {}", this.coroutineContext[Job]?.parent)
+        }
+        log.info("start")
+        job.join()
+        log.info("finish")
+    }
+}
+```
+
+실행 결과는 아래와 같다.
+
+```
+40:43 [main] - job: JobImpl{Active}@229d10bd
+40:43 [main] - start
+40:43 [DefaultDispatcher-worker-1] - context: [StandaloneCoroutine{Active}@15439c7c, Dispatchers.Default]
+40:43 [DefaultDispatcher-worker-1] - class name: StandaloneCoroutine
+40:43 [DefaultDispatcher-worker-1] - parentJob: JobImpl{Active}@229d10bd
+40:43 [main] - finish
+```
+
+
 ## Structured concurrency
 
 아래 비동기 코드를 보자.
