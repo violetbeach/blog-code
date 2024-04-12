@@ -450,6 +450,40 @@ fun main() {
 40:43 [main] - finish
 ```
 
+launch를 실행한 Job을 launch 내부에서는 부모 Job으로 가지고 있는 것을 알 수 있다.
+
+launch는 비동기적으로 동작한다. 하지만, `join()`이 완료될 때까지 suspend가 되어서 finish는 잡이 실행된 이후에 실행된다.
+
+#### async
+
+launch와 유사한 메서드로 async가 있다.
+
+```kotlin
+public fun <T> CoroutineScope.async(
+    context: CoroutineContext = EmptyCoroutineContext,
+    start: CoroutineStart = CoroutineStart.DEFAULT,
+    block: suspend CoroutineScope.() -> T
+): Deferred<T> {
+    val newContext = newCoroutineContext(context)
+    val coroutine = if (start.isLazy)
+        LazyDeferredCoroutine(newContext, block) else
+        DeferredCoroutine<T>(newContext, active = true)
+    coroutine.start(start, coroutine, block)
+    return coroutine
+}
+```
+
+launch와의 유일한 차이는 Job을 반환하는 것이 아니라 Deffered를 반환하는 것이다.
+
+Deffered 인터페이스는 아래와 같다.
+
+```kotlin
+public interface Deferred<out T> : Job {
+    public suspend fun await(): T
+}
+```
+
+Deffered는 `await()`을 통해 원하는 시점에 반환하는 값에 접근할 수 있다.
 
 ## Structured concurrency
 
