@@ -1,4 +1,22 @@
-## Coroutine Scope
+코루틴 스코프에 대해 이해하기 전에 코루틴의 Spec에 대해 알아보자.
+
+## AbstractCoroutine
+
+모든 Coroutine은 AbstractCoroutine을 상속한다.
+
+```kotlin
+public abstract class AbstractCoroutine<in T>(
+    parentContext: CoroutineContext,
+    initParentJob: Boolean,
+    active: Boolean
+) : JobSupport(active), Job, Continuation<T>, CoroutineScope { ... }
+```
+
+아래는 Coroutine의 특징이다.
+- Coroutine은 Job이고, Continuation이고, CoroutinScope이다.
+- CoroutineScope: Coroutine builder로 자식 Coroutine을 생성하고 관리
+
+## CoroutineScope
 
 CoroutineScope는 Coroutine들에 대한 Scope를 정의한다.
 - 각 Coroutine들은 Scope를 가진다.
@@ -72,7 +90,46 @@ fun main() {
 
 launch를 실행한 Job을 launch 내부에서는 부모 Job으로 가지고 있는 것을 알 수 있다.
 
-launch는 비동기적으로 동작한다. 하지만, `join()`이 완료될 때까지 suspend가 되어서 finish는 잡이 실행된 이후에 실행된다.
+다음으로 아래 코드를 보자.
+
+```kotlin
+fun main() {
+    runBlocking {
+        val parent = launch {
+            launch {
+                delay(100)
+                log.info("finish sub1")
+            }
+            launch {
+                delay(100)
+                log.info("finish sub2")
+            }
+            launch {
+                delay(100)
+                log.info("finish sub3")
+            }
+        }
+
+        log.info("parent start")
+        parent.join()
+        log.info("parent end")
+    }
+}
+```
+
+아래는 결과이다.
+
+```kotlin
+35:16 [main] - parent start
+35:16 [main] - finish sub1
+35:16 [main] - finish sub2
+35:16 [main] - finish sub3
+35:16 [main] - parent end
+```
+
+sub 잡이 모두 실행된 후 `parent.join()`이 완료로 처리된다. 이는 부모 Job이 자식 Job의 생명주기를 관리한다는 것을 의미한다.
+
+launch는 비동기적으로 동작한다. 하지만, `join()`이 완료될 때까지 suspend가 되어서 end는 잡이 실행된 이후에 실행된다.
 
 #### async
 
@@ -182,7 +239,7 @@ fun main() = runBlocking {
 20:55 [main] - Finish runBlocking
 ```
 
-비동기 코드와 결과가 다른 점코드의 마지막에 호출한 `Finish runBlocking`이 마지막에 호출된다는 것이다.
+비동기 코드와 결과가 다른 점은 "Finish runBlocking"이 마지막에 출력된다는 것이다.
 
 이를 **구조화된 동시성(Structured concurrency)** 이라 한다. `coroutineScope` 키워드를 사용함으로써 **자식 코루틴(별도 쓰레드의 동작들)이 모두 종료되어야 해당 코루틴이 끝난 것으로 처리**된다.
 
