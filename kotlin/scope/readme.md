@@ -13,7 +13,7 @@ public abstract class AbstractCoroutine<in T>(
 ```
 
 아래는 Coroutine의 특징이다.
-- Coroutine은 Job이고, Continuation이고, CoroutinScope이다.
+- Coroutine은 Job, Continuation, CoroutinScope를 구현한다.
 - CoroutineScope: Coroutine builder로 자식 Coroutine을 생성하고 관리
 
 ## CoroutineScope
@@ -55,6 +55,8 @@ public fun CoroutineScope.launch(
 }
 ```
 
+기존 Context를 활용해서 새로운 Context를 만든다.
+
 아래 코드를 보자.
 
 ```kotlin
@@ -88,7 +90,7 @@ fun main() {
 40:43 [main] - finish
 ```
 
-launch를 실행한 Job을 launch 내부에서는 부모 Job으로 가지고 있는 것을 알 수 있다.
+launch를 실행한 Job과 launch 자식 Context Job의 부모가 동일함을 알 수 있다.
 
 다음으로 아래 코드를 보자.
 
@@ -299,7 +301,7 @@ fun main() = runBlocking {
 26:57 [main] - Finish runBlocking
 ```
 
-내부 코루틴에서도 `CancellationException`이 발생해서 로그가 찍힌 것을 볼 수 있다.
+자식 코루틴에서도 `CancellationException`이 발생해서 로그가 찍힌 것을 볼 수 있다.
 
 #### 방향
 
@@ -346,16 +348,16 @@ fun main() {
 ```
 
 주목해야할 점은 아래와 같다.
-- Job1을 취소했을 때 Job2는 취소되지 않았따.
+- Job1을 취소했을 때 Job2는 취소되지 않았다.
 - Job1을 취소했을 때 ParentJob은 취소되지 않았다.
 
-즉, Cancellation은 부모에서 자식으로는 전파되지만, 자식에서 부모로는 전파되지 않는다.
+Cancellation은 부모에서 자식으로는 전파되지만, 자식에서 부모로는 전파되지 않는다.
 
 #### Exception
 
-Cancellation은자식에서 부모로 전파되지 않는다.
+Cancellation은 자식에서 부모로 전파되지 않는다. 하지만 **예외가 터지는 경우**는 다르다.
 
-하지만 예외가 터질 경우는 조금 다르다.
+아래 코드를 보면 parentJob이 job1, job2를 가지고, job1에서 예외를 발생시킨다.
 
 ```kotlin
 fun main() {
@@ -401,11 +403,11 @@ Exception in thread "DefaultDispatcher-worker-2" java.lang.IllegalStateException
 50:44 [main] - parentJob is cancelled: true
 ```
 
-Job1에서 Exception이 발생하면 parentJob을 cancel하고, 이때 Job2도 Cancel로 처리된다.
+Job1에서 Exception이 발생해서 parentJob을 cancel 했고, parentJob의 자식인 Job2도 Cancel로 처리되었다. 자식 코루틴에서 Exception이 발생하면 부모까지 전파가되어서 Cancel이 되는 것이다.
 
-즉, 자식 코루틴에서 Exception이 발생하면 부모까지 전파가되어서 Cancel이 된다.
+참고로 `SupervisorJob`을 사용하면 Exception이 발생해도 Cancellation이 자식으로만 전파되고, 부모로는 전파되지 않는다.  
 
-예외를 줄 수 있는데 `SupervisorJob`을 사용하면 Exception이 발생해도 Cancellation이 자식으로만 전파되고, 부모로는 전파되지 않는다.  
+이렇게 부모 Job과 자식 Job 간의 생명주기(완료 여부, 취소 여부 등)를 어떻게 설정할 지 명시하는 것이 CoroutineScope로 이해하면 될 것 같다.
 
 ## 참고
 
