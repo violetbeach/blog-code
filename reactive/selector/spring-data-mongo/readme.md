@@ -46,3 +46,23 @@ MongoDB의 모든 document는 `_id`를 필요로 한다. MappingMongoConverter�
 - 필드명이 id이고 `@Field`로 별도 이름이 부여되지 않은 경우
 
 해당 경우가 존재하지 않으면 자동으로 `_id`를 추가한다.
+
+## Property population
+
+R2dbc에서는 Mutable일 때는 reflection을 이용한 Property population을 적용했다.
+
+Immutable인 경우는 with* 메서드를 사용해서 새로운 객체를 생성한다.
+
+객체 생성 절차는 아래와 같다.
+1. mutable 필드 Reflection으로 호출
+2. Immutable 필드 with* 메서드 호출
+
+## Index
+
+인덱스는 `@Indexed`로 사용해서 생성할 수 있다. 기본적으론느 자동 생성이 비활성화이므로 별도 생성이 필요하다.
+
+DB 쿼리로 인덱스를 직접 생성하는 것이 더 권장된다.
+
+## PersistenceConstructor
+
+`@PersistenceConstructor` 특정 constructor에 대해 Object creation 할 때 사용하게 지정할 수 있다.
