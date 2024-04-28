@@ -101,15 +101,33 @@ StepVerifier를 create하면 테스트를 위한 환경이 준비된 것이다. 
 FirstStep은 StepVerifier의 정적 메서드인 `create()`로 생성되는 인터페이스이다.
 
 ```java
-static <T> FirstStep<T> create(Publisher<? extends T> publisher) {
-	return create(publisher, Long.MAX_VALUE);
+public interface StepVerifier {
+    
+    static <T> FirstStep<T> create(Publisher<? extends T> publisher) {
+        return create(publisher, Long.MAX_VALUE);
+    }
+    
+    static <T> FirstStep<T> create(Publisher<? extends T> publisher, long n) {
+        return create(publisher, StepVerifierOptions.create().initialRequest(n));
+    }
+    
+    static <T> FirstStep<T> create(Publisher<? extends T> publisher,
+        StepVerifierOptions options) {
+        return DefaultStepVerifierBuilder.newVerifier(options, () -> publisher);
+    }
 }
 ```
 
-FirstStep은 아래의 메서드를 가진다.
+참고로 `create()`에서 사용하는 파라미터 `StepVerifierOptions`는 `StepVerifier`의 아래 속성을 지정할 수 있다.
+
+- initialRequest: Subscription에 전달할 request 수 지정
+- withInitialContext: Context 지정
+- scenarioName: 시나리오 이름 부여 (에러 발생 시 노출)
+
+아래 FirstStep은 Subscription이 제대로 이루어졌는 지 등을 검증할 수 있다.
 
 ```java
-interface FirstSte<T> extends Step<T> {
+interface FirstStep<T> extends Step<T> {
     Step<T> expectNoFusionSupport();
     Step<T> expectSubscription();
     Step<T> expectSubscriptionMatches(Predicate<? super Subscription> predicate);
@@ -117,6 +135,54 @@ interface FirstSte<T> extends Step<T> {
 ```
 
 FirstStep은 Step을 상속하므로 동작을 생략하고 바로 Step으로 넘어갈 수도 있다.
+
+## Step
+
+Step은 StepVerifier에 의해 생성되어서 체이닝되는 객체의 클래스이다.
+
+```java
+interface Step<T> extends LastStep {
+    default Step<T> assertNext(Consumer<? super T> assertionConsumer) {
+        return consumeNextWith(assertionConsumer);
+    }
+    Step<T> expectNext(T t);
+    Step<T> expectNext(T... ts);
+    Step<T> expectNextCount(long count);
+    Step<T> expectNextSequence(Iterable<? extends T> iterable);
+    Step<T> expectNextMatches(Predicate<? super T> predicate);
+}
+```
+
+Step은 onNext로 전달되는 item을 하나씩 검증한다. 각 메서드의 역할은 아래와 같다.
+- assertNext: Consumer로 item을 검증한다. 예외 미발생이면 통과
+- expectNext: 한 개 이상의 item을 순서대로 비교한 후 동일하면 통과
+- expectNextCount: onNext 이벤트가 발생한 횟수가 동일하면 통과
+- expectNextSequence: Iterable의 Element들을 onNext로 전달되는 items와 일치면 통과
+- expectNextMatches: 인자로 전달된 Predicate의 결과가 true이면 통과
+
+아래는 해당 메서드를 조합한 예시이다.
+
+```kotlin
+void test() {
+    var flux = Flux.range(0, 7);
+
+    StepVerifier.create(flux)
+            .assertNext(i -> {
+                assertEquals(0, i);
+            })
+            .expectNext(1, 2)
+            .expectNextCount(2)
+            .expectNextSequence(List.of(4, 5))
+            .expectNextMatches(i -> i == 6)
+            .expectComplete()
+            .verify();
+}
+```
+
+Step은 다음의 특징을 가진다.
+- 메서드들은 대부분 실행 후 Step을 반환하기 때문에 체이닝하여 다양한 검증이 가능하다.
+- LastStep을 구현하기 때문에 바로 LastStep의 메서드를 사용할 수 있다.
+
 
 
 
