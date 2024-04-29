@@ -183,6 +183,53 @@ Step은 다음의 특징을 가진다.
 - 메서드들은 대부분 실행 후 Step을 반환하기 때문에 체이닝하여 다양한 검증이 가능하다.
 - LastStep을 구현하기 때문에 바로 LastStep의 메서드를 사용할 수 있다.
 
+#### LastStep
 
+LastStep은 가장 마지막에 호출되어 최종 상태를 확인하는 기능을 제공한다.
 
+```java
+interface LastStep {
+    StepVerifier expectError();
+    StepVerifier expectError(Class<? extends Throwable> clazz);
+    StepVerifier expectTimeout(Duration duration);
+    StepVerifier expectComplete();
+    Duration verifyError();
+    Duration verifyError(Class<? extends Throwable> clazz);
+    Duration verifyComplete();
+}
+```
+
+LastStep은 아래 메서드를 제공한다.
+- expectError: onError가 전달되었는 지 검증
+- expectTimeout: Duradation 동안 onNext 혹은 onComplete 이벤트가 발생하지 않는 지 검증
+- expectComplete: onComplete가 전달되었는 지 검증
+- verifyXX: expectXX.verify()와 동일
+
+아래는 예시 코드이다.
+
+```java
+@Test
+void test() {
+    StepVerifier.create(Mono.just(1))
+            .expectNext(1)
+            .verifyComplete();
+}
+```
+
+LastStep의 expectXX 메서드는 StepVerifier를 반환한다.
+
+아래는 StepVerifier의 메서드 일부이다.
+
+```java
+public interface StepVerifier {
+    Duration verify() throws AssertionError;
+    Duration verify(Duration duration) throws AssertionError;
+    Assertions verifyThenAssertThat();
+    Assertions verifyThenAssertThat(Duration duration);
+}
+```
+
+반환된 StepVerifier의 `verify()`를 호출해서 Publisher에 대한 검증을 시작할 수 있다.
+- Duration을 입력하지 않으면 영원히 결과를 기다리게 된다.
+- verfyThenAssertThat을 사용해서 추가적인 검증을 할 수 있다.
 
