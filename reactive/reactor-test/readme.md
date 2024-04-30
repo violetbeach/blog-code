@@ -150,6 +150,7 @@ interface Step<T> extends LastStep {
     Step<T> expectNextCount(long count);
     Step<T> expectNextSequence(Iterable<? extends T> iterable);
     Step<T> expectNextMatches(Predicate<? super T> predicate);
+    Step<T> expectNoEvent(Duration duration);
 }
 ```
 
@@ -232,4 +233,29 @@ public interface StepVerifier {
 반환된 StepVerifier의 `verify()`를 호출해서 Publisher에 대한 검증을 시작할 수 있다.
 - Duration을 입력하지 않으면 영원히 결과를 기다리게 된다.
 - verfyThenAssertThat을 사용해서 추가적인 검증을 할 수 있다.
+
+#### withVirtualTime
+
+StepVerifier의 `withVirtualTime`을 사용하면 기존의 Scheduler 대신 VirtualTimeScheduler가 동작한다.
+
+해당 Scheduler는 delay와 관련된 함수들을 실제로 대기하는 대신 건너뛸 수 있는 기능을 제공한다.
+
+```java
+@Test
+void test() {
+    StepVerifier.withVirtualTime(() -> {
+            return Flux.range(0, 3)
+                .delayElements(Duration.ofMinutes(1));
+        })
+        .thenAwait(Duration.ofMinutes(1))
+        .expectNextCount(1)
+        .thenAwait(Duration.ofMinutes(2))
+        .expectNextCount(2)
+        .verifyComplete();
+}
+```
+
+![img.png](img.png)
+
+위 테스트는 실제로는 5분이 소요되었겠지만, 실제로는 491ms만 소요되었다.
 
