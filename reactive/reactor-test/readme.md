@@ -259,3 +259,59 @@ void test() {
 
 위 테스트는 실제로는 5분이 소요되었겠지만, 실제로는 491ms만 소요되었다.
 
+## TestPublisher
+
+Subscriber의 동작을 검증하기 위해서 직접 Publisher를 구현해야 할 수 있다. `reactor-test`는 `TestPublisher`를 제공한다.
+
+```kotlin
+public abstract class TestPublisher<T> implements Publisher<T>, PublisherProbe<T> {
+    public static <T> TestPublisher<T> create() {}
+    public abstract TestPublisher<T> next(@Nullable T value);
+    public final TestPublisher<T> next(@Nullable T first, T... rest) {}
+    public final TestPublisher<T> emit(T... values); {}
+    public final TestPublisher<T> error(Throwable t);
+    
+    public abstract TestPublisher<T> assertMinRequested(long n);
+    public abstract TestPublisher<T> assertMaxRequested(long n);
+    public abstract TestPublisher<T> assertSubscribers();
+    public abstract TestPublisher<T> assertSubscribers(int n);
+    public abstract TestPublisher<T> assertNoSubscribers();
+    public abstract TestPublisher<T> assertCancelled();
+    public abstract TestPublisher<T> assertCancelled(int n);
+    public abstract TestPublisher<T> assertNotCancelled();
+    public abstract TestPublisher<T> assertRequestOverflow();
+    public abstract TestPublisher<T> assertNoRequestOverflow();
+}
+```
+
+`TestPublsher`를 사용하면 개발자가 직접 다양한 Event를 발생시키는 `Publisher`를 쉽게 생성할 수 있다.
+
+`assertXX`를 사용하면 `Publisher`의 상태를 검증을 사용할 수도 있다. 아래 코드를 보자.
+```java
+@Test
+void test() {
+    TestPublisher<Integer> testPublisher = TestPublisher.create();
+
+    testPublisher.subscribe(new Subscriber() {
+        @Override
+        public void onSubscribe(Subscription s) {
+            s.request(5);
+        }
+
+        @Override public void onNext(Object o) { }
+        @Override public void onError(Throwable t) { }
+        @Override public void onComplete() { }
+    });
+    testPublisher.assertSubscribers(1);
+    testPublisher.assertWasRequested();
+    testPublisher.assertMinRequested(5);
+    testPublisher.assertMaxRequested(5);
+
+    testPublisher.emit(1, 2);
+    testPublisher.assertNoSubscribers();
+    testPublisher.assertWasNotCancelled();
+}
+```
+
+`assertXX`를 사용하면 `SubScriber`가 구독하는 `TestPublisher`의 상태를 검증을 사용할 수 있다.
+
