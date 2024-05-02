@@ -10,11 +10,11 @@ Reactor는 비동기로 동작하기 때문에 일반적인 테스트 방식으�
 testImplementation 'io.projectreactor:reactor-test:3.6.5'
 ```
 
-## Reactor Test가 없다면
+## Reactive Streams 테스트가 어려운 이유
 
-#### 강제 동기화
+#### 1. 강제 동기화
 
-아래 테스트를 보자.
+아래 테스트 코드를 보자.
 
 ```kotlin
 @Test
@@ -34,9 +34,11 @@ void test() {
 
 테스트의 통과를 위해 `result.collectList().block()`와 같은 비동기 코드의 강제 동기화가 필요하다.
 
-즉, 비동기 코드의 이점을 못살리는 것이다.
+비동기 코드의 이점을 못살리는 것이다.
 
-#### 다양한 테스트의 부족
+#### 2. 다양한 테스트가 어려움
+
+아래 테스트 코드를 보자.
 
 ```kotlin
 @Test
@@ -61,7 +63,7 @@ void test() {
 
 ## Reactor Test
 
-위와 같은 문제를 해결하기 위해 나온 Reactor Test에서 제공하는 기능에 대해 알아보자.
+위 문제를 해결하기 위한 **Reactor Test**에서 제공하는 기능에 대해 알아보자.
 
 #### StepVerifier
 
@@ -92,7 +94,7 @@ void test() {
 }
 ```
 
-StepVerifier를 create하면 테스트를 위한 환경이 준비된 것이다. 아직 실행한 상황이 아니다.
+StepVerifier를 create하면 테스트를 위한 환경이 준비된 것이다. 그것만으로는 동작이 발생하지 않는다.
 
 `verify()`를 호출하면 실제로 Flux가 실행되면서 `expectSubscription()`, `expectNext()`, `expectComplete()`를 통해서 이벤트를 확인한다.
 
@@ -234,7 +236,7 @@ public interface StepVerifier {
 - Duration을 입력하지 않으면 영원히 결과를 기다리게 된다.
 - verfyThenAssertThat을 사용해서 추가적인 검증을 할 수 있다.
 
-#### withVirtualTime
+## withVirtualTime
 
 StepVerifier의 `withVirtualTime`을 사용하면 기존의 Scheduler 대신 VirtualTimeScheduler가 동작한다.
 
@@ -257,7 +259,7 @@ void test() {
 
 ![img.png](img.png)
 
-위 테스트는 실제로는 5분이 소요되었겠지만, 실제로는 491ms만 소요되었다.
+실제 동작은 3분 이상이 소요되겠지만, 테스트에서는 491ms만 소요되었다.
 
 ## TestPublisher
 
@@ -290,9 +292,9 @@ public abstract class TestPublisher<T> implements Publisher<T>, PublisherProbe<T
 ```java
 @Test
 void test() {
-    TestPublisher<Integer> testPublisher = TestPublisher.create();
+    TestPublisher<Integer> publisher = TestPublisher.create();
 
-    testPublisher.subscribe(new Subscriber() {
+    publisher.subscribe(new Subscriber() {
         @Override
         public void onSubscribe(Subscription s) {
             s.request(5);
@@ -302,16 +304,20 @@ void test() {
         @Override public void onError(Throwable t) { }
         @Override public void onComplete() { }
     });
-    testPublisher.assertSubscribers(1);
-    testPublisher.assertWasRequested();
-    testPublisher.assertMinRequested(5);
-    testPublisher.assertMaxRequested(5);
+    publisher.assertSubscribers(1);
+    publisher.assertWasRequested();
+    publisher.assertMinRequested(5);
+    publisher.assertMaxRequested(5);
 
-    testPublisher.emit(1, 2);
-    testPublisher.assertNoSubscribers();
-    testPublisher.assertWasNotCancelled();
+    publisher.emit(1, 2);
+    publisher.assertNoSubscribers();
+    publisher.assertWasNotCancelled();
 }
 ```
 
 `assertXX`를 사용하면 `SubScriber`가 구독하는 `TestPublisher`의 상태를 검증을 사용할 수 있다.
 
+## 참고
+
+- https://fastcampus.co.kr/courses/216172
+- https://recordsoflife.tistory.com/1335
