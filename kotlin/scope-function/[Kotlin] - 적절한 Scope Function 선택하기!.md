@@ -113,5 +113,88 @@ Scope Function을 선택을 할 때는 Context Object를 필요에 따라 선택
 
 `let`은 대부분 모든 상황에서 사용할 수 있다. 그렇지만 **적절한 Scope Function을 선택**하면 코드의 가독성을 증대시키고 혼동을 줄일 수 있다.
 
+## 예시
+
+#### let
+
+let은 Lambda argument를 사용하고 Lambda result를 반환한다.
+
+let은 특히나 거의 대부분의 용도로 사용할 수 있기에 더 주의해야 한다. let은 아래와 같이 Lambda argument가 특정 함수의 인자로 사용할 경우 유용하게 사용할 수 있다.
+
+```kotlin
+val numbers = mutableListOf("one", "two", "three", "four", "five")
+numbers.map { it.length }.filter { it > 3 }.let(::println)
+```
+
+let은 인수가 null이 아닌 경우에 사용하길 권장한다. 그래서 Safe call operator `?.`와 같이 사용하는 경우가 많다.
+
+```kotlin
+val str: String? = "Hello"
+val length = str?.let { 
+    println("let() called on $it")        
+    processNonNullString(it)
+    it.length
+}
+```
+
+#### with
+
+with은 Lambda receiver를 사용하고, Lambda result를 반환한다.
+
+`with`은 반환된 결과를 사용할 필요가 없을 때 사용하기를 권장한다.
+
+```kotlin
+val numbers = mutableListOf("one", "two", "three")
+val firstAndLast = with(numbers) {
+    "The first element is ${first()}," +
+    " the last element is ${last()}"
+}
+```
+
+`with`는 `with this object, do the following`의 의미를 가지고 있다. 즉, object를 사용해서 후속 작업을 하는 경우에 유용하다.
+
+#### run
+
+run은 Lambda receiver를 사용하고, Lambda result를 반환한다. with와 매우 유사하지만 run은 확장 함수라는 차이가 있다.
+
+`run`은 객체를 초기화하고 연산 결과를 반환할 때 사용한다.
+
+```kotlin
+val service = MultiportService("https://example.kotlinlang.org", 80)
+
+val result = service.run {
+    port = 8080
+    query(prepareRequest() + " to port $port")
+}
+```
+
+#### apply
+
+apply는 Lambda receiver를 사용하고, 해당 객체를 반환한다.
+
+`apply`는 값을 반환하지 않고, receiver를 위주로 동작하는 코드에서 사용하길 권장한다.
+
+```kotlin
+val adam = Person("Adam").apply {
+    age = 32
+    city = "London"        
+}
+```
+
+#### also
+
+also는 `Lambda argument`를 사용하고, 해당 객체를 반환한다.
+
+`also`는 인수에 대한 추가적인 동작이 있을 때 사용한다.
+
+```kotlin
+val numbers = mutableListOf("one", "two", "three")
+numbers
+    .also { println("The list elements before adding new one: $it") }
+    .add("four")
+```
+
+apply와 차이는 Context Object가 Receiver(`this`)인지 Argument(`it`)인지의 차이이며, 앞서 설명했듯 객체의 필드 위주로 사용되면 전자, 해당 객체를 입력으로 동작을 시키는 경우 후자를 선택하면 된다.
+
 ## 참고
 - https://kotlinlang.org/docs/scope-functions.html
