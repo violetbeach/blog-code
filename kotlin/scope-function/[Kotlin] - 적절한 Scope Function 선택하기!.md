@@ -196,5 +196,30 @@ numbers
 
 apply와 차이는 Context Object가 Receiver(`this`)인지 Argument(`it`)인지의 차이이며, 앞서 설명했듯 객체의 필드 위주로 사용되면 전자, 해당 객체를 입력으로 동작을 시키는 경우 후자를 선택하면 된다.
 
+## 번외 - takeIf, takeUnless
+
+Scope Functions 이외에도 표준 라이브러리에 `takeIf`와 `takeUnless`가 있다.
+
+`takeIf`나 `takeUnless`를 사용하면 `특정 조건에 맞는 데이터 또는 NULL`을 반환합니다. 즉, 반환 타입은 `XClass?`가 되는 것입니다.
+
+```kotlin
+val number = Random.nextInt(100)
+
+val evenOrNull = number.takeIf { it % 2 == 0 }
+val oddOrNull = number.takeUnless { it % 2 == 0 }
+println("even: $evenOrNull, odd: $oddOrNull")
+```
+
+단일 객체에 대한 `filter`라고 생각하면 된다. 주로 아래와 같이 `?.let`과 같이 사용하는 경우가 많다.
+
+```kotlin
+fun displaySubstringPosition(input: String, sub: String) {
+    input.indexOf(sub).takeIf { it >= 0 }?.let {
+        println("The substring $sub is found in $input.")
+        println("Its start position is $it.")
+    }
+}
+```
+
 ## 참고
 - https://kotlinlang.org/docs/scope-functions.html
