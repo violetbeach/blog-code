@@ -1,10 +1,8 @@
 ![img.png](img.png)
 
-Kotlin 표준 라이브러리에서 객체의 컨텍스트 안에서 특정 블록의 코드를 실행하는 것이 목적인 함수가 포함되어 있다.
+Kotlin 표준 라이브러리에서 객체의 컨텍스트 안에서 특정 블록의 코드를 실행하는 것이 목적인 함수가 포함되어 있다. Kotlin에서는 **Scope Functions**을 제공하고 목적에 맞게 선택하는 것을 권장한다.
 
-코틀린에서는 Scope Functions을 제공하고 목적에 맞게 선택하는 것을 권장한다.
-
-나는 대부분 만능에 가까운 `let`을 사용했고, Scope Function을 선택하는 기준을 모르고 있었다. 해당 포스팅은 공식문서 기반으로 Scope Function을 선택하는 기준에 대한 내용이다.
+나는 대부분 만능에 가까운 `let`을 사용했고, Scope Function을 선택하는 기준을 모르고 있었다. 해당 포스팅은 공식문서 기반으로 **Scope Function을 선택하는 기준**에 대한 내용이다.
 
 ## Spec
 
@@ -27,7 +25,7 @@ Kotlin 표준 라이브러리에서 객체의 컨텍스트 안에서 특정 블�
   - 로컬 볌위의 변수로 표현식을 도입한다.
 - apply
   - 객체를 설정한다.
-run:
+- run:
   - 객체를 생성하고, 특정 동작을 수행한다.
   - 표현식이 필요한 동작 수행
 - also
@@ -35,16 +33,16 @@ run:
 - with
   - 객체의 함수 그룹핑
 
-Scope Function을 사용하면 코드가 간결해질 수 있고, Kotlin을 잘 아는 듯한 느낌이 들 수 있다.
+Scope Function을 사용하면 코드가 간결해질 수 있고 Kotlin을 잘 사용하는 듯한 느낌이 들 수 있다.
 
-하지만 공식문서에서는 Scope Function은 코드를 읽기 어렵게 만들고, 현재 Context의 객체와 `this`, `it`의 혼동으로 인한 오류를 야기할 수 있다고 한다. Scope Function의 중첩은 피하고 연결 시 충분히 주의를 해야 한다.
+하지만 공식문서에서는 **Scope Function은 코드를 읽기 어렵게 만들고**, 현재 Context의 객체와 `this`, `it`의 혼동으로 인한 **오류를 야기할 수 있다**고 한다. Scope Function의 **중첩은 피하고 연결 시 충분히 주의**를 해야 한다.
 
 코틀린의 Scope Function의 가장 큰 2개의 차이는 다음과 같다.
 
-1. Context Object 참조
-2. 반환값
+1. Context Object
+2. Return Value
 
-해당 2가지에 의해서 사용할 Scope Function을 선택하면 된다.
+해당 2가지로 **Scope Function을 선택**하면 된다.
 
 ## 기준 1. Context Object
 
