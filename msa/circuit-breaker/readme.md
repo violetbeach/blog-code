@@ -58,3 +58,9 @@ Circuit breaker는 아래 상태가 존재한다.
 - Closed: 정상적으로 요청을 받을 수 있는 상태 (Open으로 상태 이동 가능)
 - Open: Curcuit breaker가 작동하여 목적지로 가는 트래픽, 요청을 막고 fallback을 반환 (Half Open으로 상태 이동 가능)
 - Half Open: 트래픽을 조금씩 흘려보고 Open을 유지할지 Closed로 변경할 지 결정(Open, Closed로 상태 이동 가능)
+
+#### Closed
+
+Closed 상태는 가장 기본적인 상태이다.
+- 들어오는 모든 요청을 대상 메서드, 서비스에 전달
+- 서비스에 전달 후 응답이 느리거나 error가 발생한다면 fallback을
