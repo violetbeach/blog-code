@@ -75,3 +75,43 @@ Open 상태에서는 기존에 호출하던 대상을 절대로 더 이상 호�
 - Fallback을 실행하여 반환
 - 호출하는 서비스를 보호하고 복구할 수 있는 시간 확보
 
+## Sliding window
+
+Circuit breaker는 대상이 되는 서비스 호출의 결과를 Sliding window 형태로 저장한다.
+
+![img_2.png](img_2.png)
+
+CurcuitBreaker는 `Count-based sliding window`와 `Time-based sliding window`가 존재한다.
+
+- Count-based sliding window: 
+  - N개 만큼의 측정 결과를 저장
+  - 1개의 요청마다 실패율 계산 필요
+- Time-based sliding window:
+  - 최근 N초의 실패율을 계산한다.
+  - Count-based sliding window의 성능 문제를 개선
+- 전체 대비 실패 비율을 failure rate라고 한다.
+- Failure rate가 설정한 임계치에 도달하는 순간 Open 상태로 변경된다.
+
+
+## 기본 설정
+
+아래는 `CircuitBreakerConfig.ofDefaults`를 사용한 기본 설정이다.
+
+```java
+@Bean
+public Customizer<ReactiveResilience4JCircuitBreakerFactory> defaultCustomizer() {
+    return factory -> {
+        factory.configureDefault(id -> {
+
+            return new Resilience4JConfigBuilder(id)
+                    .circuitBreakerConfig(
+                            CircuitBreakerConfig.ofDefaults()
+                    ).build();
+        });
+    };
+}
+```
+
+해당 설정은 아래의 의미를 갖는다.
+- 별도의 설정을 갖지 않는 Circuit breaker에 해당 설정이 적용된다.
+- 
