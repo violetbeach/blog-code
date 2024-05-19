@@ -54,6 +54,10 @@ dependencyManagement {
 
 ### Circuit breaker 상태
 
+CircuitBreaker는 FSM을 통해 구현한다.
+
+![img_1.png](img_1.png)
+
 Circuit breaker는 아래 상태가 존재한다.
 - Closed: 정상적으로 요청을 받을 수 있는 상태 (Open으로 상태 이동 가능)
 - Open: Curcuit breaker가 작동하여 목적지로 가는 트래픽, 요청을 막고 fallback을 반환 (Half Open으로 상태 이동 가능)
@@ -63,4 +67,11 @@ Circuit breaker는 아래 상태가 존재한다.
 
 Closed 상태는 가장 기본적인 상태이다.
 - 들어오는 모든 요청을 대상 메서드, 서비스에 전달
-- 서비스에 전달 후 응답이 느리거나 error가 발생한다면 fallback을
+- 서비스에 전달 후 응답이 느리거나 error가 발생한다면 fallback을 실행
+
+#### Open
+
+Open 상태에서는 기존에 호출하던 대상을 절대로 더 이상 호출하지 않는다.
+- Fallback을 실행하여 반환
+- 호출하는 서비스를 보호하고 복구할 수 있는 시간 확보
+
