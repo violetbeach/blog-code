@@ -33,25 +33,6 @@ Spring Cloud는 Spring Cloud Circuit Breaker라는 라이브러리를 지원한�
 - Spring Cloud Circuit Breaker의 구현체로는 Resilience4j와 Spring Retry를 제공한다.
 - 해당 포스팅에서는 Resilience4j에 대해서만 다룬다.
 
-#### Resilience4j
-
-![img.png](img.png)
-
-Resilience4j는 Java에서 Curcuit breaker를 지원하는 러이브러리이다.
-
-Gradle에 아래 의존을 추가한다.
-```groovy
-dependencies {
-    implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j")
-}
-
-dependencyManagement {
-    imports {
-        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2021.0.8")
-    }
-}
-```
-
 ### Circuit breaker 상태
 
 CircuitBreaker는 FSM을 통해 구현한다.
@@ -75,6 +56,16 @@ Open 상태에서는 기존에 호출하던 대상을 절대로 더 이상 호�
 - Fallback을 실행하여 반환
 - 호출하는 서비스를 보호하고 복구할 수 있는 시간 확보
 
+#### Half Open
+
+Open 상태에서 Half open 상태로 바뀌면서 Circuit breaker는 State transition 이벤트를 발행한다.
+
+Open 상태에서 Half open으로 가기 위해서는 2가지 방법이 존재한다.
+- Circuit breaker API를 사용해서 직접 변경
+- 옵션을 지정하여 특정 시간이 지나면 자동으로 변경
+
+가령 60초에 한번씩 Open -> Half Open으로 자동 변경을 하게 설정할 수 있다.
+
 ## Sliding window
 
 Circuit breaker는 대상이 되는 서비스 호출의 결과를 Sliding window 형태로 저장한다.
@@ -92,26 +83,52 @@ CurcuitBreaker는 `Count-based sliding window`와 `Time-based sliding window`가
 - 전체 대비 실패 비율을 failure rate라고 한다.
 - Failure rate가 설정한 임계치에 도달하는 순간 Open 상태로 변경된다.
 
+#### Resilience4j
 
-## 기본 설정
+![img.png](img.png)
 
-아래는 `CircuitBreakerConfig.ofDefaults`를 사용한 기본 설정이다.
+Resilience4j는 Java에서 Curcuit breaker를 지원하는 러이브러리이다.
+
+Gradle에 아래 의존을 추가한다.
+```groovy
+dependencies {
+    implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j")
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2021.0.8")
+    }
+}
+```
+
+## 설정 Cusotm
+
+아래는 예시로 작성한 Custom한 설정이다.
 
 ```java
 @Bean
-public Customizer<ReactiveResilience4JCircuitBreakerFactory> defaultCustomizer() {
-    return factory -> {
-        factory.configureDefault(id -> {
+public Customizer<ReactiveResilience4JCircuitBreakerFactory> autoHalf() {
+    var cbConfig = CircuitBreakerConfig.custom()
+            .failureRateThreshold(50)
+            .slidingWindowSize(100)
+            .enableAutomaticTransitionFromOpenToHalfOpen()
+            .waitDurationInOpenState(Duration.ofSeconds(5))
+            .build();
 
-            return new Resilience4JConfigBuilder(id)
-                    .circuitBreakerConfig(
-                            CircuitBreakerConfig.ofDefaults()
-                    ).build();
-        });
+    var targets = new String[]{"money"};
+    return factory -> {
+        factory.addCircuitBreakerCustomizer(
+                getEventLogger(), targets);
+        factory.configure(builder -> {
+            builder.circuitBreakerConfig(cbConfig);
+        }, targets);
     };
 }
 ```
 
-해당 설정은 아래의 의미를 갖는다.
-- 별도의 설정을 갖지 않는 Circuit breaker에 해당 설정이 적용된다.
-- 
+각 프로퍼티가 의미하는 것은 아래와 같다.
+- failureRateThreshold: 장애로 인해 Open으로 상태를 전환할 FailureRate의 임계치
+- slidingWindowSize: 최근 몇 개의 요청을 측정할 지
+- enableAutomaticTransitionFromOpenToHalfOpen: 자동으로 Open -> Half open 변경을 사용할 지
+- waitDurationInOpenState: Open에서 몇 초 뒤 Half Open으로 상태를 변경할 지
