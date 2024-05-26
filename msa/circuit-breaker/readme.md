@@ -66,6 +66,10 @@ Open 상태에서 Half open으로 가기 위해서는 2가지 방법이 존재�
 
 가령 60초에 한번씩 Open -> Half Open으로 자동 변경을 하게 설정할 수 있다.
 
+Half Open 상태가 되면 Close가 되기 위해 아래의 역할을 수행한다.
+- Half open 상태에서 N번의 동작에 대한 측정 결과를 저장한다.
+- Failure rate가 임계점보다 높거나 같다면 Open으로, 낮다면 Close로 전환한다.
+
 ## Sliding window
 
 Circuit breaker는 대상이 되는 서비스 호출의 결과를 Sliding window 형태로 저장한다.
@@ -102,7 +106,7 @@ dependencyManagement {
 }
 ```
 
-## 설정 Cusotm
+## CircuitBreakerConfig
 
 아래는 예시로 작성한 Custom한 설정이다.
 
@@ -132,3 +136,127 @@ public Customizer<ReactiveResilience4JCircuitBreakerFactory> autoHalf() {
 - slidingWindowSize: 최근 몇 개의 요청을 측정할 지
 - enableAutomaticTransitionFromOpenToHalfOpen: 자동으로 Open -> Half open 변경을 사용할 지
 - waitDurationInOpenState: Open에서 몇 초 뒤 Half Open으로 상태를 변경할 지
+
+그 외에도 다양한 설정이 존재한다.
+- ignoreExceptions: 서비스에서 Exception을 던질 경우 허용할 Excceptions 목록
+- permittedNumberOfCallsInHalfOpenStatus: Half open 상태에서 허용할 호출 수
+- maxWaitDurationInHalfOpenStatus: Hlf open 상태에서 대기할 수 있는 최대 시간
+
+## TimeLimitConfig
+
+아래와 같이 TimeLimitConfig를 설정할 수 있다.
+
+```java
+@Configuration
+public class Resilience4JConfig {
+    @Bean
+    public Customizer<Resilience4JCircuitBreakerFactory> globalCustomConfiguration(){
+        CircuitBreakerConfig circuitBreakerConfig = CircuitBreakerConfig.custom()
+                .failureRateThreshold(4)
+                .waitDurationInOpenState(Duration.ofMillis(1000))
+                .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
+                .slidingWindowSize(2)
+                .build();
+
+        TimeLimiterConfig timeLimiterConfig = TimeLimiterConfig.custom()
+                .timeoutDuration(Duration.ofSeconds(4))
+                .build();
+
+        return factory -> factory.configureDefault(id -> new Resilience4JConfigBuilder(id)
+                .timeLimiterConfig(timeLimiterConfig)
+                .circuitBreakerConfig(circuitBreakerConfig)
+                .build()
+        );
+    }
+}
+```
+
+TimeLimitConfig는 아래 프로퍼티를 제공한다.
+- cancelRunningFuture: Future가 진행 중인 경우 Cancel 여부
+- timeOutDaration: Timeout 기준 시간
+
+#### yml 설정
+
+CircuitBreakerConfig나 TimeLimiterConfig는 아래와 같이 yml 설정을 사용할 수도 있다.
+
+```yaml
+resilience4j:
+  circuitbreaker:
+    instances:
+      mainGroup:
+        sliding-window-size: 10
+        failure-rate-threshold: 75
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 6
+        ignore-exceptions:
+          - java.lang.ArithmeticException
+        max-wait-duration-in-half-open-state: 30s
+      autoHalf:
+        sliding-window-size: 4
+        failure-rate-threshold: 50
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+      halfOpen:
+        sliding-window-size: 4
+        failure-rate-threshold: 50
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 3s
+        permitted-number-of-calls-in-half-open-state: 6
+    configs:
+      default:
+        register-health-indicator: true
+        sliding-window-size: 50
+      mini-window-size:
+        sliding-window-size: 4
+  timelimiter:
+    instances:
+      mainGroup:
+        timeout-duration: 1s
+        cancel-running-future: true
+      halfOpen:
+        timeout-duration: 1s
+```
+
+#### Circuit Breaker Group
+
+해당 yml은 Circuit Breaker Group 별로 구성이 되어있다.
+- Circuit Breaker Instance를 만들면서 Group을 지정할 수 임ㅆ다.
+- 아래 순서로 설정을 적용하게 된다.
+  - Instance id와 일치
+  - Group과 정확히 일치
+  - default 설정
+
+## CircuitBreaker 적용
+
+아래는 CircuitBreaker를 활용한 예시 코드이다. 
+
+주입받은 `CircuitBreakerFactory`를 사용해서 메서드를 실행할용수 있다.
+
+```java
+public Mono<String> slow() {
+	return webClient.get().uri("/slow").retrieve().bodyToMono(String.class).transform(
+        it -> circuitBreakearFactory.create("slow").run(it, throwable -> return Mono.just("fallback")));
+}
+```
+
+모든 서비스 메서드에 해당과 같은 코드가 들어간다면 비즈니스 로직에 집중하기 어렵다.
+
+그래서 애노테이션 기반으로 기능을 제공한다.
+
+```java
+@Service
+public class HelloService {
+
+    @CircuitBreaker(name = "hello", fallbackMethod = "customFallback")
+    public String hello() {
+        String hello = getHello();
+        return hello;
+    }
+    
+    private String customFallback(Throwable t) {
+        return "fallback invoked! exception type : " + t.getClass();
+    }
+}
+```
+
