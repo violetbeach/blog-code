@@ -2,36 +2,21 @@
 
 안정적인 Micro Service를 만들고, 외부 환경에 대해 신경쓰지말고 내부 로직에만 집중할 수 있게 도와주는 라이브러리이다.
 
-Spring Cloud에서 지원하는 무수한 기능 중 대표적인 3가지는 다음과 같다.
-
-#### API Grateway
-
-- 각 시스템에서 외부 API가 어떤 것인지 알 필요가 없어진다. (특정 시스템으로의 강결합이 제거된다.)
-
-#### Circuit breaker
-
-- 외부의 장애를 격리하고 시스템 안정성을 유지할 수 있다.
-- 장애 복구 시간을 확보할 수 있다.
-
-#### Spring Cloud Stream
-
-- 추상화된 발행/구독, 생산/소비 메시지 패턴을 제공한다.
-
-Kafka를 사용한다고 가정했을 때 비즈니스 코드에 카프카 코드가 들어올 수 있다. 즉, 시스템으로의 강결합 때문에  Kafka를 다른 MQ로 교체하는 등의 처리가 어려워진다.
-
-Spring Cloud Stream을 사용하면 강결합을 방지하고 로직 변경 없이 카프카를 다른 MQ로 교체하는 것이 가능해진다.
+Spring Cloud에서 지원하는 많은 기능 중 Curcuit breaker에 대해 다룬다.
 
 ## Circuit breaker
 
-Circuit breaker는 전기 회로의 차단기와 같은 역할을 하는 디자인 패턴을 말한다.
+Circuit breaker는 전기 회로의 차단기와 같은 역할을 하는 디자인 패턴을 말한다. 즉, 명칭은 기술이 아닌 패턴을 말한다. 주요 목적은 다음과 같다.
+- 외부의 장애를 격리하고 시스템 안정성을 유지할 수 있다.
+- 장애 복구 시간을 확보할 수 있다.
 
 특정 서비스의 과부하나 장애가 발생했을 때 복구가 될 때까지 추가적인 요청을 차단해서 시스템의 안정성을 유지한다.
 
 그래서 Reactive Systems의 Resilient(복원력) 지원한다고 보면 될 것 같다.
 
 Spring Cloud는 Spring Cloud Circuit Breaker라는 라이브러리를 지원한다.
-- Spring Cloud Circuit Breaker의 구현체로는 Resilience4j와 Spring Retry를 제공한다.
-- 해당 포스팅에서는 Resilience4j에 대해서만 다룬다.
+- Spring Cloud Circuit Breaker의 구현체로는 Resilience4j와 Spring Retry, Sentinel을 제공한다.
+- 해당 포스팅에서는 Resilience4j를 활용하는 예제에 대해서 다룬다.
 
 ### Circuit breaker 상태
 
@@ -39,10 +24,14 @@ CircuitBreaker는 FSM을 통해 구현한다.
 
 ![img_1.png](img_1.png)
 
-Circuit breaker는 아래 상태가 존재한다.
+Circuit breaker는 3가지 상태가 존재한다.
 - Closed: 정상적으로 요청을 받을 수 있는 상태 (Open으로 상태 이동 가능)
 - Open: Curcuit breaker가 작동하여 목적지로 가는 트래픽, 요청을 막고 fallback을 반환 (Half Open으로 상태 이동 가능)
 - Half Open: 트래픽을 조금씩 흘려보고 Open을 유지할지 Closed로 변경할 지 결정(Open, Closed로 상태 이동 가능)
+
+추가로 2가지 특별한 상태가 있다.
+- Disabled: 항상 호출을 허용
+- Forced Open: 항상 호출을 거부
 
 #### Closed
 
@@ -94,9 +83,13 @@ CurcuitBreaker는 `Count-based sliding window`와 `Time-based sliding window`가
 Resilience4j는 Java에서 Curcuit breaker를 지원하는 러이브러리이다.
 
 Gradle에 아래 의존을 추가한다.
+
 ```groovy
 dependencies {
+    // reactive
     implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j")
+    // non-reactive
+    // implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j")
 }
 
 dependencyManagement {
@@ -107,6 +100,8 @@ dependencyManagement {
 ```
 
 ## CircuitBreakerConfig
+
+기본적으로 위 의존을 추가했다면 AutoConfiguration이 동작한다. (`spring.cloud.circuitbreaker.resilience4j.enabled`를 false로 설정하면 Off 할 수 있다.) 
 
 아래는 예시로 작성한 Custom한 설정이다.
 
@@ -183,21 +178,23 @@ CircuitBreakerConfig나 TimeLimiterConfig는 아래와 같이 yml 설정을 사�
 resilience4j:
   circuitbreaker:
     instances:
-      mainGroup:
-        sliding-window-size: 10
+      order:
+        sliding-window-size: 1
         failure-rate-threshold: 75
-        automatic-transition-from-open-to-half-open-enabled: true
+        automatic-transition-from-open-to-half-open-enabled: false
         wait-duration-in-open-state: 5s
         permitted-number-of-calls-in-half-open-state: 6
         ignore-exceptions:
           - java.lang.ArithmeticException
         max-wait-duration-in-half-open-state: 30s
-      autoHalf:
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 1s
+      payment:
         sliding-window-size: 4
         failure-rate-threshold: 50
         automatic-transition-from-open-to-half-open-enabled: true
         wait-duration-in-open-state: 5s
-      halfOpen:
+      shipment:
         sliding-window-size: 4
         failure-rate-threshold: 50
         automatic-transition-from-open-to-half-open-enabled: true
@@ -206,15 +203,16 @@ resilience4j:
     configs:
       default:
         register-health-indicator: true
-        sliding-window-size: 50
+        sliding-window-size: 4
+        failure-rate-threshold: 75
       mini-window-size:
         sliding-window-size: 4
   timelimiter:
     instances:
-      mainGroup:
+      order:
         timeout-duration: 1s
         cancel-running-future: true
-      halfOpen:
+      payment:
         timeout-duration: 1s
 ```
 
@@ -234,29 +232,77 @@ resilience4j:
 주입받은 `CircuitBreakerFactory`를 사용해서 메서드를 실행할용수 있다.
 
 ```java
-public Mono<String> slow() {
-	return webClient.get().uri("/slow").retrieve().bodyToMono(String.class).transform(
-        it -> circuitBreakearFactory.create("slow").run(it, throwable -> return Mono.just("fallback")));
+@Service
+public static class DemoControllerService {
+    private ReactiveCircuitBreakerFactory cbFactory;
+    private WebClient webClient;
+
+
+    public DemoControllerService(WebClient webClient, ReactiveCircuitBreakerFactory cbFactory) {
+        this.webClient = webClient;
+        this.cbFactory = cbFactory;
+    }
+
+    public Mono<String> slow() {
+        return webClient.get().uri("/slow").retrieve().bodyToMono(String.class).transform(
+            it -> cbFactory.create("slow").run(it, throwable -> return Mono.just("fallback")));
+    }
 }
 ```
 
 모든 서비스 메서드에 해당과 같은 코드가 들어간다면 비즈니스 로직에 집중하기 어렵다.
 
-그래서 애노테이션 기반으로 기능을 제공한다.
+그래서 AOP 기반 동작을 위한 `@CircuitBreaker` 애노테이션을 제공한다.
 
-```java
-@Service
-public class HelloService {
+```kotlin
+@RestController
+class OrderController {
 
-    @CircuitBreaker(name = "hello", fallbackMethod = "customFallback")
-    public String hello() {
-        String hello = getHello();
-        return hello;
+    @GetMapping("/order")
+    @CircuitBreaker(name = "order", fallbackMethod = "orderFallback")
+    fun order(): String {
+        throw RuntimeException("주문 시스템 장애 상황")
+        return "주문이 완료되었습니다."
     }
-    
-    private String customFallback(Throwable t) {
-        return "fallback invoked! exception type : " + t.getClass();
+
+    fun orderFallback(e: Throwable): String {
+        return "잠시 후 다시 시도해주세요. cause: ${e.message}"
     }
 }
 ```
 
+실제로 API Call을 해보면 일정 실패 이후부터 아래와 같이 핸들링 되는 것을 볼 수 있다.
+
+![img_3.png](img_3.png)
+
+Timeout 테스트도 아래와 같이 진행해봤다.
+
+```kotlin
+@RestController
+class OrderController {
+
+    @GetMapping("/order")
+    @CircuitBreaker(name = "order", fallbackMethod = "orderFallback")
+    fun order(): String {
+        println("Order 요청")
+        Thread.sleep(3000)
+        return "주문이 완료되었습니다."
+    }
+
+    fun orderFallback(e: Throwable): String {
+        println("Fallback 호출")
+        return "잠시 후 다시 시도해주세요. cause: ${e.message}"
+    }
+}
+```
+
+아래와 같이 실제로 주문이 잘 진행되다가 TimeOut 상황이 되면 `order()` 자체를 실행시지 않고 바로 Fallback을 호출한다.
+
+![img_4.png](img_4.png)
+
+자동 Half Open 전환 설정이 있었다면 특정 개수만큼만 order 호출을 허용하면서 자동으로 복구할 수 있을 것이다.
+
+
+## 참고
+
+- https://docs.spring.io/spring-cloud-circuitbreaker
