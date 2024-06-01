@@ -1,12 +1,12 @@
 ## Spring Cloud
 
-안정적인 Micro Service를 만들고, 외부 환경에 대해 신경쓰지말고 내부 로직에만 집중할 수 있게 도와주는 라이브러리이다.
+Spring Cloud는 안정적인 Micro Service Architecture를 만들고 외부 환경에 대해 신경을 할애하지 않고 내부 로직에만 집중할 수 있게 도와주는 라이브러리이다.
 
-Spring Cloud에서 지원하는 많은 기능 중 Curcuit breaker에 대해 다룬다.
+Spring Cloud에서 지원하는 기능 중 Curcuit breaker에 대해 다룬다.
 
 ## Circuit breaker
 
-Circuit breaker는 전기 회로의 차단기와 같은 역할을 하는 디자인 패턴을 말한다. 즉, 명칭은 기술이 아닌 패턴을 말한다. 주요 목적은 다음과 같다.
+Circuit breaker는 전기 회로의 차단기와 같은 역할을 하는 디자인 패턴을 말한다. 즉, CurcuitBreaker는 기술이 아닌 패턴을 말한다. 주요 목적은 다음과 같다.
 - 외부의 장애를 격리하고 시스템 안정성을 유지할 수 있다.
 - 장애 복구 시간을 확보할 수 있다.
 
@@ -103,7 +103,7 @@ dependencyManagement {
 
 기본적으로 위 의존을 추가했다면 AutoConfiguration이 동작한다. (`spring.cloud.circuitbreaker.resilience4j.enabled`를 false로 설정하면 Off 할 수 있다.) 
 
-아래는 예시로 작성한 Custom한 설정이다.
+아래는 예시로 작성한 빈 기반 커스텀 설정이다.
 
 ```java
 @Bean
@@ -233,7 +233,7 @@ resilience4j:
 
 ```java
 @Service
-public static class DemoControllerService {
+public class DemoControllerService {
     private ReactiveCircuitBreakerFactory cbFactory;
     private WebClient webClient;
 
@@ -300,7 +300,7 @@ class OrderController {
 
 ![img_4.png](img_4.png)
 
-자동 Half Open 전환 설정이 있었다면 특정 개수만큼만 order 호출을 허용하면서 자동으로 복구할 수 있을 것이다.
+자동 Half Open 전환 설정을 하면 특정 개수만큼만 order 호출을 허용하면서 자동으로 복구할 수 있을 것이다.
 
 
 ## 참고
