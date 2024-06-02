@@ -10,7 +10,7 @@ Spring Webflux에서는 Controller의 suspend 함수를 지원한다.
 @RestController
 @RequestMapping("/hello")
 class HelloController {
-    private val log = logger<GreetController>()
+    private val log = logger<HelloController>()
 
     @GetMapping
     suspend fun hello() {
