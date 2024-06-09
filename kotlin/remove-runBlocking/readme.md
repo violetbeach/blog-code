@@ -1,10 +1,10 @@
-## runBlocking은 제거해야 할까?
+## runBlocking {} 제거해야 할까
 
-특정 프로젝트에 투입되어서 코틀린과 코루틴을 처음 접하는 경우가 많을 것이다.
+코틀린과 코루틴을 처음 접하는 경우가 많을 것이다.
 
-대부분 Controller 메서드의 시작이 `runBlocking()`이 되어있고, 사실상 코루틴은 `runBlocking()`, `runCatching()` 밖에 존재하지 않는 경우가 있다.  
+코틀린이 익숙하지 않은 프로젝트를 보면 대부분 Controller 메서드의 시작이 `runBlocking()`이 되어있고, 사실상 코루틴은 `runBlocking()`, `runCatching()` 밖에 존재하지 않는 경우가 있다.  
 
-내가 투입된 프로젝트의 코드도 동일한 상황이었고 그랬고, '코루틴을 사용할 때의 이점을 하나도 못누리고 있는 것은 아닐까..?' 하는 생각을 가지게 되었다.
+내가 투입된 프로젝트의 코드도 동일한 상황이었고 그랬고, '**코루틴을 사용할 때의 이점을 하나도 못누리고 있는 것은 아닐까..?**' 하는 의심을 가지게 되었다.
 
 `runBlocking`은 왜 문제이며, 어떻게 개선할 수 있는 지 알아보자.
 
@@ -14,7 +14,7 @@
 
 > Runs a new coroutine and blocks the current thread interruptibly until its completion.
 
-해당 docs를 읽어보면 `runBlocking`은 실행한 Thread를 작업이 완료할 때까지 Blocking 한다는 것을 알 수 있다. 즉, 기존의 동기코드와 동일하게 동작한다는 것이다.
+해당 docs를 읽어보면 `runBlocking`은 실행한 Thread를 작업이 완료할 때까지 Blocking 한다는 것을 알 수 있다. 기존의 동기코드와 동일하게 동작한다는 것이다.
 
 ## Problem
 
@@ -116,10 +116,9 @@ java.lang.ClassNotFoundException: org.reactivestreams.Publisher
 
 ## 생각 및 정리
 
-위에서 언급했듯 Servlet Container를 변경하지 않는 이상에는 Controller에서 `suspend` 메서드를 사용할 수 없다.
+Spring WebFlux가 아닌 Spring MVC 상황에서는 비즈니스 로직에서의 `suspend` 호출을 위해 `runBlocking`은 존재할 수 밖에 없다.
 
-즉, Spring WebFlux가 아닌 Spring MVC 상황에서는 비즈니스 로직에서의 `suspend` 호출을 위해 `runBlocking`은 존재할 수 밖에 없다.
-즉, Spring MVC와 Coroutine은 다소 Fit 하지 않는(어울리지 않는) 느낌이 있다.
+Spring MVC와 Coroutine은 다소 Fit 하지 않는(어울리지 않는) 느낌이 있다.
 
 그래서 병렬 프로그래밍을 제대로 하고 싶다면 Spring Webflux 로의 전환을 추천한다. 대부분은 Spring Webflux를 고려해서 suspend 처리를 하는 것이 더 좋다.
 
@@ -130,11 +129,9 @@ java.lang.ClassNotFoundException: org.reactivestreams.Publisher
 
 ---
 
-결론은 코드 내 대부분의 `runBlocking`을 제거하기 위해서는 Spring MVC -> WebFlux로의 전환이 필요하다는 것이다.
-- WebFlux로 전환이 되었다면 Controller에서 suspend 키워드를 사용하면 된다.
+결론은 코드 내 대부분의 `runBlocking`을 제거하기 위해서는 Spring MVC에서 WebFlux로의 전환이 필요하다는 것이다. WebFlux로 전환하면 Controller에서 suspend 키워드를 사용하면 된다.
 
-단, Spring MVC 환경에서는 `runBlocking`이 필요할 수 있으며 반드시 제거해야 한다고 보기는 어렵다.
-- 쓰레드를 블락한다는 사실을 주의해야 한다.
+Spring MVC 환경에서는 `runBlocking`이 필요할 수 있으며 반드시 제거해야 한다고 보기는 어렵다. 단, 쓰레드를 블락한다는 사실을 주의해야 한다.
 
 ## 참고
 
