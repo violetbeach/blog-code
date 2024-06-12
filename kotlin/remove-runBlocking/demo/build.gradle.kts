@@ -21,12 +21,18 @@ configurations {
 }
 
 repositories {
+    jcenter()
 	mavenCentral()
 }
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+
+    implementation("io.projectreactor:reactor-core")
+    implementation("org.reactivestreams:reactive-streams")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
+
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	compileOnly("org.projectlombok:lombok")
 	developmentOnly("org.springframework.boot:spring-boot-devtools")

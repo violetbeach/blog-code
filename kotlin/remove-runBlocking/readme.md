@@ -1,4 +1,4 @@
-## runBlocking 제거하기
+## 모든 runBlocking은 제거되어야 할까?
 
 기존재하던 프로젝트에 투입되어서 코틀린과 코루틴을 처음 접하는 경우가 많을 것이다.
 
@@ -65,4 +65,21 @@ class HelloController {
 
 즉, Spring Webflux에서 쓰레드 모델의 역할을 어느정도 책임지겠다는 것이다.
 
-그렇다면 Spring Mvc에서는 어떻게 할까?
+#### Spring MVC
+
+그렇다면 Spring MVC에서는 어떻게 될까..? 아래의 에러가 터진다!
+
+```
+java.lang.ClassNotFoundException: org.reactivestreams.Publisher
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:641) ~[na:na]
+	at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:188) ~[na:na]
+```
+
+즉, Reactive Stream 없이 컨트롤러 메서드에서 `suspend`를 사용할 수 없다.
+
+여기까지는 어떻게 보면 당연할 경과이다. Spring MVC는 thread-per-request 모델이다.
+
+#### suspend
+
+그러면 Servlet Container를 변경하지 않는 이상에는 Controller에서 `suspend` 메서드를 사용할 수 없다.
+
