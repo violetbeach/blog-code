@@ -16,4 +16,5 @@ class HelloController {
         log.info("context: {}", coroutineContext)
         log.info("thread: {}", Thread.currentThread().name)
     }
+
 }
