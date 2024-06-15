@@ -1,0 +1,7 @@
+#Spring:
+#  jackson:
+#    property-naming-strategy: com.fasterxml.jackson.databind.PropertyNamingStrategy.LowerCaseWithUnderscoresStrategy
+
+apis:
+  payment:
+    url: localhost:${wiremock.server.port}
