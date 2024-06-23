@@ -2,13 +2,15 @@
 
 ## 통합테스트
 
-요즘은 단위 테스트를 넘어서 통합테스트/인수테스트/E2E테스트를 많이 구성한다.
+요즘은 단위 테스트를 넘어서 통합테스트 / 인수테스트 / E2E테스트를 많이 구성한다.
 
 외부 API를 호출하는 코드가 있다. 해당 로직을 Mocking할 때 어떻게 할 지 생각해보자.
 
-### Product 코드
+### 주문 시스템(예시 코드)
 
 예시를 위해 제작한 주문 시스템의 코드를 보자.
+
+아래는 첫 주문 기능의 진입점인 주문 컨트롤러이다.
 
 ```kotlin
 @RestController
@@ -68,11 +70,9 @@ class PaymentService(
 
 ## 테스트 코드
 
-테스트 코드는 아래와 같다.
+테스트 코드는 아래와 같다. 통합 테스트를 할 때 MockMvc, RestAssured, Cucumber 등 다양한 도구를 사용할 수도 있다.
 
-통합 테스트를 할 때 일반적인 MockMvc를 사용할 수도 있고, RestAssured를 사용할 수 있고, Cucumber를 사용할 수도 있다.
-
-여기서는 RestAssured를 사용해서 인수 테스트를 구성했다.
+아래에서는 RestAssured를 사용해서 인수 테스트를 구성했다.
 
 ```kotlin
 class OrderAcceptanceTest : BaseAcceptanceTest() {
@@ -115,9 +115,9 @@ class BaseAcceptanceTest {
 
 ```
 
-일반적으로도 위 코드처럼 외부 API를 Mocking할 때 Service/Adaptor를 모킹하는 경우가 많다. 그런데 한 가지 의문점이 든다.
+일반적으로 위 코드처럼 외부 API를 Mocking할 때 Service/Adaptor를 모킹하는 경우가 많다. 그런데 한 가지 의문점이 든다.
 
-'이게 정말 필요한 커버리지를 보장하는 테스트 코드인가..?'
+'이게 정말 필요한 커버리지를 정말 보장하는 테스트 코드인가..?'
 
 테스트 커버리지가 100%라도 안전하지 못할 수 있는 이유도 여기서 나온다.
 
@@ -154,13 +154,13 @@ class ObjectMapperConfig {
 }
 ```
 
-이제 ObjectMapper가 통신할 때 SnakeCase로 통신한다. 즉, 기존에 PaymentApi는 CamelCase를 사용하고 있었으므로 테스트가 깨져야 정상이다.
+이제 ObjectMapper가 통신할 때 SnakeCase로 통신한다. PaymentApi는 CamelCase를 사용하고 있으므로 테스트가 깨져야 정상이다.
 
 ![img.png](img.png)
 
 하지만 테스트는 정상적으로 통과한다.
 
-ApiAdaptor를 Mocking 하면서 더 이상 직렬화/비직렬화가 실행되지 않았고, 이 부분은 테스트 코드로 잡을 수 없게 되었기 때문이다.   
+ApiAdaptor를 Mocking 하면서 **테스트 단계에서 더 이상 직렬화 / 비직렬화가 진행되지 않았고**, 해당 영역에 대한 결함은 테스트 코드로 잡을 수 없게 되었기 때문이다.   
 
 ## WireMock
 
@@ -176,7 +176,7 @@ WireMock을 사용하면 특정 빈을 모킹하지 않고도 테스트할 수 �
 implementation("org.springframework.cloud:spring-cloud-contract-wiremock:4.1.3")
 ```
 
-첫 번째로 API 호출 url을 아래와 같이 세팅한다.
+프로퍼티 설정에서 API 호출 url을 아래와 같이 세팅한다.
 
 ```yaml
 apis:
@@ -184,7 +184,7 @@ apis:
     url: localhost:${wiremock.server.port}
 ```
 
-이후 `/payment`를 호출했을 때 응답을 아래 폴더에 정의한다. `test/resources/__files//payload/payment-response.json`에 정의한다.
+이후 `/payment`를 호출했을 때 응답을 아래 폴더에 정의한다. `test/resources/__files/payload/payment-response.json`에 정의한다.
 
 ```json
 {
@@ -234,13 +234,13 @@ class BaseAcceptanceV2Test {
 
 이제 실제로 테스트를 실행해보면 `PaymentApiClient`를 실제로 호출해서 요청을 한다. 그래서 직렬화 전략이 SnakeCase일 경우 아래와 같이 테스트가 실패한다.
 
-`isSuccess` 필드가 역직렬화에 실패해서 기본 값인 false가 들어가 테스트가 실패하게 된다.
+`isSuccess` 필드가 역직렬화에 실패해서 기본 값인 false가 들어가 테스트가 실패한 것이다.
 
 ![img_1.png](img_1.png)
 
-WireMock을 사용함으로써 직렬화/역직렬화 및 네트워크 통신에서의 문제도 잡을 수 있게 된 것이다.
+WireMock을 사용함으로써 직렬화 / 역직렬화 및 네트워크 통신에서의 문제도 잡을 수 있게 된 것이다.
 
-## 추가 - 통합 테스트의 범위
+## 번외 - 통합 테스트의 범위
 
 위에서 말한 것은 통합테스트의 범위에 따라 다르다. 만약 직렬화/역직렬화 및 네트워크 통신을 포함한 범위를 테스트 하고자 한다면 WireMock을 사용해서 서버 자체를 Stub 하는 방식이 좋다.
 
@@ -266,7 +266,7 @@ fun 뿌링클_1마리_주문_요청(): OrderRequest = OrderRequest(testUserId, 1
 
 해당 테스트는 Input, Output 모두 특정 Object를 사용하고 있고, 직렬화/역직렬화는 빈으로 정의된 ObjectMapper를 따를 것이다.
 
-만약 ObjectMapper의 전략이 바뀐다면 Product / Test 환경 모두 전략이 함께 따라갈테니 버그를 잡을 수 없고, 테스트는 성공할 것이다.
+만약 ObjectMapper의 Case 전략이 바뀐다면 Product/Test 환경 모두 전략이 일치할테니 버그를 잡을 수 없고, 실제로 클라이언트나 외부 시스템에서 호출할 때는 실패할 것임에도 테스트는 성공할 것이다.
 
 ```kotlin
 class OrderAcceptanceV2Test : BaseAcceptanceV2Test() {
