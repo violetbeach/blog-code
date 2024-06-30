@@ -1,12 +1,12 @@
-최근에 팀에서 모니터링이 점점 어려워지는 문제가 발생하고 있다. 가장 큰 문제는 **불필요한 에러 Alert이 너무 많다는 것**이다.
+최근에 서비스의 모니터링이 점점 어려워지는 문제가 발생하고 있다. 가장 큰 문제는 **불필요한 에러 Alert이 너무 많다는 것**이다.
 
-그 결과 에너지를 더 많이 쏳게 되고, 정말 받아야 하는 Alert이 왔을 때 무신경하게 대응하게 된다.
+그 결과 신경을 더 많이 할애하게 되고, 정말 받아야 하는 Alert이 왔을 때 무신경하게 대응하게 된다.
 
-팀원들이 너무 바쁘기도하고, 내가 맡게 될 프로젝트의 중요도와 Risk, 트래픽 등을 고려했을 때 모니터링 개선이 반드시 필요해서 시간을 내서 학습하게 되었다.
+내가 맡게 될 프로젝트의 중요도와 Risk, 트래픽 등을 고려했을 때 모니터링 개선이 반드시 필요해서 시간을 내서 학습하게 되었다.
 
 ## Sentry
 
-Sentry은 에러 모니터링 및 성능 모니터링을 제공해주는 돋구이다. 주로 에러 트래킹이나 Slack 등을 통한 Alert으로 많이 사용한다.
+Sentry은 에러 모니터링 및 성능 모니터링을 제공해주는 도구이다. 주로 에러 트래킹이나 Slack 등을 통한 Alert으로 많이 사용한다.
 
 학습을 위해 SpringBoot 3.1.9 버전과 아래 라이브러리를 사용했다.
 
@@ -211,11 +211,59 @@ class CustomBeforeSendCallback : SentryOptions.BeforeSendCallback {
 }
 ```
 
+이를 활용하면 센트리 서버의 부담을 줄일 수 있다.
+
+## 서버에서 Ignore 처리
+
 사실 간단한 부분의 경우에는 Sentry 서버에서 Ignore 처리하는 방법도 있다.
 
 ![img_1.png](img_1.png)
 
-편리하긴 하지만, 클라리언트에서는 이벤트를 발행하고 서버에서는 적재되므로 성능이 낭비된다는 단점이 있다.
+편리하긴 하지만, 클라리언트에서는 이벤트를 발행하고 서버에서는 적재되므로 성능이 낭비된다는 점이 있다.
+
+## Tag를 활용한 분기
+
+문제 해결을 위해 적용한 주요 내용이 이부분이다.
+
+아래는 현재 사용하고 있는 Exception 구조를 요약한 것이다.
+
+```kotlin
+class BaeminException(code: ErrorCode) : RuntimeException(code.message)
+
+enum class ErrorCode(val message: String) {
+    USER_NOT_FOUND("유저가 존재하지 않습니다."),
+    ORDER_NOT_FOUND("주문이 존재하지 않습니다."),
+}
+```
+
+아래 Controller로 요청해보자.
+
+```kotlin
+@RestController
+class Controller {
+    
+    @RequestMapping("/order")
+    fun order(): Unit = throw BaeminException(ErrorCode.USER_NOT_FOUND)
+    
+}
+```
+
+SentryEvent를 보면 아래와 같이 type은 `BaeminException`, value는 `유저가 존재하지 않습니다.` 이다.
+
+![img_2.png](img_2.png)
+
+즉, 해당 에러가 왔을 때 Alert을 사용하기 위해서는 해당 메시지 문자열로 분기를 해야 하는 상황이 발생한다.
+
+![img_3.png](img_3.png)
+
+해당 메시지는 충분히 변경될 수 있는 내용이다. 즉, 메시지가 변경될 때마다 Sentry의 Alert에 동기화해줘야 한다.
+
+더 큰 문제는 ErrorLog로 인해서 발생하는 경우이다.
+
+Exception의 종류는 1개만 사용하고 ErrorCode로 분기를 하고 있다.
+
+
+
 
 ## 로그 통합
 
@@ -257,7 +305,7 @@ sentry.logging.minimum-breadcrumb-level=info
 </configuration>
 ```
 
-TODO https://docs.sentry.io/platforms/java/guides/spring-boot/logging-frameworks/
+위와 같이 Logback을 사용해서 `SentryAppender`를 구성할 수 있다. 
 
 ## 참고
 
