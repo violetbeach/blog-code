@@ -14,7 +14,7 @@ class Controller {
         try {
             throw BaeminException(ErrorCode.USER_NOT_FOUND)
         } catch (e: Exception) {
-            log.error(e.message, e)
+            log.error("유저 찾기 실패. ${e.message}", e)
         }
     }
 }

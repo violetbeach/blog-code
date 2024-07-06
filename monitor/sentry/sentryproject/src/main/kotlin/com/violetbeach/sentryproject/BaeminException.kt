@@ -1,7 +1,7 @@
 package com.violetbeach.sentryproject
 
 class BaeminException(
-    code: ErrorCode,
+    val code: ErrorCode,
 ) : RuntimeException(code.message)
 
 enum class ErrorCode(

@@ -6,9 +6,9 @@
 
 ## Sentry
 
-Sentry은 에러 모니터링 및 성능 모니터링을 제공해주는 도구이다. 주로 에러 트래킹이나 Slack 등을 통한 Alert으로 많이 사용한다.
+Sentry는 에러 모니터링 및 성능 모니터링을 제공해주는 도구이다. 주로 에러 트래킹이나 Slack 등을 통한 Alert으로 많이 사용한다.
 
-학습을 위해 SpringBoot 3.1.9 버전과 아래 라이브러리를 사용했다.
+예시를 위해 SpringBoot 3.1.9 버전과 아래 라이브러리를 사용했다.
 
 ```groovy
 implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.5.0'
@@ -59,9 +59,9 @@ class Controller {
 }
 ```
 
-우선 Error를 전달(Capture)하는 원리와 기준에 대해 알아야 한다.
+Error를 전달(Capture)하는 원리와 기준에 대해 알아야 한다.
 
-## 원리
+## 작동 원리
 
 아래는 Sentry 라이브러리에 있는 `SentryExceptionResolver`이다.
 ```java
@@ -114,11 +114,14 @@ public class SentryExceptionResolver implements HandlerExceptionResolver, Ordere
 
 그래서 예외를 catch한 경우에는 Error가 Sentry로 전달되지 않았던 것이다.
 
-그런데, `@ControllerAdvice`를 사용할 경우 Exception을 터트리지 않고 객체를 반환하도록 하는 경우가 많다.
+#### Order
+
+반면, `@ControllerAdvice`를 사용할 경우 Exception을 터트리지 않고 객체를 반환하도록 하는 경우가 많다.
 
 스프링은 `ExceptionHandlerExceptionResolver`를 검색하면서 `AnnotationAwareOrderComparator`를 사용해서 정렬한다. 해당 클래스는 Order를 사용한다.
 
 그래서 아래 속성으로 Order를 명시할 수 있다. default가 1이라서 `@ExceptionHandler`가 먼저 동작한다. (낮을수록 먼저 동작한다.)
+
 ```properties
 sentry.exception-resolver-order: 1
 ```
@@ -168,7 +171,7 @@ sentry.exception-resolver-order: 0
 
 Sentry는 올바른 정보와 합리적인 양을 가장 권장한다.
 
-`beforeSend`는 이벤트가 서버로 전송되기 직전에 호출되기 때문에 이벤트를 편집하거나 전송하지 않을 수 있다.
+`beforeSend`는 이벤트가 서버로 전송되기 직전에 호출되기 때문에 **이벤트를 편집**하거나 **아예 전송하지 않을 수** 있다.
 
 BeforeSend 콜백은 `BeforeSendCallback`을 구현해서 빈으로 등록한다.
 
@@ -183,52 +186,38 @@ class CustomBeforeSendCallback : SentryOptions.BeforeSendCallback {
 }
 ```
 
-hint를 사용해서 추가 데이터를 추출할 수도 있다.
-
-```kotlin
-@Component
-class CustomBeforeSendCallback : SentryOptions.BeforeSendCallback {
-    override fun execute(event: SentryEvent, hint: Hint): SentryEvent? {
-        if (hint["my-hint-key"] != null) {
-            null
-        }
-        return event
-    }
-}
-```
-
-Exception 정보로 필터링하는 것도 가능하다.
+Exception 정보로 분기를 하는 것도 가능하다.
 
 ```kotlin
 @Component
 class CustomBeforeSendCallback : SentryOptions.BeforeSendCallback {
     override fun execute(event: SentryEvent, hint: Hint): SentryEvent? {
         if (event.throwable is SQLException) {
-            event.fingerprints = listOf("database-connection-error")
+            return null
         }
         return event
     }
 }
 ```
 
-이를 활용하면 센트리 서버의 부담을 줄일 수 있다.
+Event를 보내지 않도록 편집한다면 센트리 서버의 부담을 줄일 수 있다.
 
 ## 서버에서 Ignore 처리
 
-사실 간단한 부분의 경우에는 Sentry 서버에서 Ignore 처리하는 방법도 있다.
+Sentry 서버에서 Ignore 처리하는 방법도 있다.
 
 ![img_1.png](img_1.png)
 
-편리하긴 하지만, 클라리언트에서는 이벤트를 발행하고 서버에서는 적재되므로 성능이 낭비된다는 점이 있다.
+클라리언트에서는 이벤트를 발행하고 서버에서는 적재되므로 클라이언트에서 필터링하는 것에 비해 성능이 낭비된다는 점이 있다.
 
-## Tag를 활용한 분기
+## Tag 활용
 
-문제 해결을 위해 적용한 주요 내용이 이부분이다.
+앞에서 작성한 부분은 개선을 위해 공식문서를 학습한 내용이라면 문제 해결을 위해 적용한 **주요 내용**이 이 부분이다.
 
-아래는 현재 사용하고 있는 Exception 구조를 요약한 것이다.
+아래는 현재 사용하고 있는 Exception 구조를 예시로 만든 것이다.
 
 ```kotlin
-class BaeminException(code: ErrorCode) : RuntimeException(code.message)
+class BaeminException(val code: ErrorCode) : RuntimeException(code.message)
 
 enum class ErrorCode(val message: String) {
     USER_NOT_FOUND("유저가 존재하지 않습니다."),
@@ -256,14 +245,49 @@ SentryEvent를 보면 아래와 같이 type은 `BaeminException`, value는 `유�
 
 ![img_3.png](img_3.png)
 
-해당 메시지는 충분히 변경될 수 있는 내용이다. 즉, 메시지가 변경될 때마다 Sentry의 Alert에 동기화해줘야 한다.
+해당 메시지는 충분히 변경될 수 있는 내용이다. 그래서 아래 문제가 존재한다.
+- 메시지가 변경될 때마다 Sentry의 Alert에 동기화해야 한다.
+- 다른 메시지가 추가되거나 변경될 때 겹쳐서 의도치 않는 결과가 발생할 수 있다.
 
-더 큰 문제는 ErrorLog로 인해서 발생하는 경우이다.
+추가로 각 Error에 대한 분류가 쉽지 않는 경우가 많다.
 
-Exception의 종류는 1개만 사용하고 ErrorCode로 분기를 하고 있다.
+아래와 같이 `BeforeSendCallback`을 활용해서 `tags`에 원하는 값을 세팅해줄 수 있다.
 
+```kotlin
+@Component
+class BaeminBeforeSendCallback : SentryOptions.BeforeSendCallback {
+    override fun execute(
+        event: SentryEvent,
+        hint: Hint,
+    ): SentryEvent? {
+        val exception = event.throwable
+        if (exception is BaeminException) {
+            event.tags?.put(ERROR_CODE_TAG, exception.code.name)
+        }
+        return event
+    }
+}
 
+const val ERROR_CODE_TAG = "errorCode"
+```
 
+Sentry 이벤트에 아래와 같이 `tags`에 Key-value가 추가된다.
+
+![img_4.png](img_4.png)
+
+그 결과 아래와 같이 `message`가 아닌 `errorCode`로 분류할 수 있게 된다.
+
+![img_5.png](img_5.png)
+
+이제 해당 Code로 조건을 분기해서 지속가능한 Alert를 만들 수 있게 되었다.
+- 불필요한 Alert의 경우 해당 조건으로 제거가 가능해졌다.
+- 반드시 필요한 Alert의 경우 해당 조건으로 별도 웹훅을 세팅할 수 있다.
+
+예시로 작성한 코드처럼 Exception이 계층화되지 않은 경우 Sentry의 1개 이슈에 다수의 에러 내용이 포함되는 경우가 있었다.
+
+![img_6.png](img_6.png)
+
+그런 부분을 위와 같이 ErrorCode 별로 필터링해서 검색도 가능하다.
 
 ## 로그 통합
 
@@ -306,6 +330,22 @@ sentry.logging.minimum-breadcrumb-level=info
 ```
 
 위와 같이 Logback을 사용해서 `SentryAppender`를 구성할 수 있다. 
+
+#### Throwable 전달하기
+
+`Sl4fj`를 사용한다면 아래와 같이 로그를 사용할 수 있다.
+
+```kotlin
+log.error("유저 찾기 실패. ${e.message}")
+```
+
+해당과 같이 사용하면 로그에 trace가 없을 뿐더러 SentryEvent에 Exception을 담을 수 없다. 그래서 위에서 설명한 Tag를 활용한 BeforeSendCallback도 적용되지 않는다.  
+
+그래서 아래와 같이 Log에 Exception을 전달해주는 것이 좋다.
+
+```kotlin
+log.error("유저 찾기 실패. ${e.message}", e)
+```
 
 ## 참고
 
