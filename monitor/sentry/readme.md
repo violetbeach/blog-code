@@ -1,8 +1,8 @@
-최근에 서비스의 모니터링이 점점 어려워지는 문제가 발생하고 있다. 가장 큰 문제는 **불필요한 에러 Alert이 너무 많다는 것**이다.
+최근에 서비스의 모니터링이 점점 어려워지는 문제가 발생하고 있었다. 가장 큰 문제는 **불필요한 에러 Alert이 너무 많다는 것**이다.
 
-그 결과 신경을 더 많이 할애하게 되고, 정말 받아야 하는 Alert이 왔을 때 무신경하게 대응하게 된다.
+그 결과 신경이 더 많이 사용되고 정말 받아야 하는 Alert이 왔을 때 놓치거나 무신경하게 대응할 수 있게 된다.
 
-내가 맡게 될 프로젝트의 중요도와 Risk, 트래픽 등을 고려했을 때 모니터링 개선이 반드시 필요해서 시간을 내서 학습하게 되었다.
+서비스의 중요도와 위험도, 트래픽 등을 고려했을 때 **모니터링 개선**이 반드시 필요해서 시간내서 학습하고 적용하게 되었다.
 
 ## Sentry
 
@@ -36,13 +36,13 @@ class Controller {
 }
 ```
 
-이제 API를 호출하면 아래와 같이 Sentry로 예외가 전달된다.
+API를 호출하면 아래와 같이 Sentry로 예외가 전달된다.
 
 ![img.png](img.png)
 
 ## 이벤트 발생 기준
 
-아래처럼 Exception을 감싸면 Sentry로 전달되지 않는다.
+아래처럼 Exception을 catch하면 에러(Event)가 Sentry로 전달되지 않는다.
 
 ```kotlin
 @RestController
@@ -59,11 +59,12 @@ class Controller {
 }
 ```
 
-Error를 전달(Capture)하는 원리와 기준에 대해 알아야 한다.
+Sentry를 잘 사용하려면 Error를 전달(Capture)하는 원리와 기준에 대해 알아야 한다.
 
 ## 작동 원리
 
 아래는 Sentry 라이브러리에 있는 `SentryExceptionResolver`이다.
+
 ```java
 public class SentryExceptionResolver implements HandlerExceptionResolver, Ordered {
     
@@ -102,7 +103,7 @@ public class SentryExceptionResolver implements HandlerExceptionResolver, Ordere
         return event;
     }
 
-    // org.springframework.core.Ordered 인터페이스의 메서드
+    // org.springframework.core.Ordered interface's method
     @Override
     public int getOrder() {
         return order;
@@ -112,11 +113,11 @@ public class SentryExceptionResolver implements HandlerExceptionResolver, Ordere
 
 해당 클래스는 `HandlerExceptionResolver`를 구현한다. `HandlerExceptionResolver`는 스프링 웹에서 발생된 예외를 핸들링 할 수 있는 기능을 제공한다.
 
-그래서 예외를 catch한 경우에는 Error가 Sentry로 전달되지 않았던 것이다.
+즉, 예외를 핸들링하는 방식으로 동작하기 때문에 catch한 경우에는 Error가 Sentry로 전달되지 않았던 것이다.
 
 #### Order
 
-반면, `@ControllerAdvice`를 사용할 경우 Exception을 터트리지 않고 객체를 반환하도록 하는 경우가 많다.
+`@ControllerAdvice`를 사용할 경우 Exception을 터트리지 않고 객체를 반환하도록 하는 경우가 많다.
 
 스프링은 `ExceptionHandlerExceptionResolver`를 검색하면서 `AnnotationAwareOrderComparator`를 사용해서 정렬한다. 해당 클래스는 Order를 사용한다.
 
@@ -161,11 +162,13 @@ sentry.maxRequestBodySize=never
 # SDK가 Sentry에 이벤트를 보낼 지 여부
 sentry.enable=true
 # 이벤트를 전송하기 전에 호출할 함수
-sentry.beforeSend: null
+sentry.beforeSend=null
 # 예외 해결 순서 지정, -2147483647로 설정하면 Spring 예외 처리기에서 처리된 오류는 무시한다.
-sentry.exception-resolver-order: 0
+sentry.exception-resolver-order=0
 ...
 ```
+
+해당 프로퍼티들은 특정 예외를 무시하도록 하거나 Event를 전송할 비율 등을 설정할 수 있다.
 
 ## 필터링
 
@@ -186,7 +189,7 @@ class CustomBeforeSendCallback : SentryOptions.BeforeSendCallback {
 }
 ```
 
-Exception 정보로 분기를 하는 것도 가능하다.
+Exception 정보로 분기를 하는 등 조건 처리도 가능하다.
 
 ```kotlin
 @Component
@@ -200,7 +203,7 @@ class CustomBeforeSendCallback : SentryOptions.BeforeSendCallback {
 }
 ```
 
-Event를 보내지 않도록 편집한다면 센트리 서버의 부담을 줄일 수 있다.
+Event를 보내지 않도록 설정하면 Sentry 서버의 부담을 줄일 수 있다.
 
 ## 서버에서 Ignore 처리
 
@@ -208,13 +211,13 @@ Sentry 서버에서 Ignore 처리하는 방법도 있다.
 
 ![img_1.png](img_1.png)
 
-클라리언트에서는 이벤트를 발행하고 서버에서는 적재되므로 클라이언트에서 필터링하는 것에 비해 성능이 낭비된다는 점이 있다.
+클라리언트에서는 이벤트를 발행하고 서버에서는 적재되므로 클라이언트에서 필터링하는 것에 비해 성능이 낭비된다는 점이 있다. 분류가 명확하지 않다면 원하지 않는 내용까지 Ignore 될 수 있다.
 
 ## Tag 활용
 
-앞에서 작성한 부분은 개선을 위해 공식문서를 학습한 내용이라면 문제 해결을 위해 적용한 **주요 내용**이 이 부분이다.
+**앞에서 작성한 부분은 개선을 위해 공식문서를 학습한 내용**이라면 **문제 해결을 위해 적용한 주요 내용**이 **이 부분**이다.
 
-아래는 현재 사용하고 있는 Exception 구조를 예시로 만든 것이다.
+아래는 Exception 구조를 예시로 만든 것이다.
 
 ```kotlin
 class BaeminException(val code: ErrorCode) : RuntimeException(code.message)
@@ -241,7 +244,7 @@ SentryEvent를 보면 아래와 같이 type은 `BaeminException`, value는 `유�
 
 ![img_2.png](img_2.png)
 
-즉, 해당 에러가 왔을 때 Alert을 사용하기 위해서는 해당 메시지 문자열로 분기를 해야 하는 상황이 발생한다.
+즉, 해당 에러가 왔을 때 Alert을 사용하기 위해서는 **메시지 문자열**로 분기를 해야 하는 상황이 발생한다.
 
 ![img_3.png](img_3.png)
 
@@ -249,7 +252,7 @@ SentryEvent를 보면 아래와 같이 type은 `BaeminException`, value는 `유�
 - 메시지가 변경될 때마다 Sentry의 Alert에 동기화해야 한다.
 - 다른 메시지가 추가되거나 변경될 때 겹쳐서 의도치 않는 결과가 발생할 수 있다.
 
-추가로 각 Error에 대한 분류가 쉽지 않는 경우가 많다.
+각 Error에 대한 분류가 쉽지 않는 경우도 많다.
 
 아래와 같이 `BeforeSendCallback`을 활용해서 `tags`에 원하는 값을 세팅해줄 수 있다.
 
@@ -283,11 +286,11 @@ Sentry 이벤트에 아래와 같이 `tags`에 Key-value가 추가된다.
 - 불필요한 Alert의 경우 해당 조건으로 제거가 가능해졌다.
 - 반드시 필요한 Alert의 경우 해당 조건으로 별도 웹훅을 세팅할 수 있다.
 
-예시로 작성한 코드처럼 Exception이 계층화되지 않은 경우 Sentry의 1개 이슈에 다수의 에러 내용이 포함되는 경우가 있었다.
+Exception이 계층화되지 않은 경우 Sentry의 1개 이슈에 다수의 에러 내용이 포함되는 경우가 있다.
 
 ![img_6.png](img_6.png)
 
-그런 부분을 위와 같이 ErrorCode 별로 필터링해서 검색도 가능하다.
+해당 상황에서 **ErrorCode 별로 필터링해서 검색**하는 것도 가능해졌다.
 
 ## 로그 통합
 
@@ -339,7 +342,7 @@ sentry.logging.minimum-breadcrumb-level=info
 log.error("유저 찾기 실패. ${e.message}")
 ```
 
-해당과 같이 사용하면 로그에 trace가 없을 뿐더러 SentryEvent에 Exception을 담을 수 없다. 그래서 위에서 설명한 Tag를 활용한 BeforeSendCallback도 적용되지 않는다.  
+문제는 로그에 trace가 없을 뿐더러 **Sentry Event에 Exception을 담을 수 없다.** 위에서 설명한 Tag를 활용한 BeforeSendCallback도 Exception이 없으므로 ErrorCode가 없어서 적용되지 않는다.  
 
 그래서 아래와 같이 Log에 Exception을 전달해주는 것이 좋다.
 
