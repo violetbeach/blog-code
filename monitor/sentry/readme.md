@@ -265,7 +265,7 @@ class BaeminBeforeSendCallback : SentryOptions.BeforeSendCallback {
     ): SentryEvent? {
         val exception = event.throwable
         if (exception is BaeminException) {
-            event.tags?.put(ERROR_CODE_TAG, exception.code.name)
+            event.setTag(ERROR_CODE_TAG, exception.code.name)
         }
         return event
     }
