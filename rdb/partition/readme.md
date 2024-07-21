@@ -75,7 +75,26 @@ INSERT는 삽입된 데이터의 파티셔닝 키에 따라 특정 파티션만 
 
 그래서 조회 조건이 특정 파티션만을 조회하도록 하고, 파티셔닝 키 컬럼을 변경할 때는 각별히 주의해야 한다.
 
+## 3. 파일 시스템 환경 변수
+
+기본적으로 MySQL 에서는 1개 테이블을 열 때 2~3개의 파일을 조회한다.
+
+만약 파티션이 1024개라면 1024 x 2~3 개의 파일을 조회할 수도 있다는 말이다.
+
+MySQL에서는 관련해서 아래의 환경 변수를 지원한다. 해당과 같은 환경 변수를 적절하게 조절해야 한다.
+
+- large_files_support: 대용량 파일 지원 여부 (여러 파티션을 조회한다면 활성화가 되어 있어야 한다.)
+- open_files_limit: MySQL이 오픈할 수 있는 최대 파일 개수 (default = OS에 따라 조정됨)
+
+## 4. etc
+
+파티셔닝된 테이블에서는 아래의 제약이 있다.
+
+- FK를 사용할 수 없다.
+- Full-Text Index를 사용할 수 없다.
+- Geometry(point, geometry, ...) 컬럼 타입을 사용할 수 없다.
+
 ## 참고
 
 - https://dev.mysql.com/doc/refman/8.4/en/partitioning.html
-https://dev.mysql.com/doc/refman/5.7/en/partitioning-limitations-locking.html
+- https://dev.mysql.com/doc/refman/5.7/en/partitioning-limitations-locking.html
