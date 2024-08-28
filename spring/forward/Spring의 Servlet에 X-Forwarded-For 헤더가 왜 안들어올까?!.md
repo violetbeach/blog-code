@@ -5,23 +5,22 @@
 
 ## 헤더에 X-Forwarded-For이 안들어오는 문제 발견
 
-아래는 사내에서 쓰는 공통 라이브러리의 코드의 일부이다.
+아래는 공통 라이브러리의 코드의 일부 코드를 요약한 것이다.
 
 ```java
-public class SecurityHelper {
+public class HeaderUtil {
     
-    static public HeaderUtil generateHeaderUtilBy(HttpServletRequest request){
-        return HeaderUtil.builder()
-                .token(request.getHeader(HeaderUtil.HIWORKS_JWT_HEADER))
+    static public HeaderInfo initHeaderInfo(HttpServletRequest request){
+        return HeaderInfo.builder()
+                .token(request.getHeader(HeaderInfo.JWT_HEADER))
                 .clientIp(request.getHeader("X-Forwarded-For"))
-                .authTypeHeader(request.getHeader(HeaderUtil.AUTH_HEADER))
                 .referer(request.getHeader("Referer"))
                 .build();
     }
 }
 ```
 
-Filter에서 HeaderUtil에 있는 `clientIp` 정보를 `UserDetails`의 구현체에 넣어서 사용한다.
+Filter에서 HeaderInfo에 있는 `clientIp` 정보를 `UserDetails`의 구현체에 넣어서 사용한다.
 
 ```java
 public class SecurityUser implements UserDetails {
@@ -38,41 +37,47 @@ public class SecurityUser implements UserDetails {
 
 ## 물어보기
 
-팀원에게 이슈를 알린 후 타 팀 동료에게 여쭤봤는데 다음의 대답이 돌아왔다. 
-
-![img_1.png](images/img_1.png)
-
-왜 안되는 지는 모르시지만, 다른 헤더 값을 뒤져서 Ip를 추출하고 있었다고 한다.
+동료에게 이슈를 알린 후 여쭤봤는데, 왜 안되는 지는 모르지만 다른 헤더 값을 뒤져서 Ip를 추출하고 있었다고 한다.
 
 그래서 **'다른 사람들이 불편을 겪기 전에 내가 해결하자!'** 라고 생각을 하게 되었다.
 
-![img_2.png](images/img_2.png)
-
-서버에 위와 같은 헤더가 들어오고 있어서 그거에 맞게 헤더만 수정하면 되었지만, 운영 팀에 **정책을 확인**해본 결과 `X-Forwarded-For`를 사용해야 한다고 하셨다.
+서버에 다른 헤더가 들어오고 있어서 그거에 맞게 헤더만 수정하면 해결은 되었지만, 확인해본 결과 `X-Forwarded-For`를 사용해야 한다고 한다.
 
 ## 원인 지점 파악
 
-feature 브랜치에 아래의 필터를 추가했다.
+아래의 필터를 디버깅 용도로 추가했다.
 
-![img_4.png](images/img_4.png)
+```java
+public class HeaderLoggingFilter implements Filter {
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+        HttpServletRequest req = (HttpServletRequest) request;
+        Enumeration<String> headerNames = req.getHeaderNames();
+        while(headerNames.hasMoreElements()) {
+            String headerName = headerNames.nextElement();
+            String headerValue = req.getHeader(headerName);
+            System.out.println("Header Name: " + headerName + ", Header Value: " + headerValue);
+        }
+        chain.doFilter(request, response);
+    }
+}
+```
 
 로깅 지점을 정리하면 아래와 같다.
 
 ![img_5.png](images/img_5.png)
 
-즉, 문제 원인을 두 가지로 나눌 수 있었다.
+즉, 문제 원인 후보를 두 가지로 나눌 수 있었다.
 
 #### 1. 컨테이너 설정이 문제인 경우
 
 만약 컨테이너 설정이 다른 경우 원인이 될 수도 있어 보였다.
 
-그렇지만 Node와 PHP로 작성된 코드의 경우는 아래와 같이 `X-Forwarded-For`이 잘 들어왔다.
-
-![img_3.png](images/img_3.png)
+그렇지만 Node와 PHP로 작성된 코드의 경우는 `X-Forwarded-For`이 잘 들어왔다.
 
 해당 프로젝트들도 CI/CD가 Java 기반 서버와 거의 동일해서 실마리를 찾지 못했다.
 
-엔지니어 분께 여쭤봤는데 더 앞단인 GateWay는 물론 리버스 프록시도 동일한 서버를 사용한다고 한다.
+리버스 프록시도 동일한 서버를 사용하고 있었다.
 
 #### 2. ServletContainer가 문제인 경우
 
@@ -91,8 +96,6 @@ ServletContainer(Tomcat)이 헤더에 관여한다면 `X-Forwarded-For`이 없�
 
 그래서 2번인 ServletContainer(Tomcat)을 의심해봤는데 로컬에서는 헤더가 잘 나온다.
 
-![img_7.png](images/img_7.png)
-
 그래서 **2번은 절대 아닐 것 같다고 생각**했고, 실제로 적용할 수 있는 거의 모든 옵션을 적용해봤는데 해결이 안되었다.
 - `server.use-forward-headers: true/false`
 - `server.forward-headers-strategy: FRAMEWORK/NATIVE`
@@ -104,7 +107,7 @@ ServletContainer(Tomcat)이 헤더에 관여한다면 `X-Forwarded-For`이 없�
 아래의 `curl`을 통해 로컬에서 띄운 서버(`localhost`)로 요청을 보냈다.
 
 ```java
-curl --location --request PATCH 'http://localhost:8080/v2/mails/1241389357' \
+curl --location --request PATCH 'http://localhost:8080/product/123456' \
 --header 'X-Forwarded-For: 99.99.99.99' \
 --header 'Custom: 22.22.22.22' \
 --header 'X-Forwarded-Jerry: 11.11.11.11' \
@@ -116,13 +119,13 @@ curl --location --request PATCH 'http://localhost:8080/v2/mails/1241389357' \
 
 그 결과 `X-Forwarded-For` 헤더까지 잘 나왔다.
 
-![img_8.png](images/img_8.png)
+![img.png](img.png)
 
 그런데 **Container**에서는 달랐다.
 
-개발 서버에 원격으로 접속해서 `localhost`로 동일한 curl을 날리니까
+개발 서버에서 `localhost`로 동일한 curl을 날리니까
 
-![img_9.png](images/img_9.png)
+![img_1.png](img_1.png)
 
 `X-Forwarded-For`만 **사라진 것**을 확인할 수 있었다!
 
@@ -130,7 +133,7 @@ curl --location --request PATCH 'http://localhost:8080/v2/mails/1241389357' \
 
 두 환경 모두 동일한 소스코드 였기에 아래의 것들을 의심했다.
 - jar 실행 스크립트
-- 사내에서 배포한 jdk 파일
+- jdk 파일
 - 컨테이너 설정
 
 세 가지 모두 확인해봤으나, 범인이 아니었고 쟤네가 Request Header에 관여를 할 것 같다는 생각도 전혀 안들었다.
@@ -193,13 +196,12 @@ curl --location --request PATCH 'http://localhost:8080/v2/mails/1241389357' \
 해결은 코드의 `request.getHeader("X-Forwarded-For")`를 `request.getRemoteAddr()`로 교체해서 간단하게 해결할 수 있었다.
 
 ```java
-public class SecurityHelper {
+public class HeaderUtil {
 
-    static public HeaderUtil generateHeaderUtilBy(HttpServletRequest request){
-        return HeaderUtil.builder()
-                .token(request.getHeader(HeaderUtil.HIWORKS_JWT_HEADER))
+    static public HeaderInfo initHeaderInfo(HttpServletRequest request){
+        return HeaderInfo.builder()
+                .token(request.getHeader(HeaderInfo.JWT_HEADER))
                 .clientIp(request.getRemoteAddr())
-                .authTypeHeader(request.getHeader(HeaderUtil.AUTH_HEADER))
                 .referer(request.getHeader("Referer"))
                 .build();
     }
