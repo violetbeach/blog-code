@@ -140,7 +140,7 @@ orderDataSource) {
         resourceDatabasePopulator.addScript(data);
     }
     DataSourceInitializer dataSourceInitializer = new DataSourceInitializer();
-    dataSourceInitializer.setDataSource(subDbDataSource);
+    dataSourceInitializer.setDataSource(orderDataSource);
     dataSourceInitializer.setDatabasePopulator(resourceDatabasePopulator);
     return dataSourceInitializer;
 }
