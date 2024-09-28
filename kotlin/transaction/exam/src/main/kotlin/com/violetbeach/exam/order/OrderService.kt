@@ -20,9 +20,25 @@ class OrderService(
         delay(100)
         val order = orderRepository.findById(id).get()
         order.submit()
+        orderRepository.save(order)
+        delay(100)
         if (throwException) {
             throw IllegalStateException("테스트 위한 에러")
         }
-        delay(100)
+    }
+
+    @Transactional
+    fun submitNotSuspend(
+        id: Long,
+        throwException: Boolean = false,
+    ) {
+        println(Thread.currentThread().name)
+        println(count++)
+        val order = orderRepository.findById(id).get()
+        order.submit()
+        orderRepository.save(order)
+        if (throwException) {
+            throw IllegalStateException("테스트 위한 에러")
+        }
     }
 }
