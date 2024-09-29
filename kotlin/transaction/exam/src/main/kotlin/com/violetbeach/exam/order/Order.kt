@@ -1,16 +1,14 @@
 package com.violetbeach.exam.order
 
-import jakarta.persistence.Entity
-import jakarta.persistence.Id
-import jakarta.persistence.Table
 import lombok.NoArgsConstructor
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Table
 
-@Entity
-@Table(name = "orders")
+@Table(name = "order_table")
 @NoArgsConstructor
 class Order(
     @Id
-    var id: Long,
+    var id: Long? = null,
     var status: OrderStatus,
 ) {
     fun submit() {

@@ -1,7 +1,8 @@
 package com.violetbeach.exam.order
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -18,27 +19,33 @@ class OrderServiceTest {
 
     @BeforeEach
     fun setup() {
-        orderRepository.deleteAll()
+        runBlocking {
+            orderRepository.deleteAll()
+        }
     }
 
     @Test
     fun `정상 저장 테스트`() {
         // given
         val order =
-            orderRepository.save(
-                Order(
-                    id = 1L,
-                    status = OrderStatus.READY,
-                ),
-            )
+            runBlocking {
+                orderRepository.save(
+                    Order(
+                        status = OrderStatus.READY,
+                    ),
+                )
+            }
 
         // when
         runBlocking(Dispatchers.IO) {
-            orderService.submit(order.id)
+            orderService.submit(order.id!!)
         }
 
         // then
-        val result = orderRepository.findById(order.id).get()
+        val result =
+            runBlocking {
+                orderRepository.findById(order.id!!)
+            }
         assertThat(result.status).isEqualTo(OrderStatus.SUBMITTED)
     }
 
@@ -46,58 +53,50 @@ class OrderServiceTest {
     fun `롤백 동작 테스트`() {
         // given
         val order =
-            orderRepository.save(
-                Order(
-                    id = 1L,
-                    status = OrderStatus.READY,
-                ),
-            )
+            runBlocking {
+                orderRepository.save(
+                    Order(
+                        status = OrderStatus.READY,
+                    ),
+                )
+            }
 
         // when
         runCatching {
             runBlocking {
-                orderService.submit(order.id, true)
+                orderService.submit(order.id!!, true)
             }
         }
 
         // then
-        val result = orderRepository.findById(order.id).get()
+        val result = runBlocking { orderRepository.findById(order.id!!) }
         assertThat(result.status).isEqualTo(OrderStatus.READY)
     }
 
-//    @Test
-//    @Disabled
-//    fun `동시성 테스트`() {
-//        // given
-//        for (i in 1L..500L) {
-//            orderRepository.save(
-//                Order(
-//                    id = i,
-//                    status = OrderStatus.READY,
-//                ),
-//            )
-//        }
-//
-//        // when
-//        val jobs = ArrayList<Job>()
-//        runBlocking {
-//            for (i in 1L..500L) {
-//                val job =
-//                    launch(Dispatchers.IO) {
-//                        runCatching {
-//                            orderService.submit(
-//                                id = i,
-//                                throwException = i % 2 == 0L,
-//                            )
-//                        }
-//                    }
-//                jobs.add(job)
-//            }
-//            jobs.joinAll()
-//        }
-//
-//        // then
-//        val submittedOrders = orderRepository.findAll().filter { it.status == OrderStatus.SUBMITTED }
-//        assertThat(submittedOrders).hasSize(250)
-//    }
+    @Test
+    fun `동시성 테스트`() =
+        runTest {
+            // given
+            repeat(2000) {
+                orderRepository.save(Order(status = OrderStatus.READY))
+            }
+
+            // when
+            val jobs = ArrayList<Job>()
+            for (i in 1L..2000L) {
+                val job =
+                    launch(Dispatchers.IO) {
+                        orderService.submit(
+                            id = i,
+                            throwException = i % 10 == 0L,
+                        )
+                    }
+                jobs.add(job)
+            }
+            jobs.joinAll()
+
+            // then
+            val submittedOrders = orderRepository.findAll().toList().filter { it.status == OrderStatus.SUBMITTED }
+            assertThat(submittedOrders).hasSize(1800)
+        }
 }

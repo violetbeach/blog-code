@@ -1,5 +1,9 @@
 package com.violetbeach.exam.order
 
-import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.repository.kotlin.CoroutineCrudRepository
+import org.springframework.stereotype.Repository
 
-interface OrderRepository : JpaRepository<Order, Long>
+@Repository
+interface OrderRepository : CoroutineCrudRepository<Order, Long> {
+    override suspend fun findById(id: Long): Order
+}

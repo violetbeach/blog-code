@@ -16,9 +16,8 @@ class OrderService(
         throwException: Boolean = false,
     ) {
         println(Thread.currentThread().name)
-        println(count++)
         delay(100)
-        val order = orderRepository.findById(id).get()
+        val order = orderRepository.findById(id)
         order.submit()
         orderRepository.save(order)
         delay(100)
@@ -27,18 +26,18 @@ class OrderService(
         }
     }
 
-    @Transactional
-    fun submitNotSuspend(
-        id: Long,
-        throwException: Boolean = false,
-    ) {
-        println(Thread.currentThread().name)
-        println(count++)
-        val order = orderRepository.findById(id).get()
-        order.submit()
-        orderRepository.save(order)
-        if (throwException) {
-            throw IllegalStateException("테스트 위한 에러")
-        }
-    }
+//    @Transactional
+//    fun submitNotSuspend(
+//        id: Long,
+//        throwException: Boolean = false,
+//    ) {
+//        println(Thread.currentThread().name)
+//        println(count++)
+//        val order = orderRepository.findById(id)
+//        order.submit()
+//        orderRepository.save(order)
+//        if (throwException) {
+//            throw IllegalStateException("테스트 위한 에러")
+//        }
+//    }
 }
