@@ -8,7 +8,7 @@ Spring JPA와 코루틴을 사용할 때 여러가지 문제가 발생한다.
 
 하나씩 알아보자.
 
-## 1. AOP 미동작
+## 1. 트랜잭션 미동작
 
 예시 코드에서 Repository는 JpaRepository를 사용한다.
 
@@ -118,12 +118,21 @@ suspend 메서드가 아닌 일반 메서드를 호출하면 테스트가 정상
 
 ![img_1.png](img_1.png)
 
-원인은 JPA는 코루틴에서의 Transaction을 지원하지 않는다. 코루틴의 Transaction은 MongoDB, R2DBC 등 Reactive 모듈에서만 제공한다.
+원인은 Spring Data JPA는 기본적으로 동기 프로세스에 대해서만 지원하고, 코루틴에서의 Transaction을 지원하지 않는다.
 
+실제로 공식 Github에서 Spring MVC + JPA 환경에서 코루틴의 `@Transactional`이 동작하지 않는다고 질문한 내용이 있다.
+
+![img_4.png](img_4.png)
+
+답변은 다음과 같다.
+
+![img_5.png](img_5.png)
+
+코루틴은 Reactive Transaction을 지원하기 때문에 MVC + JDBC가 아닌 WebFlux + R2DBC에서 사용해야 한다.
 
 [//]: # (코루틴은 내부적으로 Suspend 함수를 Continuation이라는 객체 형식으로 바꿔서 AOP가 적용된 프록시 객체를 사용하지 않기 때문에 AOP가 정상적으로 동작할 수 있다.)
 
-해결 방법은 간단하다. `CoroutineCrudRepository`와 `R2DBC`를 사용하면 된다.
+결과적으로 `CoroutineCrudRepository`와 `R2DBC`를 사용하면 된다.
 
 ```kotlin
 @Repository
@@ -135,6 +144,8 @@ interface OrderRepository : CoroutineCrudRepository<Order, Long> {
 그 결과 모든 테스트를 통과한다.
 
 ![img_2.png](img_2.png)
+
+테스트가 통과한 이유는 `R2DBC`에서는 `PlatformTransactionManager`가 아닌 `ReactiveTransactionManager`를 사용하기 때문이다.
 
 CoroutineCrudRepository와 R2DBC를 사용하면 아래 효과가 있다.
 - 데이터 접근 시 suspend 함수를 사용해서 Blocking I/O를 방지할 수 있다.
@@ -178,8 +189,6 @@ fun `동시성 테스트`() = runTest {
 동시성 테스트도 무사히 통과했다.
 
 ![img_3.png](img_3.png)
-
-테스트가 통과한 이유는 `R2dbc`에서는 `PlatformTransactionManager`가 아닌 `ReactiveTransactionManager`를 사용하기 때문이다.
 
 `ReactiveTransactionManager`는 `ThreadLocal`이 아닌 `Reactor`의 `Context`에 커넥션 정보를 보관한다. `Reactor`의 `Context`는 코루틴의 `Context`와 호환된다. 
 
