@@ -31,6 +31,7 @@ class OrderService(
         val order = orderRepository.findById(id).get()
         order.submit()
         orderRepository.save(order)
+        delay(100) // suspend 함수 호출
         if (throwException) {
             throw IllegalStateException("테스트 위한 에러")
         }
