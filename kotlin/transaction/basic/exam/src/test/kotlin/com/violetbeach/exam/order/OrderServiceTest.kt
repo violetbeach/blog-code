@@ -8,6 +8,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import java.util.concurrent.LinkedBlockingDeque
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 @SpringBootTest
 class OrderServiceTest {
@@ -16,6 +19,8 @@ class OrderServiceTest {
 
     @Autowired
     private lateinit var orderRepository: OrderRepository
+
+    private val executor = ThreadPoolExecutor(3, 3, 3000, TimeUnit.MILLISECONDS, LinkedBlockingDeque())
 
     @BeforeEach
     fun setup() {
@@ -61,6 +66,7 @@ class OrderServiceTest {
                 )
             }
 
+        // Test worker @coroutine#1
         // when
         runCatching {
             runBlocking {
@@ -73,23 +79,32 @@ class OrderServiceTest {
         assertThat(result.status).isEqualTo(OrderStatus.READY)
     }
 
-    @Test
-    fun `동시성 테스트`() =
-        runTest {
-            // given
-            repeat(2000) {
-                orderRepository.save(Order(status = OrderStatus.READY))
-            }
 
-            // when
-            val jobs = ArrayList<Job>()
-            for (i in 1L..2000L) {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `동시성 테스트`() {
+        // given
+        for (i in 1L..500L) {
+            orderRepository.save(
+                Order(
+                    id = i,
+                    status = OrderStatus.READY,
+                ),
+            )
+        }
+
+        // when
+        val jobs = ArrayList<Job>()
+        runBlocking {
+            for (i in 1L..500L) {
                 val job =
-                    launch(Dispatchers.IO) {
-                        orderService.submit(
-                            id = i,
-                            throwException = i % 10 == 0L,
-                        )
+                    launch(executor.asCoroutineDispatcher()) {
+                        runCatching {
+                            orderService.submit(
+                                id = i,
+                                throwException = i % 2 == 0L,
+                            )
+                        }
                     }
                 jobs.add(job)
             }

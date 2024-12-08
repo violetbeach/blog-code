@@ -20,7 +20,8 @@ class OrderService(
         val order = orderRepository.findById(id)
         order.submit()
         orderRepository.save(order)
-        delay(100)
+        println(Thread.currentThread().name)
+        println(count++)
         if (throwException) {
             throw IllegalStateException("테스트 위한 에러")
         }
