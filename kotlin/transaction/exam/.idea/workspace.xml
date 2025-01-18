@@ -5,41 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f5216cd5-f873-4111-877e-8f90935de29b" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/../additional/allpass.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img_1.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img_10.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img_11.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img_12.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img_13.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img_14.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img_4.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img_5.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img_6.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img_7.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img_8.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/img_9.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../additional/readme.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../basic/exam/src/main/kotlin/com/violetbeach/exam/order/OrderFacade.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.jar" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/gradle/wrapper/gradle-wrapper.jar" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gradlew" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/gradlew" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gradlew.bat" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/gradlew.bat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/settings.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/violetbeach/exam/ExamApplication.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/src/main/kotlin/com/violetbeach/exam/ExamApplication.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/violetbeach/exam/order/Order.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/src/main/kotlin/com/violetbeach/exam/order/Order.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/violetbeach/exam/order/OrderRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/src/main/kotlin/com/violetbeach/exam/order/OrderRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/violetbeach/exam/order/OrderService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/src/main/kotlin/com/violetbeach/exam/order/OrderService.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/violetbeach/exam/order/OrderStatus.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/src/main/kotlin/com/violetbeach/exam/order/OrderStatus.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/kotlin/com/violetbeach/exam/ExamApplicationTests.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/src/test/kotlin/com/violetbeach/exam/ExamApplicationTests.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/kotlin/com/violetbeach/exam/order/OrderServiceTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../basic/exam/src/test/kotlin/com/violetbeach/exam/order/OrderServiceTest.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../img.png" beforeDir="false" afterPath="$PROJECT_DIR$/../additional/img_2.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../img_1.png" beforeDir="false" afterPath="$PROJECT_DIR$/../additional/img_3.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../cache/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../../cache/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../diary/2023/images/pixabay.png" beforeDir="false" afterPath="$PROJECT_DIR$/../../../diary/2023/images/img.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../diary/2023/신입 개발자의 2년 회고 및 이직.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../../diary/2023/신입 개발자의 2년 회고 및 이직.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../diary/2024/2024년 회고.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../../diary/2024/2024년 회고.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../../diary/2024/img.png" beforeDir="false" afterPath="$PROJECT_DIR$/../../../diary/2024/pixabay.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/material_theme_project_new.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/material_theme_project_new.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -138,7 +110,7 @@
       <recent name="com.violetbeach.exam.order" />
     </key>
   </component>
-  <component name="RunManager" selected="Gradle.OrderServiceTest.롤백 동작 테스트">
+  <component name="RunManager" selected="Gradle.OrderServiceTest">
     <configuration name="OrderServiceTest" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
@@ -163,7 +135,7 @@
       <RunAsTest>true</RunAsTest>
       <method v="2" />
     </configuration>
-    <configuration name="OrderServiceTest.정상 저장 테스트" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="OrderServiceTest.롤백 동작 테스트" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -176,7 +148,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;com.violetbeach.exam.order.OrderServiceTest.정상 저장 테스트&quot;" />
+            <option value="&quot;com.violetbeach.exam.order.OrderServiceTest.롤백 동작 테스트&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -235,7 +207,7 @@
       <RunAsTest>true</RunAsTest>
       <method v="2" />
     </configuration>
-    <configuration name="OrderServiceTest.롤백 동작 테스트" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="OrderServiceTest.정상 저장 테스트" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -248,7 +220,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;com.violetbeach.exam.order.OrderServiceTest.롤백 동작 테스트&quot;" />
+            <option value="&quot;com.violetbeach.exam.order.OrderServiceTest.정상 저장 테스트&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -283,7 +255,6 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Gradle.OrderServiceTest.롤백 동작 테스트" />
         <item itemvalue="Gradle.OrderServiceTest.동시성 테스트" />
         <item itemvalue="Gradle.OrderServiceTest" />
         <item itemvalue="JUnit.OrderServiceTest" />
@@ -380,7 +351,7 @@
         <line-breakpoint enabled="true" type="kotlin-function">
           <url>file://$PROJECT_DIR$/../basic/exam/src/main/kotlin/com/violetbeach/exam/order/OrderService.kt</url>
           <line>13</line>
-          <properties class="com.violetbeach.exam.order.OrderService">
+          <properties class="com.violetbeach.exam.order.OrderService" method="submit">
             <option name="EMULATED" value="true" />
             <option name="WATCH_EXIT" value="false" />
           </properties>
