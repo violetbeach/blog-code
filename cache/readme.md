@@ -84,3 +84,7 @@ public User find(Integer id){
 
 - https://velog.io/@bonjugi/Cacheable-EhCache와-RedisCache-둘다-사용하기-CacheManager
 - https://kk-programming.tistory.com/83
+
+## 참고
+
+- https://tech.kakaopay.com/post/local-caching-in-distributed-systems
