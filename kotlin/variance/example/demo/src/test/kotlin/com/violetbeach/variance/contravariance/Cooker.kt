@@ -1,18 +1,21 @@
 package com.violetbeach.variance.contravariance
 
-interface Cooker<out T> {
+interface Cooker<in T> {
     fun cook(item: T)
 }
 
-class FoodCooker : Cooker<Food> {
-    override fun cook(item: Food) {
-        println("Cooking ${item.name}")
+class RamenCooker : Cooker<Ramen> {
+    override fun cook(item: Ramen) {
+        println("Cooking Ramen")
     }
 }
 
+class Kichen(
+    val cooker: Cooker<Food>
+)
+
 fun main() {
-    val cooker: Cooker<Ramen> = FoodCooker()
-    cooker.cook(Ramen()) // 정상 동작!
+    Kichen(cooker = RamenCooker())
 }
 
 open class SomeThing

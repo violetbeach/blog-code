@@ -14,6 +14,8 @@ class VarianceTest {
         println(list.joinToString())
     }
 
+    Comparable
+
 
     val test: Comparable
 }
